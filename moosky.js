@@ -568,7 +568,7 @@ Moosky.read = (function ()
   }
 
   function isLiteral(sexp) {
-    return sexp.tag == 'number' || sexp.tag == 'string' || sexp.tag == 'regexp';
+    return sexp.tag == 'number' || sexp.tag == 'string' || sexp.tag == 'regexp' || sexp.tag == 'literal';
   }
 
   function isJavascript(sexp) {
@@ -610,25 +610,18 @@ Moosky.compile = (function ()
     var key = car(sexp);
 
     if (isSymbol(key)) {
-      key = key.toString();
+      var parsers = { 'and': parseAnd,
+		      'begin': parseBegin,
+		      'define': parseDefine,
+		      'if': parseIf,
+		      'lambda': parseLambda,
+		      'let': parseLet,
+		      'or': parseOr,
+		      'quote': parseQuote };
 
-      if (key == 'lambda')
-	return parseLambda(sexp);
-
-      if (key == 'if')
-	return parseIf(sexp);
-
-      if (key == 'quote')
-	return parseQuote(sexp);
-
-      if (key == 'let')
-	return parseLet(sexp);
-
-      if (key == 'define')
-	return parseDefine(sexp);
-
-      if (key == 'begin')
-	return parseBegin(sexp);
+      var parser = parsers[key.toString()];
+      if (parser)
+	return parser(sexp);
     }
 
     return parseApplication(sexp);
@@ -646,6 +639,14 @@ Moosky.compile = (function ()
 
     debugger;
     throw new SyntaxError('unknown atom type: ' + atom);
+  }
+
+  function parseAnd(sexp) {
+    return cons('and', parseSequence(cdr(sexp)));
+  }
+
+  function parseOr(sexp) {
+    return cons('or', parseSequence(cdr(sexp)));
   }
 
   function parseQuote(sexp) {
@@ -772,17 +773,60 @@ Moosky.compile = (function ()
   function emit(sexp) {
     var op = car(sexp);
 
-    return ({'literal': emitLiteral,
-	     'javascript': emitJavascript,
-	     'quote': emitQuote,
-	     'deref': emitSymbolDeref,
-	     'lambda': emitLambda,
-	     'let': emitLet,
-	     'if': emitIf,
+    return ({'and': emitAnd,
 	     'apply': emitApply,
 	     'define': emitDefine,
-	     'begin': emitBegin}[car(sexp).toString()])(sexp);
+	     'begin': emitBegin,
+	     'deref': emitSymbolDeref,
+	     'if': emitIf,
+	     'javascript': emitJavascript,
+	     'lambda': emitLambda,
+	     'let': emitLet,
+	     'literal': emitLiteral,
+	     'or': emitOr,
+	     'quote': emitQuote}[car(sexp).toString()])(sexp);
+  }
 
+  function emitAnd(sexp) {
+    var len = length(sexp);
+    if (len == 0)
+      return 'true';
+
+    if (len == 1)
+      return '(' + emit(cadr(sexp)) + ')';
+
+    // (this.$temp = (expr)) == false ? false : ... : this.$temp)
+    sexp = cdr(sexp);
+    var chunks = ['('];
+    while (sexp != nil) {
+      chunks.push('(this.$temp = (');
+      chunks.push(emit(car(sexp)))
+      chunks.push(')) == false ? false : ');
+      sexp = cdr(sexp);
+    }
+    chunks.push('this.$temp)');
+    return chunks.join('');
+  }
+
+  function emitOr(sexp) {
+    var len = length(sexp);
+    if (len == 0)
+      return 'false';
+
+    if (len == 1)
+      return '(' + emit(cadr(sexp)) + ')';
+
+    // (this.$temp = (expr)) != false ? this.$temp : ... : false)
+    sexp = cdr(sexp);
+    var chunks = ['('];
+    while (sexp != nil) {
+      chunks.push('(this.$temp = (');
+      chunks.push(emit(car(sexp)))
+      chunks.push(')) != false ? this.$temp : ');
+      sexp = cdr(sexp);
+    }
+    chunks.push('false)');
+    return chunks.join('');
   }
 
   function emitLiteral(sexp) {
@@ -792,6 +836,12 @@ Moosky.compile = (function ()
 
     if (value.tag == 'string')
       return '"' + value.normed + '"';
+
+    if (value.tag == 'literal')
+      return { '#f': 'false',
+	       '#n': 'null',
+	       '#t': 'true',
+	       '#u': 'undefined' }[value.toString()];
 
     debugger;
     throw new SyntaxError('Unknown literal: ' + value.tag + ': ' + value);
@@ -1248,8 +1298,11 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			{ tag: 'space',
 			  regexp: /(\s|\n)+/ },
 
+			{ tag: 'literal',
+			  regexp: /#f|#n|#t|#u/ },
+
 			{ tag: 'number',
-			  regexp: /-?0?\.\d+|-?[1-9]\d*(\.\d*)?([eE][+-]?\d+)?|0([xX][0-9a-fA-F]+)?/ },
+			  regexp: /-?0?\.\d+|-?[1-9]\d*(\.\d*)?([eE][+-]?\d+)?|-?0([xX][0-9a-fA-F]+)?/ },
 
 			{ tag: 'string',
 			  regexp: /"(([^"\\]|\\.)*)"/, //"
@@ -1278,5 +1331,5 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			  regexp: /[\.\(\)\[\]']/ }, //'
 
 			{ tag: 'symbol',
-			  regexp: /[^$\d\n\s\(\)\[\]'".`][^$\n\s\(\)"'`\[\]]*/ }
+			  regexp: /[^#$\d\n\s\(\)\[\]'".`][^$\n\s\(\)"'`\[\]]*/ }
 		      ];
