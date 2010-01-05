@@ -7,17 +7,17 @@ Moosky = (function ()
 
 Moosky.Cons = (function ()
 {
-  function Cons(ar, dr) {
-    this.ar = ar,
-    this.dr = dr;
+  function Cons(a, d) {
+    this.$a = a,
+    this.$d = d;
   }
 
   Cons.nil = new Cons();
 
-  Cons.prototype.car = function() { return this.ar; };
-  Cons.prototype.cdr = function() { return this.dr; };
-  Cons.prototype.setCar = function(a) { this.ar = a; };
-  Cons.prototype.setCdr = function(a) { this.dr = a; };
+  Cons.prototype.car = function() { return this.$a; };
+  Cons.prototype.cdr = function() { return this.$d; };
+  Cons.prototype.setCar = function(a) { this.$a = a; };
+  Cons.prototype.setCdr = function(a) { this.$d = a; };
 
   Cons.safe_traverse = function(list, step) {
     var fast = list;
@@ -25,7 +25,7 @@ Moosky.Cons = (function ()
 
     function adv() {
       step(fast);
-      fast = fast.dr;
+      fast = fast.$d;
       if (!(fast instanceof Cons)) {
 	throw new SyntaxError('improper list.');
       }
@@ -39,7 +39,7 @@ Moosky.Cons = (function ()
 
       adv();
 
-      slow = slow.dr;
+      slow = slow.$d;
       if (fast == slow)
 	throw new SyntaxError('circular list.');
     }
@@ -57,14 +57,14 @@ Moosky.Cons = (function ()
 
     Cons.safe_traverse(this,
 		       function(lst) {
-			 tail.ar = lst.ar;
+			 tail.$a = lst.$a;
 			 var next = new Cons();
-			 tail.dr = next;
+			 tail.$d = next;
 			 tail = next;
 		       });
 
-    tail.ar = a;
-    tail.dr = Cons.nil;
+    tail.$a = a;
+    tail.$d = Cons.nil;
 
     return result;
   };
@@ -74,7 +74,7 @@ Moosky.Cons = (function ()
 
     Cons.safe_traverse(this,
 		       function(lst) {
-			 result = new Cons(lst.ar, result);
+			 result = new Cons(lst.$a, result);
 		       });
 
     return result;
@@ -644,6 +644,7 @@ Moosky.compile = (function ()
     if (isSymbol(key)) {
       var parsers = { 'and': parseAnd,
 		      'begin': parseBegin,
+		      'case': parseCase,
 		      'cond': parseCond,
 		      'define': parseDefine,
 		      'if': parseIf,
@@ -675,47 +676,32 @@ Moosky.compile = (function ()
     throw new SyntaxError('unknown atom type: ' + atom);
   }
 
-  function parseAnd(sexp) {
-    return cons('and', parseSequence(cdr(sexp)));
+  function parseApplication(sexp) {
+    var args = nil;
+    while (sexp != nil) {
+      args = cons(parseSexp(car(sexp)), args);
+      sexp = cdr(sexp);
+    }
+    return cons('apply', reverse(args));
   }
 
-  function parseOr(sexp) {
-    return cons('or', parseSequence(cdr(sexp)));
-  }
+  function parseBindings(sexp) {
+    var bindings = nil;
+    while (sexp != nil) {
+      var binding = car(sexp);
+      if (length(binding) != 2)
+	throw new SyntaxError('improper binding: ' + binding);
 
-  function parseQuote(sexp) {
-    if (length(sexp) != 2)
-      throw new SyntaxError('quote: wrong number of parts.');
+      var symbol = car(binding);
+      if (!isSymbol(symbol))
+	throw new SyntaxError('symbol expected in binding: ' + binding);
 
-    return list('quote', cadr(sexp));
-  }
-
-  function parseSet(sexp) {
-    if (length(sexp) != 3)
-      throw new SyntaxError('set!: expected (set! <variable> <expression>), not ' + sexp);
-
-    if (!isSymbol(cadr(sexp)))
-      throw new SyntaxError('set!: expected (set! <variable> <expression>); ' + cadr(sexp) + ' is not a variable');
-
-    return list('set!', cadr(sexp), parseSexp(caddr(sexp)));
-  }
-
-  function parseJavascript(sexp) {
-    var backquoteRE = /`([^`\\]|\\.)*`/mg;
-
-    var text = sexp.toString().slice(1, -1);
-    var interpolates = text.match(backquoteRE);
-    var components = nil;
-    for (var i = 0; i < interpolates.length; i++) {
-      var target = interpolates[i];
-      var index = text.indexOf(target);
-      var js = text.substring(0, index);
-      var moosky = target.slice(1, -1);
-      components = cons(parseSexp(car(Moosky.read(moosky))), cons(js, components));
-      text = text.substring(index + target.length);
+      var value = parseSexp(cadr(binding));
+      bindings = cons(cons(symbol, value), bindings);
+      sexp = cdr(sexp);
     }
 
-    return cons('javascript', reverse(cons(text, components)));
+    return reverse(bindings);
   }
 
   function parseSequence(sexp) {
@@ -728,28 +714,80 @@ Moosky.compile = (function ()
     return reverse(body);
   }
 
-  function parseLambda(sexp) {
-    var formals = cadr(sexp);
-    if (!isList(formals)) {
-      if (!isSymbol(formals))
-	throw SyntaxError('lambda: symbol expected for collective formal parameter: ' + formals);
-    } else {
-      while (formals != nil) {
-	if (!isSymbol(car(formals)))
-	  throw SyntaxError('lambda: symbol expected in formal parameter: ' + car(formals));
-	formals = cdr(formals);
-      }
-      formals = cadr(sexp);
-    }
-
-    var body = parseSequence(cddr(sexp));
-    return list('lambda', formals, body);
+  function parseAnd(sexp) {
+    return cons('and', parseSequence(cdr(sexp)));
   }
 
-  function parseIf(sexp) {
-    if (length(sexp) != 4)
-      throw new SyntaxError('if: wrong number of parts.');
-    return cons('if', parseSequence(cdr(sexp)));
+  function parseBegin(sexp) {
+    return cons('begin', parseSequence(cdr(sexp)));
+  }
+
+  function parseCase(sexp) {
+    var key = cadr(sexp);
+    var caseClauses = nil;
+
+    var temp = makeSymbol('$key');
+    var eqvp = makeSymbol('eqv?');
+    var or_ = makeSymbol('or');
+    var quote = makeSymbol('quote');
+    var begin = makeSymbol('begin');
+
+    sexp = cddr(sexp);
+    while (sexp != nil) {
+      try {
+	var clause = car(sexp);
+	var data = car(clause);
+	var expressions = cdr(clause);
+
+	var elseClause = isSymbol(data) && data.toString() == 'else';
+
+	if (cdr(sexp) != nil && elseClause || !elseClause && !isList(data)
+	    || expressions == nil)
+	  throw new SyntaxError();
+
+	var test;
+	if (elseClause)
+	  test = makeLiteral('#t');
+
+	else {
+	  test = nil;
+	  while (data != nil) {
+	    var datum = car(data);
+	    if (isSymbol(datum))
+	      datum = list(quote, datum);
+
+	    test = cons(list(eqvp, temp, datum), test);
+	    data = cdr(data);
+	  }
+
+	  test = cons(or_, test);
+	  console.log(test);
+	}
+
+	if (cdr(expressions) == nil)
+	  expressions = car(expressions);
+	else
+	  expressions = cons(begin, expressions);
+
+	caseClauses = cons(cons(test, expressions), caseClauses);
+
+      } catch(e) {
+	throw new SyntaxError('bad case clause: ' + clause);
+      }
+      sexp = cdr(sexp);
+    }
+
+    var result = makeLiteral('#u');
+    var if_ = makeSymbol('if');
+    while (caseClauses != nil) {
+      var clause = car(caseClauses);
+      result = listStar(if_, car(clause), cdr(clause), list(result));
+      caseClauses = cdr(caseClauses);
+    }
+
+    result = list(makeSymbol('let'), list(list(temp, key)), result)
+    console.log(result);
+    return parseSexp(result);
   }
 
   function parseCond(sexp) {
@@ -809,52 +847,14 @@ Moosky.compile = (function ()
     }
 
     var result = list('literal', makeLiteral('#u'));
+    var if_ = makeSymbol('if');
     while (condClauses != nil) {
       var clause = car(condClauses);
-      result = listStar(makeSymbol('if'), car(clause), cdr(clause), list(result));
+      result = listStar(if_, car(clause), cdr(clause), list(result));
       condClauses = cdr(condClauses);
     }
 
     return result;
-  }
-
-  function parseApplication(sexp) {
-    var args = nil;
-    while (sexp != nil) {
-      args = cons(parseSexp(car(sexp)), args);
-      sexp = cdr(sexp);
-    }
-    return cons('apply', reverse(args));
-  }
-
-  function parseBindings(sexp) {
-    var bindings = nil;
-    while (sexp != nil) {
-      var binding = car(sexp);
-      if (length(binding) != 2)
-	throw new SyntaxError('improper binding: ' + binding);
-
-      var symbol = car(binding);
-      if (!isSymbol(symbol))
-	throw new SyntaxError('symbol expected in binding: ' + binding);
-
-      var value = parseSexp(cadr(binding));
-      bindings = cons(cons(symbol, value), bindings);
-      sexp = cdr(sexp);
-    }
-
-    return reverse(bindings);
-  }
-
-  function parseLet(sexp) {
-    var bindings = parseBindings(cadr(sexp));
-    var body = parseSequence(cddr(sexp));
-
-    return list('let', bindings, body);
-  }
-
-  function parseBegin(sexp) {
-    return cons('begin', parseSequence(cdr(sexp)));
   }
 
   function parseDefine(sexp) {
@@ -881,6 +881,76 @@ Moosky.compile = (function ()
     return list('define', name, body);
   }
 
+  function parseIf(sexp) {
+    if (length(sexp) != 4)
+      throw new SyntaxError('if: wrong number of parts.');
+    return cons('if', parseSequence(cdr(sexp)));
+  }
+
+  function parseJavascript(sexp) {
+    var backquoteRE = /`([^`\\]|\\.)*`/mg;
+
+    var text = sexp.toString().slice(1, -1);
+    var interpolates = text.match(backquoteRE);
+    var components = nil;
+    for (var i = 0; i < interpolates.length; i++) {
+      var target = interpolates[i];
+      var index = text.indexOf(target);
+      var js = text.substring(0, index);
+      var moosky = target.slice(1, -1);
+      components = cons(parseSexp(car(Moosky.read(moosky))), cons(js, components));
+      text = text.substring(index + target.length);
+    }
+
+    return cons('javascript', reverse(cons(text, components)));
+  }
+
+  function parseLambda(sexp) {
+    var formals = cadr(sexp);
+    if (!isList(formals)) {
+      if (!isSymbol(formals))
+	throw SyntaxError('lambda: symbol expected for collective formal parameter: ' + formals);
+    } else {
+      while (formals != nil) {
+	if (!isSymbol(car(formals)))
+	  throw SyntaxError('lambda: symbol expected in formal parameter: ' + car(formals));
+	formals = cdr(formals);
+      }
+      formals = cadr(sexp);
+    }
+
+    var body = parseSequence(cddr(sexp));
+    return list('lambda', formals, body);
+  }
+
+  function parseLet(sexp) {
+    var bindings = parseBindings(cadr(sexp));
+    var body = parseSequence(cddr(sexp));
+
+    return list('let', bindings, body);
+  }
+
+  function parseOr(sexp) {
+    return cons('or', parseSequence(cdr(sexp)));
+  }
+
+  function parseQuote(sexp) {
+    if (length(sexp) != 2)
+      throw new SyntaxError('quote: wrong number of parts.');
+
+    return list('quote', cadr(sexp));
+  }
+
+  function parseSet(sexp) {
+    if (length(sexp) != 3)
+      throw new SyntaxError('set!: expected (set! <variable> <expression>), not ' + sexp);
+
+    if (!isSymbol(cadr(sexp)))
+      throw new SyntaxError('set!: expected (set! <variable> <expression>); ' + cadr(sexp) + ' is not a variable');
+
+    return list('set!', cadr(sexp), parseSexp(caddr(sexp)));
+  }
+
   function emit(sexp) {
     var op = car(sexp);
 
@@ -900,15 +970,16 @@ Moosky.compile = (function ()
   }
 
   function emitAnd(sexp) {
-    var len = length(sexp);
-    if (len == 0)
+    sexp = cdr(sexp);
+
+    var values = length(sexp);
+    if (values == 0)
       return 'true';
 
-    if (len == 1)
-      return '(' + emit(cadr(sexp)) + ')';
+    if (values == 1)
+      return emit(car(sexp));
 
     // (this.$temp = (expr)) == false ? false : ... : this.$temp)
-    sexp = cdr(sexp);
     var chunks = ['('];
     while (sexp != nil) {
       chunks.push('(this.$temp = (');
@@ -921,15 +992,15 @@ Moosky.compile = (function ()
   }
 
   function emitOr(sexp) {
-    var len = length(sexp);
-    if (len == 0)
+    sexp = cdr(sexp);
+    var values = length(sexp);
+    if (values == 0)
       return 'false';
 
-    if (len == 1)
-      return '(' + emit(cadr(sexp)) + ')';
+    if (values == 1)
+      return emit(car(sexp));
 
     // (this.$temp = (expr)) != false ? this.$temp : ... : false)
-    sexp = cdr(sexp);
     var chunks = ['('];
     while (sexp != nil) {
       chunks.push('(this.$temp = (');
@@ -959,9 +1030,35 @@ Moosky.compile = (function ()
     throw new SyntaxError('Unknown literal: ' + value.tag + ': ' + value);
   }
 
+  function quoteSexp(sexp) {
+    if (isPair(sexp))
+      return cons(quoteSexp(car(sexp)), quoteSexp(cdr(sexp)));
+
+    if (sexp == nil || isSymbol(sexp))
+      return sexp;
+
+    if (sexp.tag == 'regexp')
+      return new RegExp(sexp.toString());
+
+    if (sexp.tag == 'number')
+      return Number(sexp.toString());
+
+    if (sexp.tag == 'string')
+      return sexp.toString();
+
+    if (sexp.tag == 'literal')
+      return { '#f': false,
+	       '#n': null,
+	       '#t': true,
+	       '#u': undefined }[sexp.toString()];
+
+    debugger;
+    throw new SyntaxError('Unknown sexp: ' + sexp);
+  }
+
   function emitQuote(sexp) {
     var quoteId = Moosky.Top.$quoted.length;
-    Moosky.Top.$quoted.push(cadr(sexp));
+    Moosky.Top.$quoted.push(quoteSexp(cadr(sexp)));
     return '(this.$quoted[' + quoteId + '])';
   }
 

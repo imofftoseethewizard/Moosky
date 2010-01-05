@@ -73,7 +73,7 @@ One final thing to note is that the empty string is
 
 #<<
 
-#>>
+>>#
 
 since each delimiter has a newline.
 
@@ -122,7 +122,6 @@ or
 
 4.2.1
 case
-cond
 
 4.2.2
 let*
@@ -144,9 +143,6 @@ letrec-syntax
 
 4.3.2
 syntax-rules
-
-5.2.1
-set!
 
 5.3
 define-syntax
