@@ -2,7 +2,7 @@ Moosky = (function ()
 {
   return function (str) {
     return eval(Moosky.compile(Moosky.read(str)));
-  }
+  };
 })();
 
 Moosky.Cons = (function ()
@@ -16,8 +16,8 @@ Moosky.Cons = (function ()
 
   Cons.prototype.car = function() { return this.ar; };
   Cons.prototype.cdr = function() { return this.dr; };
-  Cons.prototype.setCar = function(a) { this.ar = a };
-  Cons.prototype.setCdr = function(a) { this.dr = a };
+  Cons.prototype.setCar = function(a) { this.ar = a; };
+  Cons.prototype.setCdr = function(a) { this.dr = a; };
 
   Cons.safe_traverse = function(list, step) {
     var fast = list;
@@ -27,7 +27,6 @@ Moosky.Cons = (function ()
       step(fast);
       fast = fast.dr;
       if (!(fast instanceof Cons)) {
-	console.log(this);
 	throw new SyntaxError('improper list.');
       }
     }
@@ -42,15 +41,15 @@ Moosky.Cons = (function ()
 
       slow = slow.dr;
       if (fast == slow)
-	throw new SyntaxError('circular list.')
+	throw new SyntaxError('circular list.');
     }
-  }
+  };
 
   Cons.prototype.length = function() {
     var length = 0;
     Cons.safe_traverse(this, function(_) { length++ });
     return length;
-  }
+  };
 
   Cons.prototype.append = function(a) {
     var result = new Cons();
@@ -68,7 +67,7 @@ Moosky.Cons = (function ()
     tail.dr = Cons.nil;
 
     return result;
-  }
+  };
 
   Cons.prototype.reverse = function() {
     var result = Cons.nil;
@@ -79,14 +78,21 @@ Moosky.Cons = (function ()
 		       });
 
     return result;
-  }
+  };
 
   Cons.printSexp = function(sexp) {
     if (sexp == nil)
       return "'()";
 
-    if (!isList(sexp))
+    if (!isList(sexp)) {
+      switch (sexp) {
+	case false: return '#f';
+	case null: return '#n';
+	case true: return '#t';
+	case undefined: return '#u';
+      }
       return sexp.toString();
+    }
 
     var result = [];
     while (sexp != nil) {
@@ -102,7 +108,7 @@ Moosky.Cons = (function ()
     }
 
     return '(' + result.join(' ') + ')';
-  }
+  };
 
   Cons.prototype.toString = function() { return Cons.printSexp(this); };
 
@@ -193,6 +199,14 @@ Moosky.Cons = (function ()
     return list;
   }
 
+  function listStar(___) {
+    var list = arguments[arguments.length-1];
+    for (var i = arguments.length-2; i >= 0; i--)
+      list = cons(arguments[i], list);
+
+    return list;
+  }
+
   function length(list) {
     if (!isList(list))
       throw new SyntaxError('length: not a list:' + list);
@@ -239,6 +253,7 @@ Moosky.Cons = (function ()
   }
 
   Cons.exports = {
+    printSexp: Cons.printSexp,
     nil: Cons.nil,
     isNull: isNull,
     isList: isList,
@@ -277,6 +292,7 @@ Moosky.Cons = (function ()
     cdddar: cdddar,
     cddddr: cddddr,
     list: list,
+    listStar: listStar,
     length: length,
     append: append,
     reverse: reverse,
@@ -328,6 +344,7 @@ Moosky.Cons = (function ()
     cdddar: cdddar,
     cddddr: cddddr,
     list: list,
+    'list*': listStar,
     length: length,
     append: append,
     reverse: reverse,
@@ -421,13 +438,13 @@ Moosky.read = (function ()
   }
 
   function lex(lexemeClasses, str) {
-    var lexemeClasses = map(function (lexemeClass) {
-			      return { tag: lexemeClass.tag,
-				       regexp: new RegExp(lexemeClass.regexp.source, 'g'),
-				       normalize: lexemeClass.normalize,
-				       condition: lexemeClass.condition,
-				       nextMatch: { index: -1 } };
-			    }, lexemeClasses);
+    lexemeClasses = map(function (lexemeClass) {
+			  return { tag: lexemeClass.tag,
+				   regexp: new RegExp(lexemeClass.regexp.source, 'g'),
+				   normalize: lexemeClass.normalize,
+				   condition: lexemeClass.condition,
+				   nextMatch: { index: -1 } };
+			}, lexemeClasses);
 
     var lexemes = [];
     var i = 0, length = str.length;
@@ -527,9 +544,7 @@ Moosky.read = (function ()
       }
 
       if (sexp != nil && car(sexp) != nil && car(sexp).toString() == "'") {
-	var quote = new String('quote');
-	quote.tag = 'symbol'
-	sexp = cons(cons(quote, cons(next, nil)), cdr(sexp));
+	sexp = cons(cons(makeSymbol('quote'), cons(next, nil)), cdr(sexp));
       } else
 	sexp = cons(next, sexp);
     }
@@ -539,7 +554,7 @@ Moosky.read = (function ()
     }
 
     if (dotted && last === undefined) {
-      throw 'Dotted list ended abruptly.'
+      throw 'Dotted list ended abruptly.';
     }
 
     var result = last === undefined ? nil : last;
@@ -561,6 +576,21 @@ Moosky.read = (function ()
     var result = parseLexemes(lexemes, -1);
 
     return result.sexp;
+  }
+
+  function makeToken(tag, str) {
+    var token = new String(str);
+    token.tag = tag;
+
+    return token;
+  }
+
+  function makeSymbol(str) {
+    return makeToken('symbol', str);
+  }
+
+  function makeLiteral(str) {
+    return makeToken('literal', str);
   }
 
   function isSymbol(sexp) {
@@ -588,6 +618,8 @@ Moosky.read = (function ()
   }
 
   read.exports = {
+    makeSymbol: makeSymbol,
+    makeLiteral: makeLiteral,
     isSymbol: isSymbol,
     isJavascript: isJavascript,
     isLiteral: isLiteral,
@@ -618,7 +650,8 @@ Moosky.compile = (function ()
 		      'lambda': parseLambda,
 		      'let': parseLet,
 		      'or': parseOr,
-		      'quote': parseQuote };
+		      'quote': parseQuote,
+		      'set!': parseSet };
 
       var parser = parsers[key.toString()];
       if (parser)
@@ -657,6 +690,16 @@ Moosky.compile = (function ()
     return list('quote', cadr(sexp));
   }
 
+  function parseSet(sexp) {
+    if (length(sexp) != 3)
+      throw new SyntaxError('set!: expected (set! <variable> <expression>), not ' + sexp);
+
+    if (!isSymbol(cadr(sexp)))
+      throw new SyntaxError('set!: expected (set! <variable> <expression>); ' + cadr(sexp) + ' is not a variable');
+
+    return list('set!', cadr(sexp), parseSexp(caddr(sexp)));
+  }
+
   function parseJavascript(sexp) {
     var backquoteRE = /`([^`\\]|\\.)*`/mg;
 
@@ -691,15 +734,16 @@ Moosky.compile = (function ()
       if (!isSymbol(formals))
 	throw SyntaxError('lambda: symbol expected for collective formal parameter: ' + formals);
     } else {
-      var formals = formals;
       while (formals != nil) {
 	if (!isSymbol(car(formals)))
 	  throw SyntaxError('lambda: symbol expected in formal parameter: ' + car(formals));
 	formals = cdr(formals);
       }
+      formals = cadr(sexp);
     }
+
     var body = parseSequence(cddr(sexp));
-    return list('lambda', formals, body)
+    return list('lambda', formals, body);
   }
 
   function parseIf(sexp) {
@@ -709,16 +753,78 @@ Moosky.compile = (function ()
   }
 
   function parseCond(sexp) {
-    
+    var condClauses = nil;
+    sexp = cdr(sexp);
+    while (sexp != nil) {
+      var clause = car(sexp);
+      try {
+	var test = car(clause);
+	var elseClause = isSymbol(test) && test.toString() == 'else';
+	var expressions = cdr(clause);
+
+	function makeAnaphoricTest(test) {
+	  // ironically, this is implemented as an epistrophe
+	  return list(makeSymbol('begin'),
+		      list(makeSymbol('set!'), makeSymbol('$temp'), test),
+		      makeSymbol('$temp'));
+	}
+
+	if (expressions == nil) {
+	  test = makeAnaphoricTest(test);
+	  expressions = list(makeSymbol('$temp'));
+
+	} else {
+	  var expr_1 = car(expressions);
+	  var anaphoric = isSymbol(expr_1) && expr_1.toString() == '=>';
+
+	  if (anaphoric) {
+	    test = makeAnaphoricTest(test);
+
+	    expressions = cdr(expressions);
+	    if (cdr(expressions) != nil)
+	      throw new SyntaxError();
+
+	    expressions = list(list(car(expressions), makeSymbol('$temp')));
+	  }
+
+	  if (expressions == nil)
+	    throw new SyntaxError();
+	}
+
+	if (cdr(expressions) == nil)
+	  expressions = car(expressions);
+	else
+	  expressions = cons(makeSymbol('begin'), expressions);
+
+	test = parseSexp(test);
+	expressions = parseSexp(expressions);
+
+	condClauses = cons(cons(test, expressions), condClauses);
+
+      } catch (e) {
+	throw new SyntaxError('bad cond clause: ' + clause);
+      }
+
+      sexp = cdr(sexp);
+    }
+
+    var result = list('literal', makeLiteral('#u'));
+    while (condClauses != nil) {
+      var clause = car(condClauses);
+      result = listStar(makeSymbol('if'), car(clause), cdr(clause), list(result));
+      condClauses = cdr(condClauses);
+    }
+
+    return result;
   }
 
   function parseApplication(sexp) {
     var args = nil;
     while (sexp != nil) {
-      args = cons(parseSexp(car(sexp)), args)
+      args = cons(parseSexp(car(sexp)), args);
       sexp = cdr(sexp);
     }
-    return cons('apply', reverse(args))
+    return cons('apply', reverse(args));
   }
 
   function parseBindings(sexp) {
@@ -789,7 +895,8 @@ Moosky.compile = (function ()
 	     'let': emitLet,
 	     'literal': emitLiteral,
 	     'or': emitOr,
-	     'quote': emitQuote}[car(sexp).toString()])(sexp);
+	     'quote': emitQuote,
+	     'set!': emitSet}[car(sexp).toString()])(sexp);
   }
 
   function emitAnd(sexp) {
@@ -805,7 +912,7 @@ Moosky.compile = (function ()
     var chunks = ['('];
     while (sexp != nil) {
       chunks.push('(this.$temp = (');
-      chunks.push(emit(car(sexp)))
+      chunks.push(emit(car(sexp)));
       chunks.push(')) == false ? false : ');
       sexp = cdr(sexp);
     }
@@ -826,7 +933,7 @@ Moosky.compile = (function ()
     var chunks = ['('];
     while (sexp != nil) {
       chunks.push('(this.$temp = (');
-      chunks.push(emit(car(sexp)))
+      chunks.push(emit(car(sexp)));
       chunks.push(')) != false ? this.$temp : ');
       sexp = cdr(sexp);
     }
@@ -858,20 +965,45 @@ Moosky.compile = (function ()
     return '(this.$quoted[' + quoteId + '])';
   }
 
+  var jsIdentifierRE = /^[$\w_][\w\d_]*$/;
+
+  var jsKeywords = ["break", "case", "catch", "continue", "default", "delete",
+		    "do", "else", "finally", "for", "function", "if", "in",
+		    "instanceof", "new", "return", "switch", "this", "throw",
+		    "try", "typeof", "var", "void", "while", "with"];
+
+  var jsReservedWords = ["abstract", "boolean", "byte", "char", "class",
+			 "const", "debugger", "double", "enum", "export",
+			 "extends", "final", "float", "goto", "implements",
+			 "import", "int", "interface", "long", "native",
+			 "package", "private", "protected", "public", "short",
+			 "static", "super", "synchronized", "throws",
+			 "transient", "volatile"];
+
+  var jsReservedRE = new RegExp('^' + jsKeywords.join('|') + '|'
+				+ jsReservedWords.join('|') + '$');
+
+  function requiresQuotes(variable) {
+    return !variable.match(jsIdentifierRE) || variable.match(jsReservedRE);
+  }
+
   function emitSymbolDeref(sexp) {
     var symbol = car(cdr(sexp)).toString();
     if (symbol.match(/\./))
       return symbol;
     else {
-      if (symbol.match(/^[\w_][\w\d_]*$/))
-	return 'this.' + symbol;
-      else
+      if (requiresQuotes(symbol))
 	return 'this["' + symbol + '"]';
+      else
+	return 'this.' + symbol;
     }
   }
 
   function emitBinding(symbol, value) {
-    return 'env["' + symbol.toString() + '"] = ' + value + ';\n';
+    if (requiresQuotes(symbol))
+      return 'env["' + symbol.toString() + '"] = ' + value + ';\n';
+    else
+      return 'env.' + symbol.toString() + ' = ' + value + ';\n';
   }
 
   function emitSequence(sexp) {
@@ -880,7 +1012,7 @@ Moosky.compile = (function ()
       values.push(emit(car(sexp)));
       sexp = cdr(sexp);
     }
-    return '(' + values.join('), (') + ')';
+    return '(' + values.join(', ') + ')';
   }
 
   function emitLambda(sexp) {
@@ -933,7 +1065,7 @@ Moosky.compile = (function ()
     var test = emit(car(sexp = cdr(sexp)));
     var consequent = emit(car(sexp = cdr(sexp)));
     var alternate = emit(car(sexp = cdr(sexp)));
-    return '((' + test + ')' + ' ? (' + consequent + ') : (' + alternate + '))';
+    return '(' + test + ' != false ' + ' ? (' + consequent + ') : (' + alternate + '))';
   }
 
   function emitApply(sexp) {
@@ -976,6 +1108,16 @@ Moosky.compile = (function ()
       }
     }
     return '(function () { ' + chunks.join('') + '}).call(this)';
+  }
+
+  function emitSet(sexp) {
+    var variable = cadr(sexp).toString();
+    var value = emit(caddr(sexp));
+
+    if (requiresQuotes(variable))
+      return '(this["' + variable + '"] = ' + value + ')';
+    else
+      return '(this.' + variable + ' = ' + value + ')';
   }
 
   return function compile(sexp) {
