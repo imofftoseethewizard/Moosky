@@ -612,6 +612,7 @@ Moosky.compile = (function ()
     if (isSymbol(key)) {
       var parsers = { 'and': parseAnd,
 		      'begin': parseBegin,
+		      'cond': parseCond,
 		      'define': parseDefine,
 		      'if': parseIf,
 		      'lambda': parseLambda,
@@ -705,6 +706,10 @@ Moosky.compile = (function ()
     if (length(sexp) != 4)
       throw new SyntaxError('if: wrong number of parts.');
     return cons('if', parseSequence(cdr(sexp)));
+  }
+
+  function parseCond(sexp) {
+    
   }
 
   function parseApplication(sexp) {
@@ -857,8 +862,12 @@ Moosky.compile = (function ()
     var symbol = car(cdr(sexp)).toString();
     if (symbol.match(/\./))
       return symbol;
-    else
-      return 'this["' + symbol + '"]'
+    else {
+      if (symbol.match(/^[\w_][\w\d_]*$/))
+	return 'this.' + symbol;
+      else
+	return 'this["' + symbol + '"]';
+    }
   }
 
   function emitBinding(symbol, value) {
@@ -931,9 +940,9 @@ Moosky.compile = (function ()
     var func = emit(cadr(sexp));
     var actuals = cddr(sexp);
 
-    var isPrimitive = isSymbol(cadr(sexp)) && func.match(/\./);
+    var isPrimitive = caadr(sexp) == 'deref' && func.match(/\./);
 
-    var values = [];
+    var values = isPrimitive ? [] : ['this'];
     while (actuals != nil) {
       values.push(emit(car(actuals)));
       actuals = cdr(actuals);
@@ -941,8 +950,8 @@ Moosky.compile = (function ()
 
     if (isPrimitive)
       return func + '(' + values.join(', ') + ')';
-
-    return '(' + func + ').call(this, ' + values.join(', ') + ')';
+    else
+      return '(' + func + ').call(' + values.join(', ') + ')';
   }
 
   function emitDefine(sexp) {
