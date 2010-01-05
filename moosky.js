@@ -650,6 +650,7 @@ Moosky.compile = (function ()
 		      'if': parseIf,
 		      'lambda': parseLambda,
 		      'let': parseLet,
+		      'let*': parseLetStar,
 		      'or': parseOr,
 		      'quote': parseQuote,
 		      'set!': parseSet };
@@ -928,6 +929,18 @@ Moosky.compile = (function ()
     var body = parseSequence(cddr(sexp));
 
     return list('let', bindings, body);
+  }
+
+  function parseLetStar(sexp) {
+    var bindings = cadr(sexp);
+    var body = cddr(sexp);
+    var let_ = makeSymbol('let');
+
+    if (bindings == nil)
+      return parseLet(cons(let_, cdr(sexp)));
+
+    return parseLet(list(let_, list(car(bindings)),
+			     listStar(car(sexp), cdr(bindings), body)));
   }
 
   function parseOr(sexp) {
