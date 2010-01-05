@@ -931,13 +931,18 @@ Moosky.compile = (function ()
     var func = emit(cadr(sexp));
     var actuals = cddr(sexp);
 
-    var values = ['this'];
+    var isPrimitive = isSymbol(cadr(sexp)) && func.match(/\./);
+
+    var values = [];
     while (actuals != nil) {
       values.push(emit(car(actuals)));
       actuals = cdr(actuals);
     }
 
-    return '(' + func + ').call(' + values.join(', ') + ')';
+    if (isPrimitive)
+      return func + '(' + values.join(', ') + ')';
+
+    return '(' + func + ').call(this, ' + values.join(', ') + ')';
   }
 
   function emitDefine(sexp) {
@@ -1325,7 +1330,7 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			  regexp: /\{[^}]*\}/ },
 
 			{ tag: 'javascript',
-			  regexp: /\n\{\n(([^}][^\n]*)?\n)*\}/m },
+			  regexp: /#\{([^\}]|\}[^#])*\}#/m },
 
 			{ tag: 'punctuation',
 			  regexp: /[\.\(\)\[\]']/ }, //'
