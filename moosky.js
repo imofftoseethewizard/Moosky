@@ -102,15 +102,22 @@ Moosky.Cons = (function ()
 
     var result = [];
     while (sexp != nil) {
-      if (!isList(cdr(sexp))) {
-	result.push(Cons.printSexp(car(sexp)));
+      var A = car(sexp);
+      var D = cdr(sexp);
+
+      if (!isList(D)) {
+	result.push(Cons.printSexp(A));
 	result.push('.');
-	result.push(Cons.printSexp(cdr(sexp)));
+	result.push(Cons.printSexp(D));
 	break;
       }
 
-      result.push(Cons.printSexp(car(sexp)));
-      sexp = cdr(sexp);
+      if (result.length == 0 && !isList(A) && A.tag == 'symbol' && A.toString() == 'quote'
+	 && cdr(D) == nil)
+	return "'" + Cons.printSexp(car(D));
+
+      result.push(Cons.printSexp(A));
+      sexp = D;
     }
 
     return '(' + result.join(' ') + ')';
@@ -973,13 +980,13 @@ Moosky.compile = (function ()
       formals = cadr(sexp);
     }
 
-    var body = parseSequence(cddr(sexp), env);
+    var body = parseSequence(cddr(sexp), Moosky.Top.$makeFrame(env));
     return list('lambda', formals, body);
   }
 
   function parseLet(sexp, env) {
     var bindings = parseBindings(cadr(sexp), env);
-    var body = parseSequence(cddr(sexp), env);
+    var body = parseSequence(cddr(sexp), Moosky.Top.$makeFrame(env));
 
     return list('let', bindings, body);
   }
@@ -1246,7 +1253,7 @@ Moosky.compile = (function ()
 
     return '(function () {\n'
       + 'var env = this.$makeFrame(this);\n'
-      + bindings.join(';\n')
+      + bindings.join(';\n') + '\n'
       + 'return (function () {\n'
       + 'return ' + body + ';\n'
       + '}).call(env);\n'
