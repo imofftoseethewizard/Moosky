@@ -51,24 +51,6 @@ Moosky.Cons = (function ()
     return length;
   };
 
-  Cons.prototype.append = function(a) {
-    var result = new Cons();
-    var tail = result;
-
-    Cons.safe_traverse(this,
-		       function(lst) {
-			 tail.$a = lst.$a;
-			 var next = new Cons();
-			 tail.$d = next;
-			 tail = next;
-		       });
-
-    tail.$a = a;
-    tail.$d = Cons.nil;
-
-    return result;
-  };
-
   Cons.prototype.reverse = function() {
     var result = Cons.nil;
 
@@ -78,6 +60,31 @@ Moosky.Cons = (function ()
 		       });
 
     return result;
+  };
+
+  Cons.append = function(___) {
+    var argCount = arguments.length;
+
+    if (argCount == 0)
+      return Cons.nil;
+
+    var resultHead = new Cons();
+    var tail = resultHead;
+
+    for (var i = 0; i < argCount-1; i++) {
+      console.log(resultHead);
+      Cons.safe_traverse(arguments[i],
+			 function(lst) {
+			   var next = new Cons();
+			   tail.$d = next;
+			   tail = next;
+			   tail.$a = lst.$a;
+			 });
+    }
+
+    tail.$d = arguments[argCount-1];
+
+    return cdr(resultHead);
   };
 
   Cons.printSexp = function(sexp) {
@@ -214,11 +221,8 @@ Moosky.Cons = (function ()
     return list.length();
   }
 
-  function append(list, a) {
-    if (!isList(list))
-      throw new SyntaxError('append: not a list:' + list);
-
-    return list.append(a);
+  function append(___) {
+    return Cons.append.apply(null, arguments);
   }
 
   function reverse(list) {
@@ -651,6 +655,8 @@ Moosky.compile = (function ()
 		      'lambda': parseLambda,
 		      'let': parseLet,
 		      'let*': parseLetStar,
+		      'letrec': parseLetrec,
+		      'letrec*': parseLetrec,
 		      'or': parseOr,
 		      'quote': parseQuote,
 		      'set!': parseSet };
@@ -929,6 +935,29 @@ Moosky.compile = (function ()
     var body = parseSequence(cddr(sexp));
 
     return list('let', bindings, body);
+  }
+
+  function parseLetrec(sexp) {
+    var bindings = cadr(sexp);
+    var body = cddr(sexp);
+    var let_ = makeSymbol('let');
+
+    if (bindings == nil)
+      return parseLet(cons(let_, cdr(sexp)));
+
+    var dummyBindings = nil;
+    var assignments = nil;
+    var undefined = makeLiteral('#u');
+    var set = makeSymbol('set!');
+    while (bindings != nil) {
+      var binding = car(bindings);
+      dummyBindings = cons(list(car(binding), undefined), dummyBindings);
+      assignments = cons(cons(set, binding), assignments);
+      bindings = cdr(bindings);
+    }
+
+    console.log(listStar(let_, dummyBindings, listStar(reverse(assignments), body)));
+    return parseLet(listStar(let_, dummyBindings, append(reverse(assignments), body)));
   }
 
   function parseLetStar(sexp) {
