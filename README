@@ -7,6 +7,7 @@ Contents
       1.2.1 Block Quote
       1.2.2 Dotted Symbols
       1.2.3 Javascript/Scheme Interleaving
+      1.2.4 Syntax Reflection
 
   2. Usage
     2.1 Requirements
@@ -118,6 +119,17 @@ or
 
 (define foo { new Foo(@car) })
 
+
+1.2.5 Syntax Reflection
+
+R5RS specifices a hygienic macro system using define-syntax,
+syntax-rules, let-syntax, and letrec-syntax.  It is very powerful, and
+relatively easy to use, but at the cost of being a rather large chunk
+of software.  The old define-macro system, while having some rather
+nasty sharp edges, is lightweight, genuinely simple, and compact.
+I've included (gensym [label]) as well.  If I find a hygienic macro
+package written in Scheme, I'll add it as an optional package.
+
 5. TODO
 
 4.2.4
@@ -125,20 +137,6 @@ do
 
 4.2.5
 delay
-
-4.2.6
-quasiquote
-`
-
-4.3.1
-let-syntax
-letrec-syntax
-
-4.3.2
-syntax-rules
-
-5.3
-define-syntax
 
 6.3.2
 list-tail
