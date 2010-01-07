@@ -1,16 +1,235 @@
+//=============================================================================
+//
+//
+//=============================================================================
+
+
+//=============================================================================
+//
+//
+
 Moosky = (function ()
 {
   return function (str, env) {
-    return eval(Moosky.compile(Moosky.read(str), env));
+    return eval(Moosky.compile(Moosky.Core.read(str), env));
   };
 })();
 
-Moosky.Cons = (function ()
+//=============================================================================
+//
+//
+
+Moosky.Values = (function ()
 {
+  function escapeString(str) {
+    return str.replace(/\n/g, '\\n').replace(/\"/g, '\\"');
+  }
+
+  // --------------------------------------------------------------------------
+  function Value() {
+  }
+
+  Value.prototype = new Object();
+  Value.prototype.constructor = Value;
+
+  // --------------------------------------------------------------------------
+  function Character(ch) {
+    this.$ch = ch;
+  }
+
+  Character.prototype = new Value();
+
+  Character.prototype.toString = function () {
+    var name;
+
+    name = { '\u0000': 'nul',     '\u0007': 'alarm',    '\u0008': 'backspace',
+	     '\u0009': 'tab',     '\u000a': 'linefeed', '\u000a': 'newline',
+	     '\u000b': 'vtab',    '\u000c': 'page',     '\u000d': 'return',
+	     '\u001b': 'esc',     '\u0020': 'space',    '\u007f': 'delete' }[this.$ch]
+      || { '\u0000': 'NUL', '\u0001': 'SOH', '\u0002': 'STX', '\u0003': 'ETX',
+	   '\u0004': 'EOT', '\u0005': 'ENQ', '\u0006': 'ACK', '\u0007': 'BEL',
+ 	   '\u0008': 'BS',  '\u0009': 'HT',  '\u000a': 'LF',  '\u000b': 'VT',
+ 	   '\u000c': 'FF',  '\u000d': 'CR',  '\u000e': 'SO',  '\u000f': 'SI',
+ 	   '\u0010': 'DLE', '\u0011': 'DC1', '\u0012': 'DC2', '\u0013': 'DC3',
+	   '\u0014': 'DC4', '\u0015': 'NAK', '\u0016': 'SYN', '\u0017': 'ETB',
+ 	   '\u0018': 'CAN', '\u0019': 'EM',  '\u001a': 'SUB', '\u001b': 'ESC',
+ 	   '\u001c': 'FS',  '\u001d': 'GS',  '\u001e': 'RS',  '\u001f': 'US',
+ 	   '\u007f': 'DEL'}[this.$ch];
+
+    if (name === undefined) {
+      var codePoint = this.$ch.charCodeAt(0);
+      if (codePoint <= 126)
+	name = this.$ch;
+      else {
+	name = codePoint.toString(16);
+	while (name.length < 4)
+	  name = '0' + name;
+
+	name = 'u' + name;
+      }
+    }
+    return '#\\' + name;
+  }
+
+  Character.prototype.emit = function() {
+    return '"' + escapeString(this.$ch) + '"';
+  }
+
+  // --------------------------------------------------------------------------
+  function String(str) {
+    this.$str = str;
+  }
+
+  String.prototype = new Value();
+
+  String.prototype.emit = function() {
+    return '"' + escapeString(this.$str) + '"';
+  }
+
+  // --------------------------------------------------------------------------
+  function Symbol(sym) {
+    this.$sym = sym;
+  }
+
+  Symbol.prototype = new Value();
+  Symbol.prototype.constructor = Symbol;
+  Symbol.prototype.toString = function () {
+    return this.$sym;
+  }
+
+  var jsIdentifierRE = /^[$\w_][\w\d_]*$/;
+
+  var jsKeywords = ["break", "case", "catch", "continue", "default", "delete",
+		    "do", "else", "finally", "for", "function", "if", "in",
+		    "instanceof", "new", "return", "switch", "this", "throw",
+		    "try", "typeof", "var", "void", "while", "with"];
+
+  var jsReservedWords = ["abstract", "boolean", "byte", "char", "class",
+			 "const", "debugger", "double", "enum", "export",
+			 "extends", "final", "float", "goto", "implements",
+			 "import", "int", "interface", "long", "native",
+			 "package", "private", "protected", "public", "short",
+			 "static", "super", "synchronized", "throws",
+			 "transient", "volatile"];
+
+  var jsReservedRE = new RegExp('^' + jsKeywords.join('|') + '|'
+				+ jsReservedWords.join('|') + '$');
+
+  Symbol.prototype.requiresQuotes = function() {
+    var value = this.toString();
+    return !value.match(jsIdentifierRE) || value.match(jsReservedRE);
+  }
+
+  Symbol.prototype.emit = function(envName) {
+    var envName = envName || 'this';
+
+    if (this.$sym.match(/\./))
+      return this.$sym;
+
+    else if (this.requiresQuotes())
+      return envName + '["' + this.$sym + '"]';
+
+    else
+      return envName + '.' + this.$sym;
+  }
+
+  // --------------------------------------------------------------------------
+  function RegExp(regexp) {
+    this.$regexp = regexp;
+  }
+
+  RegExp.prototype = new Value();
+  RegExp.prototype.emit = function() {
+    return this.$regexp.toString();
+  }
+
+  RegExp.prototype.toString = function () {
+    return '#' + this.$regexp.toString();
+  }
+
+  // --------------------------------------------------------------------------
+  function Javascript(js) {
+    this.$js = js;
+  }
+
+  Javascript.prototype = new Value();
+
+  // --------------------------------------------------------------------------
+  function Token(lexeme, tag, cite, norm) {
+    this.$lexeme = lexeme;
+    this.$tag = tag;
+    this.$cite = cite;
+    this.$norm = norm;
+  }
+
+  Token.prototype = new Value();
+
+  // --------------------------------------------------------------------------
+  function Cite(source, start, end) {
+    this.$source = source;
+    this.$start = start;
+    this.$end = end;
+  }
+
+  Cite.prototype = new Value();
+
+  // --------------------------------------------------------------------------
+  function Number(n) {
+    this.$n = n;
+  }
+
+  Number.prototype = new Number();
+
+  // --------------------------------------------------------------------------
+  function Complex(z) {
+    this.$z = z;
+  }
+
+  Complex.prototype = new Number();
+
+  // --------------------------------------------------------------------------
+  function Real(s) {
+    this.$s = s;
+  }
+
+  Real.prototype = new Complex();
+
+  // --------------------------------------------------------------------------
+  function Rational(n, d) {
+    this.$n = n;
+    this.$d = d;
+  }
+
+  Rational.prototype = new Real();
+
+  Rational.prototype.toString = function() {
+    return '' + this.$n + '/' + this.$d;
+  }
+
+  Rational.prototype.emit = function() {
+    return 'this.$makeRational(' + this.$n + ', ' + this.$d + ')';
+  }
+
+  // --------------------------------------------------------------------------
+  function Integer(i) {
+    this.$i = i;
+  }
+
+  Integer.prototype = new Rational();
+
+  Integer.prototype.toString = function() {
+    return '' + this.$i;
+  }
+
+  Integer.prototype.emit = Integer.prototype.toString;
+
+  // --------------------------------------------------------------------------
   function Cons(a, d) {
     this.$a = a,
     this.$d = d;
   }
+
+  Cons.prototype = new Value();
 
   Cons.nil = new Cons();
 
@@ -83,38 +302,38 @@ Moosky.Cons = (function ()
 
     tail.$d = arguments[argCount-1];
 
-    return cdr(resultHead);
+    return resultHead.$d;
   };
 
   Cons.printSexp = function(sexp) {
-    if (sexp == nil)
+    if (sexp == Cons.nil)
       return "'()";
 
-    if (!isList(sexp)) {
+    if (!(sexp instanceof Cons)) {
       switch (sexp) {
 	case false: return '#f';
 	case null: return '#n';
 	case true: return '#t';
 	case undefined: return '#u';
       }
+
       return sexp.toString();
     }
 
     var result = [];
-    while (sexp != nil) {
-      var A = car(sexp);
-      var D = cdr(sexp);
+    while (sexp != Cons.nil) {
+      var A = sexp.$a;
+      var D = sexp.$d
 
-      if (!isList(D)) {
+      if (!(D instanceof Cons)) {
 	result.push(Cons.printSexp(A));
 	result.push('.');
 	result.push(Cons.printSexp(D));
 	break;
       }
 
-      if (result.length == 0 && !isList(A) && A.tag == 'symbol' && A.toString() == 'quote'
-	 && cdr(D) == nil)
-	return "'" + Cons.printSexp(car(D));
+      if (result.length == 0 && A instanceof Symbol && A == 'quote' && D.$d == Cons.nil)
+	return "'" + Cons.printSexp(D.$a);
 
       result.push(Cons.printSexp(A));
       sexp = D;
@@ -125,6 +344,25 @@ Moosky.Cons = (function ()
 
   Cons.prototype.toString = function() { return Cons.printSexp(this); };
 
+  return { Value: Value, Character: Character, String: String,
+	   Symbol: Symbol, RegExp: RegExp, Javascript:Javascript,
+	   Token: Token, Cite: Cite, Number: Number, Complex: Complex,
+	   Real: Real, Rational: Rational, Integer: Integer, Cons: Cons };
+})();
+
+//=============================================================================
+//
+//
+
+Moosky.Core = {};
+
+//=============================================================================
+//
+//
+
+Moosky.Core.Primitives = (function ()
+{
+  var Cons = Moosky.Values.Cons;
   var nil = Cons.nil;
 
   function isNull(pair) {
@@ -262,7 +500,8 @@ Moosky.Cons = (function ()
   function assoc(a, list) {
   }
 
-  Cons.exports = {
+  Primitives = {};
+  Primitives.exports = {
     printSexp: Cons.printSexp,
     nil: Cons.nil,
     isNull: isNull,
@@ -316,7 +555,7 @@ Moosky.Cons = (function ()
     assoc: assoc
   };
 
-  Cons.mooskyExports = {
+  Primitives.mooskyExports = {
     'null?': isNull,
     'list?': isList,
     'pair?': isPair,
@@ -368,12 +607,21 @@ Moosky.Cons = (function ()
     assoc: assoc
   };
 
-  return Cons;
+  return Primitives;
 })();
 
-Moosky.read = (function ()
-{ with (Moosky.Cons.exports)
+//=============================================================================
+//
+//
+
+Moosky.Core.read = (function ()
+{ with (Moosky.Core.Primitives.exports)
 {
+  var Values = Moosky.Values;
+  var Symbol = Values.Symbol;
+  var Token = Values.Token;
+  var Cite = Values.Cite;
+
   function any(fn, ___) {
     var inputs = [];
     var length = Number.MAX_VALUE;
@@ -447,7 +695,7 @@ Moosky.read = (function ()
     return result;
   }
 
-  function lex(lexemeClasses, str) {
+  function tokenize(lexemeClasses, str) {
     lexemeClasses = map(function (lexemeClass) {
 			  return { tag: lexemeClass.tag,
 				   regexp: new RegExp(lexemeClass.regexp.source, 'g'),
@@ -456,10 +704,10 @@ Moosky.read = (function ()
 				   nextMatch: { index: -1 } };
 			}, lexemeClasses);
 
-    var lexemes = [];
+    var tokens = [];
     var i = 0, length = str.length;
     while (i < length) {
-      var lexeme =
+      var token =
 	any(
 	  function (lexemeClass) {
 	    if (lexemeClass.nextMatch === null)
@@ -474,21 +722,20 @@ Moosky.read = (function ()
 	      return false;
 
 	    if (lexemeClass.nextMatch.index == i) {
-	      var lexeme = new String(lexemeClass.nextMatch[0]);
+	      var lexeme = lexemeClass.nextMatch[0];
+	      var norm;
 
 	      if (lexemeClass.normalize)
-		lexeme.normed = lexemeClass.normalize(lexemeClass.nextMatch);
+		norm = lexemeClass.normalize(lexemeClass.nextMatch);
 
-	      if (!lexemeClass.condition || lexemeClass.condition(lexemes, lexeme)) {
-		lexeme.tag = lexemeClass.tag;
-		return lexeme;
-	      }
+	      if (!lexemeClass.condition || lexemeClass.condition(lexemes, lexeme))
+		return new Token(lexeme, lexemeClass.tag, new Cite(str, i, i+lexeme.length), norm);
 	    }
 
 	    return false;
 	  }, lexemeClasses);
 
-      if (!lexeme) {
+      if (!token) {
 	var preview = str.slice(Math.max(0, i-30), i);
 	var remainder = str.slice(i, Math.min(length, i+30));
 	var caret_position = preview.slice(preview.lastIndexOf('\n')+1).length-1;
@@ -500,19 +747,19 @@ Moosky.read = (function ()
 	throw message;
       }
 
-      if (lexeme.length == 0) {
-	throw 'zero length lexeme: ' + lexeme.tag;
+      if (token.$lexeme.length == 0) {
+	throw 'zero length lexeme: ' + token.$tag;
 	break;
       }
 
-      lexemes.push(lexeme);
-      i += lexeme.length;
+      tokens.push(token);
+      i += token.$lexeme.length;
     }
 
-    return lexemes;
+    return tokens;
   }
 
-  function parseLexemes(lexemes, i) {
+  function parseTokens(tokens, i) {
     var sexp = nil;
     var dotted = false;
     var last;
@@ -520,30 +767,30 @@ Moosky.read = (function ()
     var delimiter = false;
 
     if (i >= 0)
-      delimiter = {'[': ']', '(': ')'}[lexemes[i].toString()];
+      delimiter = {'[': ']', '(': ')'}[tokens[i].$lexeme];
 
-    for (var j = i+1; j < lexemes.length; j++) {
-      var lexeme = lexemes[j];
+    for (var j = i+1; j < tokens.length; j++) {
+      var token = tokens[j];
       var next;
-      if (lexeme.toString().match(/^[\[\(]/)) {
-	var result = parseLexemes(lexemes, j);
+      if (token.$lexeme.match(/^[\[\(]/)) {
+	var result = parseTokens(tokens, j);
 	next = result.sexp;
 	j = result.index;
 
-      } else if (lexeme.toString() == delimiter)
+      } else if (token.$lexeme == delimiter)
 	break;
 
-      else if (lexeme.toString().match(/^[\]\)]/))
+      else if (token.$lexeme.match(/^[\]\)]/))
 	throw 'Mismatched ' + lexemes[i] + ': found ' + lexeme[j];
 
-      else if (lexeme.toString() == '.') {
+      else if (token.$lexeme == '.') {
 	if (dotted)
 	  throw new SyntaxError('improper dotted list');
 	dotted = true;
 	continue;
 
       } else
-	next = lexemes[j];
+	next = parseToken(tokens[j]);
 
       if (dotted) {
 	if (last !== undefined)
@@ -557,21 +804,22 @@ Moosky.read = (function ()
 	sexp = cons(next, sexp);
 
       else {
-	var key = car(sexp).toString();
 	var translated = { "'": 'quote',
 			   '`': 'quasiquote',
 			   ',': 'unquote',
-			   ',@': 'unquote-splicing' }[key];
+			   ',@': 'unquote-splicing' }[car(sexp)];
 
 	if (translated === undefined)
 	  sexp = cons(next, sexp);
 	else
-	  sexp = cons(cons(makeSymbol(translated), cons(next, nil)), cdr(sexp));
+	  sexp = cons(cons(parseToken(new Token(translated, 'symbol', token.$cite, token.$norm)),
+			   cons(next, nil)),
+		      cdr(sexp));
       }
     }
 
-    if (delimiter && lexeme.toString() != delimiter) {
-      throw 'Mismatched ' + lexemes[i] + ' at end of input.';
+    if (delimiter && token.$lexeme != delimiter) {
+      throw 'Mismatched ' + tokens[i] + ' at end of input.';
     }
 
     if (dotted && last === undefined) {
@@ -586,88 +834,119 @@ Moosky.read = (function ()
     return { sexp: result, index: j };
   }
 
+  function parseToken(token) {
+    return { 'character':   function(token) { return new Values.Character(token.$norm); },
+	     'javascript':  parseJavascript,
+	     'literal':     parseLiteral,
+	     'number':      parseNumber,
+	     'punctuation': function(token) { return new Symbol(token.$lexeme); },
+	     'regexp':      function(token) { return new Values.RegExp(new RegExp(token.$norm)); },
+	     'string':      function(token) { return new Values.String(token.$norm); },
+	     'symbol':      function(token) { return new Symbol(token.$lexeme); } }[token.$tag](token);
+  }
+
+  function parseJavascript(sexp, env) {
+    var backquoteRE = /`([^`\\]|\\.)*`/mg;
+
+    var text = sexp.toString().slice(1, -1);
+    var interpolates = text.match(backquoteRE);
+    var components = nil;
+    for (var i = 0; i < interpolates.length; i++) {
+      var target = interpolates[i];
+      var index = text.indexOf(target);
+      var js = text.substring(0, index);
+      var moosky = target.slice(1, -1);
+      components = cons(parseSexp(car(Moosky.Core.read(moosky)), env), cons(js, components));
+      text = text.substring(index + target.length);
+    }
+
+    return cons($javascript, reverse(cons(text, components)));
+  }
+
+  function parseLiteral(token) {
+    return { '#f': false,
+	     '#n': null,
+	     '#t': true,
+	     '#u': undefined }[token.$lexeme];
+  }
+
+  function parseNumber(token) {
+    var lexeme = token.$lexeme;
+    if (lexeme.match(/^-?([\d]+|0[xX][\da-fA-F]+)$/))
+      return new Values.Integer(parseInt(lexeme));
+
+    if (lexeme.match(/^-?[\d]+\/[\d]+$/)) {
+      var nd = lexeme.split('/');
+      return new Values.Rational(nd[0], nd[1]);
+    }
+
+    return new Values.Real(parseFloat(lexeme));
+  }
+
   function read(str) {
-    var lexemes = lex(Moosky.LexemeClasses, str);
+    var tokens = tokenize(Moosky.LexemeClasses, str);
 
-    lexemes = filter(function (lexeme) {
-		       return lexeme.tag != 'comment' &&
-			 lexeme.tag != 'space';
-		     }, lexemes);
+    tokens = filter(function (token) {
+		      return token.$tag != 'comment' &&
+			token.$tag != 'space';
+		    }, tokens);
 
-    var result = parseLexemes(lexemes, -1);
+    var result = parseTokens(tokens, -1);
 
     return result.sexp;
   }
 
-  function makeToken(tag, str) {
-    var token = new String(str);
-    token.tag = tag;
-
-    return token;
-  }
-
-  function makeSymbol(str) {
-    return makeToken('symbol', str);
-  }
-
-  function makeLiteral(str) {
-    return makeToken('literal', str);
-  }
-
-  function isSymbol(sexp) {
-    return sexp.tag == 'symbol';
-  }
-
-  function isLiteral(sexp) {
-    return sexp.tag == 'number' || sexp.tag == 'string' || sexp.tag == 'regexp' || sexp.tag == 'literal';
-  }
-
-  function isJavascript(sexp) {
-    return sexp.tag == 'javascript';
-  }
-
-  function isString(sexp) {
-    return sexp.tag == 'string';
-  }
-
-  function isNumber(sexp) {
-    return sexp.tag == 'number';
-  }
-
-  function isRegexp(sexp) {
-    return sexp.tag == 'regexp';
-  }
-
-  read.exports = {
-    makeSymbol: makeSymbol,
-    makeLiteral: makeLiteral,
-    isSymbol: isSymbol,
-    isJavascript: isJavascript,
-    isLiteral: isLiteral,
-    isString: isString,
-    isNumber: isNumber,
-    isRegexp: isRegexp
-  };
-
   return read;
 }})();
 
+//=============================================================================
+//
+//
+
 Moosky.compile = (function ()
-{ with (Moosky.Cons.exports)
-{ with (Moosky.read.exports)
+{ with (Moosky.Core.Primitives.exports)
 {
+  var Values = Moosky.Values;
+  var Value = Values.Value;
+  var Symbol = Values.Symbol;
+
+  var $and         = new Symbol('and');
+  var $apply       = new Symbol('apply');
+  var $begin       = new Symbol('begin');
+  var $case        = new Symbol('case');
+  var $cond        = new Symbol('cond');
+  var $define      = new Symbol('define');
+  var $defineMacro = new Symbol('define-macro');
+  var $eqv         = new Symbol('eqv?');
+  var $if          = new Symbol('if');
+  var $javascript  = new Symbol('javascript');
+  var $lambda      = new Symbol('lambda');
+  var $let         = new Symbol('let');
+  var $letStar     = new Symbol('let*');
+  var $letrec      = new Symbol('letrec');
+  var $letrecStar  = new Symbol('letrec*');
+  var $or          = new Symbol('or');
+  var $quote       = new Symbol('quote');
+  var $quasiquote  = new Symbol('quasiquote');
+  var $set         = new Symbol('set!');
+
   function isMacro(v) {
     console.log(v);
     return v !== undefined && typeof v == 'function' && v.tag == 'macro';
   }
 
+  function isSymbol(sexp) {
+    return sexp instanceof Symbol;
+  }
+
   function parseSexp(sexp, env) {
+    console.log(sexp);
     if (env === undefined) {
       debugger;
     }
 
     if (!isList(sexp))
-      return parseAtom(sexp);
+      return sexp;
 
     var key = car(sexp);
 
@@ -689,7 +968,7 @@ Moosky.compile = (function ()
 		      'quasiquote': parseQuasiQuote,
 		      'set!': parseSet };
 
-      var parser = parsers[key.toString()];
+      var parser = parsers[key];
       if (parser)
 	return parser(sexp, env);
 
@@ -701,27 +980,13 @@ Moosky.compile = (function ()
     return parseApplication(sexp, env);
   }
 
-  function parseAtom(atom) {
-    if (isSymbol(atom))
-      return list('deref', atom);
-
-    if (isLiteral(atom))
-      return list('literal', atom);
-
-    if (isJavascript(atom))
-      return parseJavascript(atom);
-
-    debugger;
-    throw new SyntaxError('unknown atom type: ' + atom);
-  }
-
   function parseApplication(sexp, env) {
     var args = nil;
     while (sexp != nil) {
       args = cons(parseSexp(car(sexp), env), args);
       sexp = cdr(sexp);
     }
-    return cons('apply', reverse(args));
+    return cons($apply, reverse(args));
   }
 
   function parseBindings(sexp, env) {
@@ -754,22 +1019,17 @@ Moosky.compile = (function ()
   }
 
   function parseAnd(sexp, env) {
-    return cons('and', parseSequence(cdr(sexp), env));
+    return cons($and, parseSequence(cdr(sexp), env));
   }
 
   function parseBegin(sexp, env) {
-    return cons('begin', parseSequence(cdr(sexp), env));
+    return cons($begin, parseSequence(cdr(sexp), env));
   }
 
   function parseCase(sexp, env) {
     var key = cadr(sexp);
     var caseClauses = nil;
-
-    var temp = makeSymbol('$key');
-    var eqvp = makeSymbol('eqv?');
-    var or_ = makeSymbol('or');
-    var quote = makeSymbol('quote');
-    var begin = makeSymbol('begin');
+    var $temp = Moosky.Top.gensym('case');
 
     sexp = cddr(sexp);
     while (sexp != nil) {
@@ -778,7 +1038,7 @@ Moosky.compile = (function ()
 	var data = car(clause);
 	var expressions = cdr(clause);
 
-	var elseClause = isSymbol(data) && data.toString() == 'else';
+	var elseClause = isSymbol(data) && data == 'else';
 
 	if (cdr(sexp) != nil && elseClause || !elseClause && !isList(data)
 	    || expressions == nil)
@@ -786,26 +1046,26 @@ Moosky.compile = (function ()
 
 	var test;
 	if (elseClause)
-	  test = makeLiteral('#t');
+	  test = true;
 
 	else {
 	  test = nil;
 	  while (data != nil) {
 	    var datum = car(data);
 	    if (isSymbol(datum))
-	      datum = list(quote, datum);
+	      datum = list($quote, datum);
 
-	    test = cons(list(eqvp, temp, datum), test);
+	    test = cons(list($eqv, $temp, datum), test);
 	    data = cdr(data);
 	  }
 
-	  test = cons(or_, test);
+	  test = cons($or, test);
 	}
 
 	if (cdr(expressions) == nil)
 	  expressions = car(expressions);
 	else
-	  expressions = cons(begin, expressions);
+	  expressions = cons($begin, expressions);
 
 	caseClauses = cons(cons(test, expressions), caseClauses);
 
@@ -815,15 +1075,14 @@ Moosky.compile = (function ()
       sexp = cdr(sexp);
     }
 
-    var result = makeLiteral('#u');
-    var if_ = makeSymbol('if');
+    var result = undefined;
     while (caseClauses != nil) {
       var clause = car(caseClauses);
-      result = listStar(if_, car(clause), cdr(clause), list(result));
+      result = listStar($if, car(clause), cdr(clause), list(result));
       caseClauses = cdr(caseClauses);
     }
 
-    result = list(makeSymbol('let'), list(list(temp, key)), result)
+    result = list($let, list(list($temp, key)), result)
     return parseSexp(result, env);
   }
 
@@ -834,23 +1093,23 @@ Moosky.compile = (function ()
       var clause = car(sexp);
       try {
 	var test = car(clause);
-	var elseClause = isSymbol(test) && test.toString() == 'else';
+	var elseClause = isSymbol(test) && test == 'else';
 	var expressions = cdr(clause);
+
+	var $temp = Moosky.Top.gensym('cond');
 
 	function makeAnaphoricTest(test) {
 	  // ironically, this is implemented as an epistrophe
-	  return list(makeSymbol('begin'),
-		      list(makeSymbol('set!'), makeSymbol('$temp'), test),
-		      makeSymbol('$temp'));
+	  return list($begin, list($set, $temp, test), $temp);
 	}
 
 	if (expressions == nil) {
 	  test = makeAnaphoricTest(test);
-	  expressions = list(makeSymbol('$temp'));
+	  expressions = list($temp);
 
 	} else {
 	  var expr_1 = car(expressions);
-	  var anaphoric = isSymbol(expr_1) && expr_1.toString() == '=>';
+	  var anaphoric = isSymbol(expr_1) && expr_1 == '=>';
 
 	  if (anaphoric) {
 	    test = makeAnaphoricTest(test);
@@ -859,7 +1118,7 @@ Moosky.compile = (function ()
 	    if (cdr(expressions) != nil)
 	      throw new SyntaxError();
 
-	    expressions = list(list(car(expressions), makeSymbol('$temp')));
+	    expressions = list(list(car(expressions), $temp));
 	  }
 
 	  if (expressions == nil)
@@ -869,7 +1128,7 @@ Moosky.compile = (function ()
 	if (cdr(expressions) == nil)
 	  expressions = car(expressions);
 	else
-	  expressions = cons(makeSymbol('begin'), expressions);
+	  expressions = cons($begin, expressions);
 
 	test = parseSexp(test, env);
 	expressions = parseSexp(expressions, env);
@@ -883,11 +1142,10 @@ Moosky.compile = (function ()
       sexp = cdr(sexp);
     }
 
-    var result = list('literal', makeLiteral('#u'));
-    var if_ = makeSymbol('if');
+    var result = undefined;
     while (condClauses != nil) {
       var clause = car(condClauses);
-      result = listStar(if_, car(clause), cdr(clause), list(result));
+      result = listStar($if, car(clause), cdr(clause), list(result));
       condClauses = cdr(condClauses);
     }
 
@@ -906,16 +1164,17 @@ Moosky.compile = (function ()
 	throw new SyntaxError('define: symbol expected: ' + nameClause);
       name = nameClause;
       body = parseSexp(caddr(sexp), env);
+
     } else {
       if (!isSymbol(car(nameClause)))
 	throw new SyntaxError('define: symbol expected: ' + car(nameClause));
       name = car(nameClause);
 
       var formals = cdr(nameClause);
-      body = list('lambda', formals, parseSequence(cddr(sexp), env));
+      body = list($lambda, formals, parseSequence(cddr(sexp), env));
     }
 
-    return list('define', name, body);
+    return list(car(sexp), name, body);
   }
 
   function parseDefineMacro(sexp, env) {
@@ -931,39 +1190,19 @@ Moosky.compile = (function ()
 	throw new SyntaxError('define-macro: expects 2nd element is either an identifier or a list of two identifiers: ' + nameClause);
 
       name = car(nameClause);
-      body = listStar(makeSymbol('lambda'), cdr(nameClause), body);
+      body = listStar($lambda, cdr(nameClause), body);
     }
 
-    var macro = eval(emit(parseSexp(body, env)));
-    macro.tag = 'macro';
-    macro.env = env;
-
-    env[name] = macro;
-    return parseSexp(makeLiteral('#u'), env);
+    env[name] = eval(emit(parseSexp(body, env)));
+    env[name].env = env;
+    env[name].tag = 'macro';
+    return undefined;
   }
 
   function parseIf(sexp, env) {
     if (length(sexp) != 4)
       throw new SyntaxError('if: wrong number of parts.');
-    return cons('if', parseSequence(cdr(sexp)));
-  }
-
-  function parseJavascript(sexp, env) {
-    var backquoteRE = /`([^`\\]|\\.)*`/mg;
-
-    var text = sexp.toString().slice(1, -1);
-    var interpolates = text.match(backquoteRE);
-    var components = nil;
-    for (var i = 0; i < interpolates.length; i++) {
-      var target = interpolates[i];
-      var index = text.indexOf(target);
-      var js = text.substring(0, index);
-      var moosky = target.slice(1, -1);
-      components = cons(parseSexp(car(Moosky.read(moosky)), env), cons(js, components));
-      text = text.substring(index + target.length);
-    }
-
-    return cons('javascript', reverse(cons(text, components)));
+    return cons(car(sexp), parseSequence(cdr(sexp), env));
   }
 
   function parseLambda(sexp, env) {
@@ -981,52 +1220,48 @@ Moosky.compile = (function ()
     }
 
     var body = parseSequence(cddr(sexp), Moosky.Top.$makeFrame(env));
-    return list('lambda', formals, body);
+    return list($lambda, formals, body);
   }
 
   function parseLet(sexp, env) {
     var bindings = parseBindings(cadr(sexp), env);
     var body = parseSequence(cddr(sexp), Moosky.Top.$makeFrame(env));
 
-    return list('let', bindings, body);
+    return list($let, bindings, body);
   }
 
   function parseLetrec(sexp, env) {
     var bindings = cadr(sexp);
     var body = cddr(sexp);
-    var let_ = makeSymbol('let');
 
     if (bindings == nil)
-      return parseLet(cons(let_, cdr(sexp)), env);
+      return parseLet(cons($let, cdr(sexp)), env);
 
     var dummyBindings = nil;
     var assignments = nil;
-    var undefined = makeLiteral('#u');
-    var set = makeSymbol('set!');
     while (bindings != nil) {
       var binding = car(bindings);
       dummyBindings = cons(list(car(binding), undefined), dummyBindings);
-      assignments = cons(cons(set, binding), assignments);
+      assignments = cons(cons($set, binding), assignments);
       bindings = cdr(bindings);
     }
 
-    return parseLet(listStar(let_, dummyBindings, append(reverse(assignments), body)), env);
+    return parseLet(listStar($let, dummyBindings, append(reverse(assignments), body)), env);
   }
 
   function parseLetStar(sexp, env) {
     var bindings = cadr(sexp);
     var body = cddr(sexp);
-    var let_ = makeSymbol('let');
 
     if (bindings == nil)
-      return parseLet(cons(let_, cdr(sexp)), env);
+      return parseLet(cons($let, cdr(sexp)), env);
 
-    return parseLet(list(let_, list(car(bindings)),
+    return parseLet(list($let, list(car(bindings)),
 			 listStar(car(sexp), cdr(bindings), body)), env);
   }
 
   function parseOr(sexp, env) {
-    return cons('or', parseSequence(cdr(sexp), env));
+    return cons(car(sexp), parseSequence(cdr(sexp), env));
   }
 
   function parseQuasiQuote(sexp, env) {
@@ -1037,7 +1272,7 @@ Moosky.compile = (function ()
 
     var quoted = cadr(sexp);
     if (!isPair(quoted))
-      return list('quote', quoted);
+      return list($quote, quoted);
 
     function parseQQ(sexp) {
       if (!isPair(sexp))
@@ -1045,9 +1280,9 @@ Moosky.compile = (function ()
 
       var A = car(sexp);
 
-      if (isSymbol(A) && (A.toString() == 'unquote-splicing' || A.toString() == 'unquote')) {
+      if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote') {
 	var symbol = Moosky.Top.gensym('qq');
-	bindings = cons(cons(symbol, parseSexp(list(makeSymbol('lambda'), list(), cadr(sexp)), env)), bindings);
+	bindings = cons(cons(symbol, parseSexp(list($lambda, list(), cadr(sexp)), env)), bindings);
 
 	return list(A, symbol);
       }
@@ -1055,14 +1290,14 @@ Moosky.compile = (function ()
       return cons(parseQQ(A), parseQQ(cdr(sexp)));
     }
 
-    return list('quasiquote', parseQQ(quoted), bindings);
+    return list(car(sexp), parseQQ(quoted), bindings);
   }
 
   function parseQuote(sexp, env) {
     if (length(sexp) != 2)
       throw new SyntaxError('quote: wrong number of parts.');
 
-    return list('quote', cadr(sexp));
+    return sexp;
   }
 
   function parseSet(sexp, env) {
@@ -1072,90 +1307,29 @@ Moosky.compile = (function ()
     if (!isSymbol(cadr(sexp)))
       throw new SyntaxError('set!: expected (set! <variable> <expression>); ' + cadr(sexp) + ' is not a variable');
 
-    return list('set!', cadr(sexp), parseSexp(caddr(sexp), env));
-  }
-
-  function quoteSexp(sexp) {
-    if (isPair(sexp))
-      return cons(quoteSexp(car(sexp)), quoteSexp(cdr(sexp)));
-
-    if (sexp == nil || isSymbol(sexp))
-      return sexp;
-
-    if (sexp.tag == 'regexp')
-      return new RegExp(sexp.toString());
-
-    if (sexp.tag == 'number')
-      return Number(sexp.toString());
-
-    if (sexp.tag == 'string')
-      return sexp.toString();
-
-    if (sexp.tag == 'literal')
-      return { '#f': false,
-	       '#n': null,
-	       '#t': true,
-	       '#u': undefined }[sexp.toString()];
-
-    debugger;
-    throw new SyntaxError('Unknown sexp: ' + sexp);
-  }
-
-  var jsIdentifierRE = /^[$\w_][\w\d_]*$/;
-
-  var jsKeywords = ["break", "case", "catch", "continue", "default", "delete",
-		    "do", "else", "finally", "for", "function", "if", "in",
-		    "instanceof", "new", "return", "switch", "this", "throw",
-		    "try", "typeof", "var", "void", "while", "with"];
-
-  var jsReservedWords = ["abstract", "boolean", "byte", "char", "class",
-			 "const", "debugger", "double", "enum", "export",
-			 "extends", "final", "float", "goto", "implements",
-			 "import", "int", "interface", "long", "native",
-			 "package", "private", "protected", "public", "short",
-			 "static", "super", "synchronized", "throws",
-			 "transient", "volatile"];
-
-  var jsReservedRE = new RegExp('^' + jsKeywords.join('|') + '|'
-				+ jsReservedWords.join('|') + '$');
-
-  function requiresQuotes(variable) {
-    return !variable.match(jsIdentifierRE) || variable.match(jsReservedRE);
+    return list(car(sexp), cadr(sexp), parseSexp(caddr(sexp), env));
   }
 
   function emit(sexp) {
+    console.log('emit: ' + sexp);
+    if (!isList(sexp)) {
+      return (sexp instanceof Value) ? sexp.emit() : '' + sexp;
+    }
+
     var op = car(sexp);
 
     return ({'and': emitAnd,
 	     'apply': emitApply,
 	     'define': emitDefine,
 	     'begin': emitBegin,
-	     'deref': emitSymbolDeref,
 	     'if': emitIf,
 	     'javascript': emitJavascript,
 	     'lambda': emitLambda,
 	     'let': emitLet,
-	     'literal': emitLiteral,
 	     'or': emitOr,
 	     'quasiquote': emitQuasiQuote,
 	     'quote': emitQuote,
 	     'set!': emitSet}[car(sexp).toString()])(sexp);
-  }
-
-  function emitBinding(envName, symbol, value) {
-    if (requiresQuotes(symbol))
-      return envName + '["' + symbol.toString() + '"] = ' + value + '';
-    else
-      return envName + '.' + symbol.toString() + ' = ' + value + '';
-  }
-
-  function emitSequence(sexp) {
-    var values = [];
-    while (sexp != nil) {
-      values.push(emit(car(sexp)));
-      sexp = cdr(sexp);
-    }
-    return '(' + values.join(', ') + ')';
   }
 
   function emitAnd(sexp) {
@@ -1181,10 +1355,13 @@ Moosky.compile = (function ()
   }
 
   function emitApply(sexp) {
-    var func = emit(cadr(sexp));
+    var applicand = cadr(sexp);
     var actuals = cddr(sexp);
 
-    var isPrimitive = caadr(sexp) == 'deref' && func.match(/\./);
+    // FIX  this will work where native code is directly referred to with
+    // eg, window.alert, but not in the case where an application returns
+    // it as a value.
+    var isPrimitive = isSymbol(applicand) && applicand.toString().match(/\./);
 
     var values = isPrimitive ? [] : ['this'];
     while (actuals != nil) {
@@ -1193,19 +1370,23 @@ Moosky.compile = (function ()
     }
 
     if (isPrimitive)
-      return func + '(' + values.join(', ') + ')';
+      return emit(applicand) + '(' + values.join(', ') + ')';
     else
-      return '(' + func + ').call(' + values.join(', ') + ')';
+      return '(' + emit(applicand) + ').call(' + values.join(', ') + ')';
   }
 
   function emitBegin(sexp) {
     return emitSequence(cdr(sexp));
   }
 
+  function emitBinding(envName, symbol, value) {
+    return symbol.emit(envName) + ' = ' + value;
+  }
+
   function emitDefine(sexp) {
-    var name = cadr(sexp).toString();
+    var name = cadr(sexp);
     var body = emit(caddr(sexp));
-    return 'this["' + name + '"] = (' + body + ')';
+    return name.emit('this') + ' = (' + body + ')';
   }
 
   function emitIf(sexp) {
@@ -1271,26 +1452,8 @@ Moosky.compile = (function ()
       bindings = cdr(bindings);
     }
     var body = caddr(sexp);
-    var lambda = list('lambda', reverse(formals), body);
-    return emitApply(cons('apply', cons(lambda, reverse(params))));
-  }
-
-  function emitLiteral(sexp) {
-    var value = cadr(sexp);
-    if (value.tag == 'regexp' || value.tag == 'number')
-      return value.toString();
-
-    if (value.tag == 'string')
-      return '"' + value.normed + '"';
-
-    if (value.tag == 'literal')
-      return { '#f': 'false',
-	       '#n': 'null',
-	       '#t': 'true',
-	       '#u': 'undefined' }[value.toString()];
-
-    debugger;
-    throw new SyntaxError('Unknown literal: ' + value.tag + ': ' + value);
+    var lambda = list($lambda, reverse(formals), body);
+    return emitApply(cons($apply, cons(lambda, reverse(params))));
   }
 
   function emitOr(sexp) {
@@ -1316,7 +1479,7 @@ Moosky.compile = (function ()
 
   function emitQuasiQuote(sexp) {
     var quoteId = Moosky.Top.$quoted.length;
-    Moosky.Top.$quoted.push(quoteSexp(cadr(sexp)));
+    Moosky.Top.$quoted.push(cadr(sexp));
 
     var expressions = [];
     var bindings = caddr(sexp);
@@ -1330,30 +1493,21 @@ Moosky.compile = (function ()
 
   function emitQuote(sexp) {
     var quoteId = Moosky.Top.$quoted.length;
-    Moosky.Top.$quoted.push(quoteSexp(cadr(sexp)));
+    Moosky.Top.$quoted.push(cadr(sexp));
     return '(this.$quoted[' + quoteId + '])';
   }
 
-  function emitSet(sexp) {
-    var variable = cadr(sexp).toString();
-    var value = emit(caddr(sexp));
-
-    if (requiresQuotes(variable))
-      return '(this["' + variable + '"] = ' + value + ')';
-    else
-      return '(this.' + variable + ' = ' + value + ')';
+  function emitSequence(sexp) {
+    var values = [];
+    while (sexp != nil) {
+      values.push(emit(car(sexp)));
+      sexp = cdr(sexp);
+    }
+    return values.join(', ');
   }
 
-  function emitSymbolDeref(sexp) {
-    var symbol = car(cdr(sexp)).toString();
-    if (symbol.match(/\./))
-      return symbol;
-    else {
-      if (requiresQuotes(symbol))
-	return 'this["' + symbol + '"]';
-      else
-	return 'this.' + symbol;
-    }
+  function emitSet(sexp) {
+    return '(' + cadr(sexp).emit('this') + ' = ' + emit(caddr(sexp)) + ')';
   }
 
   return function compile(sexp, env) {
@@ -1362,13 +1516,16 @@ Moosky.compile = (function ()
 		+ 'return ' + emit(parseBegin(cons('begin', sexp), env)) + ';\n'
 		+ '}).call(Moosky.Top);';
     console.log(result);
-    return eval(result);
+    return result;
   }
-}}})();
+}})();
+
+//=============================================================================
+//
+//
 
 Moosky.Top = (function ()
-{ with (Moosky.Cons.exports)
-{ with (Moosky.read.exports)
+{ with (Moosky.Core.Primitives.exports)
 {
   function numericComparator(symbol, relation) {
     return function(___) {
@@ -1478,6 +1635,10 @@ Moosky.Top = (function ()
     return truncate(a/b);
   }
 
+  function isSymbol(sexp) {
+    return sexp instanceof Moosky.Values.Symbol;
+  }
+
   var Top = {
     $argumentsList: function(args, n) {
       var list = nil;
@@ -1494,7 +1655,7 @@ Moosky.Top = (function ()
 	return sexp;
 
       var A = car(sexp);
-      if (isPair(A) && isSymbol(car(A)) && car(A).toString() == 'unquote-splicing') {
+      if (isPair(A) && isSymbol(car(A)) && car(A) == 'unquote-splicing') {
 	var unquoted = this[cadr(A)].call(this);
 
 	if (isList(unquoted))
@@ -1504,11 +1665,10 @@ Moosky.Top = (function ()
       }
 
       if (isSymbol(A)) {
-	var key = A.toString();
-	if (key == 'unquote-splicing')
+	if (A == 'unquote-splicing')
 	  throw new SyntaxError('quasiquote: illegal splice' + sexp);
 
-	if (key == 'unquote')
+	if (A == 'unquote')
 	  return this[cadr(sexp)].call(this);
       }
 
@@ -1704,17 +1864,21 @@ Moosky.Top = (function ()
     gensym: (function () {
 	       var symbolCount = 0;
 	       return function (key) {
-		 return makeSymbol('$' + (key || '') + '_' + symbolCount++);
+		 return new Moosky.Values.Symbol('$' + (key || '') + '_' + symbolCount++);
 	       }
 	     })()
   };
 
-  for (p in Moosky.Cons.mooskyExports) {
-    Top[p] = Moosky.Cons.mooskyExports[p];
+  for (p in Moosky.Core.Primitives.mooskyExports) {
+    Top[p] = Moosky.Core.Primitives.mooskyExports[p];
   }
 
   return Top;
-}}})();
+}})();
+
+//=============================================================================
+//
+//
 
 Moosky.LexemeClasses = [ { tag: 'comment',
 			 regexp: /;.*/ },
@@ -1728,19 +1892,60 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			{ tag: 'number',
 			  regexp: /-?0?\.\d+|-?[1-9]\d*(\.\d*)?([eE][+-]?\d+)?|-?0([xX][0-9a-fA-F]+)?/ },
 
+			// standard codes for control characters
+			{ tag: 'character',
+			  regexp: /#\\(NUL|SOH|STX|ETX|EOT|ENQ|ACK|BEL|BS|HT|LF|VT|FF|CR|SO|SI|DLE|DC1|DC2|DC3|DC4|NAK|SYN|ETB|CAN|EM|SUB|ESC|FS|GS|RS|US|DEL)/,
+			  normalize: function(match) {
+			    return { 'NUL': '\u0000', 'SOH': '\u0001', 'STX': '\u0002', 'ETX': '\u0003',
+				     'EOT': '\u0004', 'ENQ': '\u0005', 'ACK': '\u0006', 'BEL': '\u0007',
+ 				     'BS':  '\u0008', 'HT':  '\u0009', 'LF':  '\u000a', 'VT':  '\u000b',
+ 				     'FF':  '\u000c', 'CR':  '\u000d', 'SO':  '\u000e', 'SI':  '\u000f',
+ 				     'DLE': '\u0010', 'DC1': '\u0011', 'DC2': '\u0012', 'DC3': '\u0013',
+				     'DC4': '\u0014', 'NAK': '\u0015', 'SYN': '\u0016', 'ETB': '\u0017',
+ 				     'CAN': '\u0018', 'EM':  '\u0019', 'SUB': '\u001a', 'ESC': '\u001b',
+ 				     'FS':  '\u001c', 'GS':  '\u001d', 'RS':  '\u001e', 'US':  '\u001f',
+ 				     'DEL': '\u007f'}[match[1]];
+			  }
+			},
+
+			// standard scheme names for control characters
+			{ tag: 'character',
+			  regexp: /#\\(nul|alarm|backspace|tab|linefeed|newline|vtab|page|return|esc|space|delete|altmode|backnext|call|rubout)/,
+			  normalize: function(match) {
+			    return { 'nul':     '\u0000', 'alarm':    '\u0007', 'backspace': '\u0008',
+				     'tab':     '\u0009', 'linefeed': '\u000a', 'newline':   '\u000a',
+				     'vtab':    '\u000b', 'page':     '\u000c', 'return':    '\u000d',
+				     'esc':     '\u001b', 'space':    '\u0020', 'delete':    '\u007f',
+				     'altmode': '\u001b', 'backnext': '\u001f', 'call':      '\u001a',
+				     'rubout':  '\u007f'}[match[1]];
+			  }
+			},
+
+			// standard general form
+			{ tag: 'character',
+			  regexp: /#\\([xu]([\da-fA-F]+)|.)/,
+			  normalize: function(match) {
+			    if (match[1].length == 1)
+			      return match[1];
+			    else
+			      return String.fromCharCode(parseInt(match[2], 16));
+			  }
+			},
+
 			{ tag: 'string',
 			  regexp: /"(([^"\\]|\\.)*)"/, //"
 			  normalize: function(match) {
-			    return new String(match[1]);
+			    return match[1];
 			  }
 			},
 
 			{ tag: 'string',
 			  regexp: /#<<\n(((([^>\n]|>[^>\n]|>>[^#\n])[^\n]*)?)(\n(([^>\n]|>[^>\n]|>>[^#\n])[^\n]*)?)*)\n>>#/m,
 			  normalize: function(match) {
-			    return (new String(match[1])).replace(/\n/g, '\\n');
+			    return match[1];
 			  }
 			},
+
 
 			{ tag: 'regexp',
 			  regexp: /#\/([^\/\\]|\\.)*\// },
