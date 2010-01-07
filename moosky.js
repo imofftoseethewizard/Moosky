@@ -22,7 +22,7 @@ Moosky = (function ()
 Moosky.Values = (function ()
 {
   function escapeString(str) {
-    return str.replace(/\n/g, '\\n').replace(/\"/g, '\\"');
+    return str.replace(/\n/g, '\\n').replace(/\"/g, '\\"').replace(/\r/g, '\\r');
   }
 
   // --------------------------------------------------------------------------
@@ -77,7 +77,10 @@ Moosky.Values = (function ()
 
   // --------------------------------------------------------------------------
   function String(str) {
-    this.$str = str;
+    this.$str = eval(str.replace(/^"\s*\\\s*\n\s*/, '"') // '
+		     .replace(/\s*\\\s*\n\s*"$/, '"') // '
+		     .replace(/\n/, '\\n')
+		     .replace(/\r/, '\\r'));
   }
 
   String.prototype = new Value();
@@ -841,7 +844,7 @@ Moosky.Core.read = (function ()
 	     'number':      parseNumber,
 	     'punctuation': function(token) { return new Symbol(token.$lexeme); },
 	     'regexp':      function(token) { return new Values.RegExp(new RegExp(token.$norm)); },
-	     'string':      function(token) { return new Values.String(token.$norm); },
+	     'string':      function(token) { return new Values.String(token.$lexeme); },
 	     'symbol':      function(token) { return new Symbol(token.$lexeme); } }[token.$tag](token);
   }
 
@@ -1639,6 +1642,72 @@ Moosky.Top = (function ()
     return sexp instanceof Moosky.Values.Symbol;
   }
 
+  function assertMinArgs(name, count, arguments) {
+    if (arguments.length < count)
+      throw new SyntaxError(name + ': expects at least ' + count +
+			    ' argument' + (count == 1 ? '' : 's') +
+			    ': given ' + arguments.length);
+  }
+
+  function assertArgCount(name, count, arguments) {
+    if (arguments.length != count)
+      throw new SyntaxError(name + ': expects at exactly ' + count +
+			    ' argument' + (count == 1 ? '' : 's') +
+			    ': given ' + arguments.length);
+  }
+
+  function assertIsCharacter(name, ch) {
+    if (!(typeof(ch) == 'string' || ch instanceof String) || ch.length != 1)
+      throw new SyntaxError(name + ': character expected: ' + ch);
+  }
+
+  function characterComparator(name, kernel, prep) {
+    return function(___) {
+      prep = prep || function (x) { return x; };
+      assertMinArgs(name, 2, arguments);
+      assertIsCharacter(name, arguments[0]);
+      var A = prep(arguments[0]).charCodeAt(0);
+      for (var i = 1; i < arguments.length; i++) {
+	assertIsCharacter(name, arguments[i]);
+	var B = prep(arguments[i]).charCodeAt(0);
+	if (!kernel(A, B))
+	  return false;
+      }
+      return true;
+    }
+  }
+
+  function characterComparatorCI(name, kernel) {
+    return characterComparator(name, kernel, function(a) { return a.toLowerCase(); });
+  }
+
+  function characterPredicate(name, kernel) {
+    return function(a) {
+      assertArgCount(name, 1, arguments);
+      assertIsCharacter(name, a);
+      return kernel(a);
+    }
+  }
+
+  var characterOperator = characterPredicate;
+
+
+  function assertIsInteger(name, i) {
+    if (!(typeof(i) == 'number' || i instanceof Number) || Math.round(i) != i)
+      throw new SyntaxError(name + ': integer expected: ' + i);
+  }
+
+  function integerPredicate(name, kernel) {
+    return function (i) {
+      assertArgCount(name, 1, arguments);
+      assertIsInteger(name, i);
+      return kernel(i);
+    }
+  }
+
+  var integerOperator = integerPredicate;
+
+
   var Top = {
     $argumentsList: function(args, n) {
       var list = nil;
@@ -1861,6 +1930,34 @@ Moosky.Top = (function ()
       return a == true || a == false;
     },
 
+    'char?': function(a) {
+      return (typeof(a) == 'string' || a instanceof String) && a.length == 1;
+    },
+
+    'char=?':  characterComparator('char=?',  function(a, b) { return a == b; }),
+    'char<?':  characterComparator('char<?',  function(a, b) { return a < b; }),
+    'char>?':  characterComparator('char>?',  function(a, b) { return a > b; }),
+    'char<=?': characterComparator('char<=?', function(a, b) { return a <= b; }),
+    'char>=?': characterComparator('char>=?', function(a, b) { return a >= b ; }),
+
+    'char-ci=?':  characterComparatorCI('char-ci=?',  function(a, b) { return a == b; }),
+    'char-ci<?':  characterComparatorCI('char-ci<?',  function(a, b) { return a < b; }),
+    'char-ci>?':  characterComparatorCI('char-ci>?',  function(a, b) { return a > b; }),
+    'char-ci<=?': characterComparatorCI('char-ci<=?', function(a, b) { return a <= b; }),
+    'char-ci>=?': characterComparatorCI('char-ci>=?', function(a, b) { return a >= b ; }),
+
+    'char-alphabetic?': characterPredicate('char-alphabetic?', function(a) { return a.match(/\w/) != null; }),
+    'char-numeric?':    characterPredicate('char-numeric?',    function(a) { return a.match(/\d/) != null; }),
+    'char-whitespace?': characterPredicate('char-whitespace?', function(a) { return a.match(/\s/) != null; }),
+    'char-upper-case?': characterPredicate('char-upper-case?', function(a) { return a == a.toUpperCase(); }),
+    'char-lower-case?': characterPredicate('char-lower-case?', function(a) { return a == a.toLowerCase(); }),
+
+    'char->integer': characterOperator('char->integer', function(a) { return a.charCodeAt(0); }),
+    'char-upcase':   characterOperator('char-upcase',   function(a) { return a.toUpperCase(); }),
+    'char-downcase': characterOperator('char-downcase', function(a) { return a.toLowerCase(); }),
+
+    'integer->char': integerOperator('integer->char', function(i) { return String.fromCharCode(i); }),
+
     gensym: (function () {
 	       var symbolCount = 0;
 	       return function (key) {
@@ -1933,19 +2030,7 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			},
 
 			{ tag: 'string',
-			  regexp: /"(([^"\\]|\\.)*)"/, //"
-			  normalize: function(match) {
-			    return match[1];
-			  }
-			},
-
-			{ tag: 'string',
-			  regexp: /#<<\n(((([^>\n]|>[^>\n]|>>[^#\n])[^\n]*)?)(\n(([^>\n]|>[^>\n]|>>[^#\n])[^\n]*)?)*)\n>>#/m,
-			  normalize: function(match) {
-			    return match[1];
-			  }
-			},
-
+			  regexp: /"([^"\\]|\\(.|\n))*"/m }, //"
 
 			{ tag: 'regexp',
 			  regexp: /#\/([^\/\\]|\\.)*\// },

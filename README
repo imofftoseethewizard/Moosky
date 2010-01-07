@@ -4,10 +4,9 @@ Contents
   1. Differences From R5RS
     1.1 Features Not Supported
     1.2 Extensions
-      1.2.1 Block Quote
-      1.2.2 Dotted Symbols
-      1.2.3 Javascript/Scheme Interleaving
-      1.2.4 Syntax Reflection
+      1.2.1 Dotted Symbols
+      1.2.2 Javascript/Scheme Interleaving
+      1.2.3 Syntax Reflection
 
   2. Usage
     2.1 Requirements
@@ -44,42 +43,7 @@ Numeric Tower
 1.2 Extensions
 
 
-1.2.1 Block Quote
-
-Moosky provides a block quoting mechanism.  While Scheme allows
-multiline quotes, there are annoyances with newlines at the starts and
-ends of long blocks.  I.e.
-
-(define (foo a b)
-  (bar "Hello, World!
-
-How are you today?")
-
-is perfectly acceptible, but is a little unsightly in that the first
-line and last lines are muddled up with code.  The extension syntax
-provides strings delimited by #<<\n and \n>>#.  The prior example
-would be written
-
-(define (foo a b)
-  (bar #<<
-Hello, World!
-
-How are you today?
->>#)
-
-It's a small thing, but it provides for a slightly neater way to
-include large blocks of text into a scheme program.
-
-One final thing to note is that the empty string is 
-
-#<<
-
->>#
-
-since each delimiter has a newline.
-
-
-1.2.2 Dotted Symbols
+1.2.1 Dotted Symbols
 
 In R5RS foo.bar is an acceptible symbol with no special handling.  In
 Moosky, to allow easy access to Javascript objects, symbols with a '.'
@@ -89,7 +53,7 @@ Hence 'Hello, World!' can be as simple as
 (window.alert "Hello, World!")
 
 
-1.2.3 Javascript/Scheme Interleaving
+1.2.2 Javascript/Scheme Interleaving
 
 Javascript can be inserted directly into Scheme code by quoting with
 braces.  Both simple inline quotes and extended multiline quotes are
@@ -120,7 +84,7 @@ or
 (define foo { new Foo(@car) })
 
 
-1.2.5 Syntax Reflection
+1.2.3 Syntax Reflection
 
 R5RS specifices a hygienic macro system using define-syntax,
 syntax-rules, let-syntax, and letrec-syntax.  It is very powerful, and
@@ -152,29 +116,6 @@ assoc
 symbol?
 symbol->string
 string->symbol
-
-6.3.4
-character literals
-char?
-char=?
-char<?
-char>?
-char<=?
-char>=?
-char-ci=?
-char-ci<?
-char-ci>?
-char-ci<=?
-char-ci>=?
-char-alphabetic?
-char-numeric?
-char-whitespace?
-char-upper-case?
-char-lower-case?
-char->integer
-integer->char
-char-upcase
-char-downcase
 
 6.3.5
 string?
