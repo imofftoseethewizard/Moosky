@@ -96,6 +96,8 @@ won't fly, but
 
 is just fine.
 
+<<<< CURRENTLY BROKEN ----
+
 To interpolate bits of Scheme into Javascript, use @:
 
 (map #{ function(a) { return @(car a).split(','); } }# args)
@@ -104,6 +106,7 @@ or
 
 (define foo { new Foo(@car) })
 
+---- CURRENTLY BROKEN >>>>
 
 1.2.3 define-macro
 
@@ -112,29 +115,28 @@ syntax-rules, let-syntax, and letrec-syntax.  It is very powerful, and
 relatively easy to use, but at the cost of being a rather large chunk
 of software.  The old define-macro system, while having some rather
 nasty sharp edges, is lightweight, genuinely simple, and compact.
-I've included (gensym [label]) as well.  If I find a hygienic macro
-package written in Scheme, I'll add it as an optional package.
+I've included (gensym [label]) as well.  I have a hygienic macro
+package written in Scheme, and I'll add it later as an optional
+package.
 
 
 5. TODO
-
-vector-map
-vector-for-each
-
-error
-assertion-violation
-assert
-named let looping construct
-
-fix javascript interpolation
 
 REPL: div with scrollable div on top, textarea on bottom
   on enter check for complete form, if so parse
 
 tail calls
 
+fix javascript interpolation
+
 Add preamble.
+
 Better error handling, source citation.
+error
+assertion-violation
+assert
+named let looping construct
+
 Add debug info to compiled code.
 
 Stuff from R5RS that's probably useful:

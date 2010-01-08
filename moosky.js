@@ -159,17 +159,15 @@ Moosky.Values = (function ()
     return !value.match(jsIdentifierRE) || value.match(jsReservedRE);
   }
 
-  Symbol.prototype.emit = function(envName) {
-    var envName = envName || 'this';
-
+  Symbol.prototype.emit = function() {
     if (this.$sym.match(/\./))
       return this.$sym;
 
     else if (this.requiresQuotes())
-      return envName + '["' + escapeString(this.toString()) + '"]';
+      return 'this["' + escapeString(this.toString()) + '"]';
 
     else
-      return envName + '.' + this.toString();
+      return 'this.' + this.toString();
   }
 
   Symbol.prototype.toString = function() {
@@ -695,12 +693,14 @@ Moosky.Core.Primitives = (function ()
 //
 
 Moosky.Core.read = (function ()
-{ with (Moosky.Core.Primitives.exports)
 {
   var Values = Moosky.Values;
   var Symbol = Values.Symbol;
   var Token = Values.Token;
   var Cite = Values.Cite;
+
+  for (var p in Moosky.Core.Primitives.exports)
+    eval(['var ', p, ' = Moosky.Core.Primitives.exports.', p, ';'].join(''));
 
   function any(fn, ___) {
     var inputs = [];
@@ -850,7 +850,7 @@ Moosky.Core.read = (function ()
   }
 
   function parseTokens(tokens, i) {
-    var sexp = nil;
+    var sexp = Moosky.Core.Primitives.exports.nil; // Chrome bug
     var dotted = false;
     var last;
 
@@ -991,15 +991,17 @@ Moosky.Core.read = (function ()
   }
 
   return read;
-}})();
+})();
 
 //=============================================================================
 //
 //
 
 Moosky.compile = (function ()
-{ with (Moosky.Core.Primitives.exports)
 {
+  for (var p in Moosky.Core.Primitives.exports)
+    eval(['var ', p, ' = Moosky.Core.Primitives.exports.', p, ';'].join(''));
+
   var Values = Moosky.Values;
   var Value = Values.Value;
   var Symbol = Values.Symbol;
@@ -1461,7 +1463,7 @@ Moosky.compile = (function ()
     // it as a value.
     var isPrimitive = isSymbol(applicand) && applicand.toString().match(/\./);
 
-    var values = isPrimitive ? [] : ['this'];
+    var values = isPrimitive ? [] : ['this.$makeFrame(this)'];
     while (actuals != nil) {
       values.push(emit(car(actuals)));
       actuals = cdr(actuals);
@@ -1469,22 +1471,24 @@ Moosky.compile = (function ()
 
     if (isPrimitive)
       return emit(applicand) + '(' + values.join(', ') + ')';
-    else
+    else {
+      // trampoline handling
       return '(' + emit(applicand) + ').call(' + values.join(', ') + ')';
+    }
   }
 
   function emitBegin(sexp) {
     return emitSequence(cdr(sexp));
   }
 
-  function emitBinding(envName, symbol, value) {
-    return symbol.emit(envName) + ' = ' + value;
+  function emitBinding(symbol, value) {
+    return symbol.emit() + ' = ' + value;
   }
 
   function emitDefine(sexp) {
     var name = cadr(sexp);
     var body = emit(caddr(sexp));
-    return name.emit('this') + ' = (' + body + ')';
+    return name.emit() + ' = (' + body + ')';
   }
 
   function emitIf(sexp) {
@@ -1514,28 +1518,32 @@ Moosky.compile = (function ()
 
     var bindings = [];
     if (isSymbol(formals))
-      bindings.push(emitBinding('env', formals, 'this.$argumentsList(arguments, 0)'));
+      bindings.push(emitBinding(formals, 'this.$argumentsList(arguments, 0)'));
 
     else {
       var i = 0;
       while (formals != nil) {
 	if (!isList(formals)) {
-	  bindings.push(emitBinding('env', formals, 'this.$argumentsList(arguments, ' + i + ')'));
+	  bindings.push(emitBinding(formals, 'this.$argumentsList(arguments, ' + i + ')'));
 	  break;
 	} else
-	  bindings.push(emitBinding('env', car(formals), 'arguments[' + i + ']'));
+	  bindings.push(emitBinding(car(formals), 'arguments[' + i + ']'));
 
 	formals = cdr(formals);
 	i++;
       }
     }
 
-    return '(function () {\n'
+/*    return '(function () {\n'
       + 'var env = this.$makeFrame(this);\n'
       + bindings.join(';\n') + '\n'
       + 'return (function () {\n'
       + 'return ' + body + ';\n'
       + '}).call(env);\n'
+      + '})\n';*/
+    return '(function () {\n'
+      + bindings.join(';\n') + '\n'
+      + 'return ' + body + ';\n'
       + '})\n';
   }
 
@@ -1589,7 +1597,7 @@ Moosky.compile = (function ()
     var expressions = [];
     var bindings = caddr(sexp);
     while (bindings != nil) {
-      expressions.push(emitBinding('this', caar(bindings), emit(cdar(bindings))));
+      expressions.push(emitBinding(caar(bindings), emit(cdar(bindings))));
       bindings = cdr(bindings);
     }
     expressions.push('this.$quasiUnquote(this.$quoted[' + quoteId + '])');
@@ -1612,7 +1620,7 @@ Moosky.compile = (function ()
   }
 
   function emitSet(sexp) {
-    return '(' + cadr(sexp).emit('this') + ' = ' + emit(caddr(sexp)) + ')';
+    return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp)) + ')';
   }
 
   return function compile(sexp, env) {
@@ -1623,15 +1631,17 @@ Moosky.compile = (function ()
     console.log(result);
     return result;
   }
-}})();
+})();
 
 //=============================================================================
 //
 //
 
 Moosky.Top = (function ()
-{ with (Moosky.Core.Primitives.exports)
 {
+  for (var p in Moosky.Core.Primitives.exports)
+    eval(['var ', p, ' = Moosky.Core.Primitives.exports.', p, ';'].join(''));
+
   var Values = Moosky.Values;
 
   function isNumber(sexp) {
@@ -2500,7 +2510,7 @@ Moosky.Top = (function ()
   }
 
   return Top;
-}})();
+})();
 
 //=============================================================================
 //
