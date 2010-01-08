@@ -1256,6 +1256,11 @@ Moosky.compile = (function ()
 	if (!isSymbol(car(formals)))
 	  throw SyntaxError('lambda: symbol expected in formal parameter: ' + car(formals));
 	formals = cdr(formals);
+	if (!isList(formals)) {
+	  if (!isSymbol(formals))
+	    throw SyntaxError('lambda: symbol expected in formal parameter: ' + formals);
+	  break;
+	}
       }
       formals = cadr(sexp);
     }
@@ -1462,10 +1467,10 @@ Moosky.compile = (function ()
     else {
       var i = 0;
       while (formals != nil) {
-	if (!isList(formals))
+	if (!isList(formals)) {
 	  bindings.push(emitBinding('env', formals, 'this.$argumentsList(arguments, ' + i + ')'));
-
-	else
+	  break;
+	} else
 	  bindings.push(emitBinding('env', car(formals), 'arguments[' + i + ']'));
 
 	formals = cdr(formals);
