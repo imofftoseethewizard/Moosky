@@ -228,6 +228,9 @@ Moosky.Values = (function ()
   }
 
   Number.prototype = new Number();
+  Number.prototype.valueOf = function() {
+    return this.$n;
+  }
 
   // --------------------------------------------------------------------------
   function Complex(z) {
@@ -235,6 +238,10 @@ Moosky.Values = (function ()
   }
 
   Complex.prototype = new Number();
+  Complex.prototype.valueOf = function() {
+    return this.$z;
+  }
+
 
   // --------------------------------------------------------------------------
   function Real(s) {
@@ -242,6 +249,10 @@ Moosky.Values = (function ()
   }
 
   Real.prototype = new Complex();
+  Real.prototype.valueOf = function() {
+    return this.$s;
+  }
+
 
   // --------------------------------------------------------------------------
   function Rational(n, d) {
@@ -250,6 +261,11 @@ Moosky.Values = (function ()
   }
 
   Rational.prototype = new Real();
+
+  Rational.prototype.valueOf = function() {
+    return this.$n/this.$d;
+  }
+
 
   Rational.prototype.toString = function() {
     return '' + this.$n + '/' + this.$d;
@@ -265,6 +281,10 @@ Moosky.Values = (function ()
   }
 
   Integer.prototype = new Rational();
+
+  Integer.prototype.valueOf = function() {
+    return this.$i;
+  }
 
   Integer.prototype.toString = function() {
     return '' + this.$i;
@@ -1614,21 +1634,37 @@ Moosky.Top = (function ()
 {
   var Values = Moosky.Values;
 
+  function isNumber(sexp) {
+    return typeof(sexp) == 'number' || sexp instanceof Values.Number;
+  }
+
+  function isInteger(sexp) {
+    return typeof(sexp) == 'number' && sexp == Math.round(sexp) || sexp instanceof Values.Integer;
+  }
+
+  function isSymbol(sexp) {
+    return sexp instanceof Values.Symbol;
+  }
+
+  function isList(sexp) {
+    return sexp instanceof Values.Cons;
+  }
+
   function numericComparator(symbol, relation) {
     return function(___) {
       if (arguments.length == 0)
 	return true;
 
-      if (typeof(arguments[0]) != 'number')
+      if (!isNumber(arguments[0]))
 	throw SyntaxError(symbol + ': number expected: not ' + arguments[0]);
 
-      var a, b = arguments[0];
+      var a, b = arguments[0].valueOf();
       for (var i = 0; i < arguments.length-1; i++) {
-	a = b;
-	b = arguments[i+1];
-
-	if (typeof(b) != 'number')
+	if (!isNumber(arguments[i+1]))
 	  throw SyntaxError(symbol + ': number expected: not ' + b);
+
+	a = b;
+	b = arguments[i+1].valueOf();
 
 	if (!relation(a, b)) return false;
       }
@@ -1646,7 +1682,7 @@ Moosky.Top = (function ()
 	return zero;
       }
 
-      if (typeof(arguments[0]) != 'number')
+      if (!isNumber(arguments[0]))
 	throw SyntaxError(symbol + ': number expected: not ' + arguments[0]);
 
       if (arguments.length == 1) {
@@ -1656,12 +1692,12 @@ Moosky.Top = (function ()
 	  return binop(zero, arguments[0]);
       }
 
-      var result = arguments[0];
+      var result = arguments[0].valueOf();
       for (var i = 1; i < arguments.length; i++) {
-	var a = arguments[i];
-	if (typeof(a) != 'number')
+	if (!isNumber(arguments[i]))
 	  throw SyntaxError(symbol + ': number expected: not ' + a);
 
+	var a = arguments[i].valueOf();
 	result = binop(result, a);
       }
 
@@ -1674,13 +1710,16 @@ Moosky.Top = (function ()
       if (arguments.length != 2)
 	throw SyntaxError(symbol + ' expects 2 arguments; given ' + arguments.length);
 
-      if (typeof(a) != 'number')
+      if (!isNumber(a))
 	  throw SyntaxError(symbol + ': number expected: not ' + a);
 
-      if (typeof(b) != 'number')
+      if (!isNumber(b))
 	  throw SyntaxError(symbol + ': number expected: not ' + b);
 
-      if (typeof(b) == 0)
+      a = a.valueOf();
+      b = b.valueOf();
+
+      if (a == 0)
 	throw SyntaxError(symbol + ': division by zero');
 
       return binop(a, b);
@@ -1692,10 +1731,10 @@ Moosky.Top = (function ()
       if (arguments.length != 1)
 	throw SyntaxError(symbol + ' expects 1 argument; given ' + arguments.length);
 
-      if (typeof(a) != 'number')
+      if (!isNumber(a))
 	  throw SyntaxError(symbol + ': number expected: not ' + a);
 
-      return unop(a);
+      return unop(a.valueOf());
     }
   }
 
@@ -1704,13 +1743,13 @@ Moosky.Top = (function ()
       if (arguments.length != 2)
 	throw SyntaxError(symbol + ' expects 2 arguments; given ' + arguments.length);
 
-      if (typeof(a) != 'number')
+      if (!isNumber(a))
 	  throw SyntaxError(symbol + ': number expected: not ' + a);
 
-      if (typeof(b) != 'number')
+      if (!isNumber(b))
 	  throw SyntaxError(symbol + ': number expected: not ' + b);
 
-      return binop(a, b);
+      return binop(a.valueOf(), b.valueOf());
     }
   }
 
@@ -1720,14 +1759,6 @@ Moosky.Top = (function ()
 
   function quotient(a, b) {
     return truncate(a/b);
-  }
-
-  function isSymbol(sexp) {
-    return sexp instanceof Values.Symbol;
-  }
-
-  function isList(sexp) {
-    return sexp instanceof Values.Cons;
   }
 
   function assertMinArgs(name, count, arguments) {
@@ -1839,7 +1870,7 @@ Moosky.Top = (function ()
 
 
   function assertIsInteger(name, i) {
-    if (!(typeof(i) == 'number' || i instanceof Number) || Math.round(i) != i)
+    if (!isInteger(i) || Math.round(i) != i)
       throw new SyntaxError(name + ': integer expected: ' + i);
   }
 
@@ -1907,6 +1938,39 @@ Moosky.Top = (function ()
     }
   }
 
+  function vectorIterator(name, collect) {
+    collect = collect || function () {};
+
+    return function(proc, v0, ___) {
+      assertMinArgs(name, 2, arguments);
+      assertIsProcedure(name, proc);
+      assertIsVector(name, v0);
+
+      var vs = [v0];
+      var length = v0.length;
+      for (var i = 2; i < arguments.length; i++) {
+	var v = arguments[i];
+	assertIsVector(name, v);
+	if (v.length != length)
+	  throw new SyntaxError(name + ': all vectors must be the same length: '
+				+ '(vector-length "' + v0 + '") != (vector-length "' + v + '")');
+
+	vs.push(v);
+      }
+
+      var result = nil;
+      for (i = 0; i < length; i++) {
+	var args = [];
+	for (var j = 0; j < vs.length; j++)
+	  args.push(vs[j][i]);
+
+	result = collect(proc.apply(this, args), result);
+      }
+
+      return result;
+    }
+  }
+
 
   var Top = {
     $argumentsList: function(args, n) {
@@ -1966,7 +2030,7 @@ Moosky.Top = (function ()
 
       return a === b
 	|| isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
-	|| isNumber(a) && isNumber(b) && a == b
+	|| isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
 	|| isString(a) && isString(b) && a == b;
     },
 
@@ -1976,7 +2040,7 @@ Moosky.Top = (function ()
 
       return a === b
 	|| isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
-	|| isNumber(a) && isNumber(b) && a == b
+	|| isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
 	|| isString(a) && isString(b) && a == b;
     },
 
@@ -2010,7 +2074,7 @@ Moosky.Top = (function ()
     },
 
     'integer?': function(a) {
-      return false;
+      return IsInteger(a);
     },
 
     'exact?': function(a) {
@@ -2028,31 +2092,31 @@ Moosky.Top = (function ()
     '>=': numericComparator('>=', function(a, b) { return a >= b; }),
 
     'zero?': function(a) {
-      return typeof(a) == 'number' && a == 0;
+      return typeof(a) == 'number' && a.valueOf() == 0;
     },
 
     'positive?': function(a) {
-      return typeof(a) == 'number' && a > 0;
+      return typeof(a) == 'number' && a.valueOf() > 0;
     },
 
     'negative?': function(a) {
-      return typeof(a) == 'number' && a < 0;
+      return typeof(a) == 'number' && a.valueOf() < 0;
     },
 
     'odd?': function(a) {
-      return typeof(a) == 'number' && Math.abs(a % 2) == 1;
+      return typeof(a) == 'number' && Math.abs(a.valueOf() % 2) == 1;
     },
 
     'even?': function(a) {
-      return typeof(a) == 'number' && a % 2 == 0;
+      return typeof(a) == 'number' && a.valueOf() % 2 == 0;
     },
 
     max: numericFold('max', function(m, a) { return m > a ? m : a }),
     min: numericFold('min', function(m, a) { return m < a ? m : a }),
     '+': numericFold('+', function(s, a) { return s + a; }, 0),
     '-': numericFold('-', function(d, a) { return d - a; }, 0),
-    '*': numericFold('+', function(p, a) { return p * a; }, 1),
-    '/': numericFold('-',
+    '*': numericFold('*', function(p, a) { return p * a; }, 1),
+    '/': numericFold('/',
 		     function(q, a) {
 		       if (a == 0)
 			 throw SyntaxError('/: division by zero.');
@@ -2079,16 +2143,16 @@ Moosky.Top = (function ()
       if (arguments.length == 0 || arguments.length > 2)
 	throw SyntaxError('atan expects 1 or 2 arguments; given ' + arguments.length);
 
-      if (typeof(a) != 'number')
+      if (!isNumber(a))
 	  throw SyntaxError('atan: number expected: not ' + a);
 
       if (arguments.length == 1)
-	return Math.atan(a);
+	return Math.atan(a.valueOf());
 
-      if (typeof(b) != 'number')
+      if (!isNumber(b))
 	throw SyntaxError('atan: number expected: not ' + b);
 
-      return Math.atan2(a, b);
+      return Math.atan2(a.valueOf(), b.valueOf());
     },
 
     sqrt: numericUnop('sqrt', function(a) {
@@ -2110,10 +2174,8 @@ Moosky.Top = (function ()
     },
 
     'number->string': function(a, radix) {
-      if (typeof(a) != 'number')
-	throw SyntaxError('number->string: number expected: ' + a);
-
-      return (new Number(a)).toString(radix);
+      assertNonNegativeInteger('number->string', radix);
+      return (new Number(a.valueOf())).toString(radix);
     },
 
     not: function(a) {
@@ -2349,6 +2411,16 @@ Moosky.Top = (function ()
 
       return v;
     },
+
+    'vector-for-each': (function () {
+			  var iter = vectorIterator('vector-for-each');
+			  return function(___) { iter.apply(this, arguments); }
+			})(),
+
+    'vector-map': (function () {
+		     var iter = vectorIterator('vector-map', cons);
+		     return function(___) { return reverse(iter.apply(this, arguments)); }
+		   })(),
 
     'symbol?': function(s) {
       assertArgCount('symbol?', 1, arguments);

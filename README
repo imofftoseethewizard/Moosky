@@ -118,11 +118,6 @@ package written in Scheme, I'll add it as an optional package.
 
 5. TODO
 
-fix javascript interpolation
-Add preamble.
-Better error handling, source citation.
-Add debug info to compiled code.
-
 vector-map
 vector-for-each
 
@@ -131,12 +126,16 @@ assertion-violation
 assert
 named let looping construct
 
-tail calls
+fix javascript interpolation
 
 REPL: div with scrollable div on top, textarea on bottom
   on enter check for complete form, if so parse
 
-Greeting string
+tail calls
+
+Add preamble.
+Better error handling, source citation.
+Add debug info to compiled code.
 
 Stuff from R5RS that's probably useful:
 4.2.4
