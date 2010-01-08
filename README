@@ -7,6 +7,7 @@ Contents
       1.2.1 Dotted Symbols
       1.2.2 Javascript/Scheme Interleaving
       1.2.3 Syntax Reflection
+      1.2.4 String Handling
 
   2. Usage
     2.1 Requirements
@@ -94,6 +95,13 @@ nasty sharp edges, is lightweight, genuinely simple, and compact.
 I've included (gensym [label]) as well.  If I find a hygienic macro
 package written in Scheme, I'll add it as an optional package.
 
+1.2.4 String Handling
+
+Javascript has immutable strings.  R5RS presumes a mutable strings,
+whereas R6RS does not.  It therefore made more sense to implement the
+R6RS version of basic string handling.  The differences are the lack
+of string-set! and string-fill!, and the addition of string-for-each.
+
 5. TODO
 
 4.2.4
@@ -118,28 +126,6 @@ symbol->string
 string->symbol
 
 6.3.5
-string?
-make-string
-string
-string-length
-string-ref
-string-set!
-string=?
-string<?
-string>?
-string<=?
-string>=?
-string-ci=?
-string-ci<?
-string-ci>?
-string-ci<=?
-string-ci>=?
-substring
-string-append
-string->list
-list->string
-string-copy
-string-fill!
 
 6.3.6
 vector?

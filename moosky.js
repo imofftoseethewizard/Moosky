@@ -934,7 +934,6 @@ Moosky.compile = (function ()
   var $set         = new Symbol('set!');
 
   function isMacro(v) {
-    console.log(v);
     return v !== undefined && typeof v == 'function' && v.tag == 'macro';
   }
 
@@ -943,7 +942,7 @@ Moosky.compile = (function ()
   }
 
   function parseSexp(sexp, env) {
-    console.log(sexp);
+//    console.log(sexp);
     if (env === undefined) {
       debugger;
     }
@@ -1314,7 +1313,7 @@ Moosky.compile = (function ()
   }
 
   function emit(sexp) {
-    console.log('emit: ' + sexp);
+//    console.log('emit: ' + sexp);
     if (!isList(sexp)) {
       return (sexp instanceof Value) ? sexp.emit() : '' + sexp;
     }
@@ -1518,7 +1517,7 @@ Moosky.compile = (function ()
     var result = '(function () {\n'
 		+ 'return ' + emit(parseBegin(cons('begin', sexp), env)) + ';\n'
 		+ '}).call(Moosky.Top);';
-    console.log(result);
+//    console.log(result);
     return result;
   }
 }})();
@@ -1642,6 +1641,10 @@ Moosky.Top = (function ()
     return sexp instanceof Moosky.Values.Symbol;
   }
 
+  function isList(sexp) {
+    return sexp instanceof Moosky.Values.Cons;
+  }
+
   function assertMinArgs(name, count, arguments) {
     if (arguments.length < count)
       throw new SyntaxError(name + ': expects at least ' + count +
@@ -1654,6 +1657,23 @@ Moosky.Top = (function ()
       throw new SyntaxError(name + ': expects at exactly ' + count +
 			    ' argument' + (count == 1 ? '' : 's') +
 			    ': given ' + arguments.length);
+  }
+
+  function assertArgRange(name, min, max, arguments) {
+    if (arguments.length < min || arguments.length > max)
+      throw new SyntaxError(name + ': expects at between ' + min +
+			    ' and ' + max +
+			    ' arguments: given ' + arguments.length);
+  }
+
+  function assertIsList(name, lst) {
+    if (!isList(lst))
+      throw new SyntaxError(name + ': list expected: ' + lst);
+  }
+
+  function assertIsProcedure(name, fn) {
+    if (!(typeof(fn) == 'function'))
+      throw new SyntaxError(name + ': procedure expected: ' + fn);
   }
 
   function assertIsCharacter(name, ch) {
@@ -1692,9 +1712,51 @@ Moosky.Top = (function ()
   var characterOperator = characterPredicate;
 
 
+  function assertIsString(name, s) {
+    if (!(typeof(s) == 'string' || s instanceof String))
+      throw new SyntaxError(name + ': string expected: ' + s);
+  }
+
+  function stringComparator(name, kernel, prep) {
+    return function(___) {
+      prep = prep || function (x) { return x; };
+      assertMinArgs(name, 2, arguments);
+      assertIsString(name, arguments[0]);
+      var A = prep(arguments[0]);
+      for (var i = 1; i < arguments.length; i++) {
+	assertIsString(name, arguments[i]);
+	var B = prep(arguments[i]);
+	if (!kernel(A, B))
+	  return false;
+      }
+      return true;
+    }
+  }
+
+  function stringComparatorCI(name, kernel) {
+    return stringComparator(name, kernel, function(a) { return a.toLowerCase(); });
+  }
+
+  function stringPredicate(name, kernel) {
+    return function(a) {
+      assertArgCount(name, 1, arguments);
+      assertIsString(name, a);
+      return kernel(a);
+    }
+  }
+
+  var stringOperator = stringPredicate;
+
+
   function assertIsInteger(name, i) {
     if (!(typeof(i) == 'number' || i instanceof Number) || Math.round(i) != i)
       throw new SyntaxError(name + ': integer expected: ' + i);
+  }
+
+  function assertIsNonNegativeInteger(name, i) {
+    assertIsInteger(name, i);
+    if (i < 0)
+      throw new SyntaxError(name + ': non-negative integer expected: ' + i);
   }
 
   function integerPredicate(name, kernel) {
@@ -1957,6 +2019,127 @@ Moosky.Top = (function ()
     'char-downcase': characterOperator('char-downcase', function(a) { return a.toLowerCase(); }),
 
     'integer->char': integerOperator('integer->char', function(i) { return String.fromCharCode(i); }),
+
+    'string?': function(a) {
+      return typeof(a) == 'string' || a instanceof String;
+    },
+
+    'make-string': function(k, ch) {
+      assertArgRange('make-string', 1, 2, arguments);
+      assertIsNonNegativeInteger('make-string', k);
+
+      ch = ch !== undefined ? ch : ' ';
+      assertIsCharacter('make-string', ch);
+
+      var s = '';
+      while (k > 0)
+	s += ch;
+
+      return s;
+    },
+
+    'string': function(___) {
+      for (var i = 0; i < arguments.length; i++)
+	assertIsCharacter('string', arguments[i]);
+
+      return Array.apply(Array, arguments).join('');
+    },
+
+    'string-length': stringOperator('string-length', function(s) { return s.length; }),
+
+    'string-ref': function(s, k) {
+      assertArgCount('string-ref', 2, arguments);
+      assertIsString('string-ref', s);
+      assertIsNonNegativeInteger('string-ref', k);
+      return s[k];
+    },
+
+    'string=?':  stringComparator('string=?',  function(a, b) { return a == b; }),
+    'string<?':  stringComparator('string<?',  function(a, b) { return a < b; }),
+    'string>?':  stringComparator('string>?',  function(a, b) { return a > b; }),
+    'string<=?': stringComparator('string<=?', function(a, b) { return a <= b; }),
+    'string>=?': stringComparator('string>=?', function(a, b) { return a >= b ; }),
+
+    'string-ci=?':  stringComparatorCI('string-ci=?',  function(a, b) { return a == b; }),
+    'string-ci<?':  stringComparatorCI('string-ci<?',  function(a, b) { return a < b; }),
+    'string-ci>?':  stringComparatorCI('string-ci>?',  function(a, b) { return a > b; }),
+    'string-ci<=?': stringComparatorCI('string-ci<=?', function(a, b) { return a <= b; }),
+    'string-ci>=?': stringComparatorCI('string-ci>=?', function(a, b) { return a >= b ; }),
+
+    'substring': function(s, start, end) {
+      assertArgCount('substring', 2, arguments);
+      assertIsNonNegativeInteger('substring', start);
+      assertIsNonNegativeInteger('substring', end);
+      if (end < start)
+	throw new SyntaxError('substring: end < start.');
+
+      return s.slice(start, end);
+    },
+
+    'string-append': function(___) {
+      for (var i = 0; i < arguments.length; i++)
+	assertIsString('string-append', arguments[i]);
+
+      return Array.apply(Array, arguments).join('');
+    },
+
+    'string->list': function(s) {
+      assertArgCount('string->list', 1, arguments);
+      assertIsString('string->list', s);
+
+      var lst = nil;
+      for (var i = s.length-1; i >= 0; i--)
+	lst = cons(s.charAt(i), lst);
+
+      return lst;
+    },
+
+    'list->string': function(lst) {
+      assertArgCount('list->string', 1, arguments);
+      assertIsList('list->string', lst);
+
+      var chs = [];
+      while (lst != nil) {
+	var ch = car(lst);
+	assertIsCharacter('list->string', ch);
+	chs.push(ch);
+	lst = cdr(lst);
+      }
+
+      return chs.join('');
+    },
+
+    'string-copy': function(s) {
+      assertArgCount('string-copy', 1, arguments);
+      assertIsString('string-copy', s);
+      return String(s);
+    },
+
+    'string-for-each': function(proc, s0, ___) {
+      assertMinArgs('string-for-each', 2, arguments);
+      assertIsProcedure('string-for-each', proc);
+      assertIsString('string-for-each', s0);
+
+      var strs = [s0];
+      var length = s0.length;
+      for (var i = 2; i < arguments.length; i++) {
+	var s = arguments[i];
+	assertIsString('string-for-each', s);
+	if (s.length != length)
+	  throw new SyntaxError('string-for-each: all strings must be the same length: '
+				+ '(string-length "' + s0 + '") != (string-length "' + s + '")');
+
+	strs.push(s);
+      }
+
+      for (i = 0; i < length; i++) {
+	var chs = [];
+	for (var j = 0; j < strs.length; j++)
+	  chs.push(strs[j].charAt(i));
+
+	proc.apply(this, chs);
+      }
+    },
 
     gensym: (function () {
 	       var symbolCount = 0;
