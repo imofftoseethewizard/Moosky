@@ -10,7 +10,7 @@ window.setTimeout(function () {
 		    var textArea = document.getElementById('id_textarea');
 		    observe(textArea, 'change',
 			    function() {
-			      console.log(Moosky(textArea.value));
+			      console.log(Moosky.Values.Cons.printSexp(Moosky(textArea.value)));
 			    });
 		  }, 500);
 

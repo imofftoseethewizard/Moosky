@@ -102,6 +102,7 @@ whereas R6RS does not.  It therefore made more sense to implement the
 R6RS version of basic string handling.  The differences are the lack
 of string-set! and string-fill!, and the addition of string-for-each.
 
+
 5. TODO
 
 4.2.4
@@ -124,18 +125,6 @@ assoc
 symbol?
 symbol->string
 string->symbol
-
-6.3.5
-
-6.3.6
-vector?
-make-vector
-vector
-vector-length
-vector-ref
-vector-set!
-vector->list
-list->vector
 
 6.4
 procedure?

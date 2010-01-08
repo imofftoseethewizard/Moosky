@@ -85,6 +85,10 @@ Moosky.Values = (function ()
 
   String.prototype = new Value();
 
+  String.prototype.toString = function () {
+    return '"' + this.$str + '"';
+  }
+
   String.prototype.emit = function() {
     return '"' + escapeString(this.$str) + '"';
   }
@@ -318,6 +322,14 @@ Moosky.Values = (function ()
 	case null: return '#n';
 	case true: return '#t';
 	case undefined: return '#u';
+      }
+
+      if (sexp instanceof Array) {
+	var chunks = [];
+	for (var i = 0; i < sexp.length; i++)
+	  chunks.push(Cons.printSexp(sexp[i]));
+
+	return '#(' + chunks.join(' ') + ')';
       }
 
       return sexp.toString();
@@ -731,7 +743,7 @@ Moosky.Core.read = (function ()
 	      if (lexemeClass.normalize)
 		norm = lexemeClass.normalize(lexemeClass.nextMatch);
 
-	      if (!lexemeClass.condition || lexemeClass.condition(lexemes, lexeme))
+	      if (!lexemeClass.condition || lexemeClass.condition(tokens, lexeme))
 		return new Token(lexeme, lexemeClass.tag, new Cite(str, i, i+lexeme.length), norm);
 	    }
 
@@ -784,7 +796,7 @@ Moosky.Core.read = (function ()
 	break;
 
       else if (token.$lexeme.match(/^[\]\)]/))
-	throw 'Mismatched ' + lexemes[i] + ': found ' + lexeme[j];
+	throw 'Mismatched ' + tokens[i].$lexeme + ': found ' + tokens[j].$lexeme;
 
       else if (token.$lexeme == '.') {
 	if (dotted)
@@ -1770,6 +1782,17 @@ Moosky.Top = (function ()
   var integerOperator = integerPredicate;
 
 
+  function assertIsVector(name, v) {
+    if (!(v instanceof Array))
+      throw new SyntaxError(name + ': vector expected: ' + v);
+  }
+
+  function assertVectorIndexInRange(name, v, k) {
+    if (k >= v.length)
+      throw new SyntaxError(name + ': index ' + k + ' out of range[0, '
+			      + v.length-1 + '] for vector ' + v);
+  }
+
   var Top = {
     $argumentsList: function(args, n) {
       var list = nil;
@@ -2139,6 +2162,76 @@ Moosky.Top = (function ()
 
 	proc.apply(this, chs);
       }
+    },
+
+    'vector?': function(v) {
+      assertArgCount('vector?', 1, arguments);
+      return v instanceof Array;
+    },
+
+    'make-vector': function(k, obj) {
+      assertArgRange('make-vector', 1, 2, arguments);
+      assertIsNonNegativeInteger('make-vector', k);
+
+      var v = [];
+      while (k-- > 0)
+	v.push(obj);
+
+      return v;
+    },
+
+    'vector': function(___) {
+      var v = [];
+      for (var i = 0; i < arguments.length; i++)
+	v.push(arguments[i]);
+
+      return v;
+    },
+
+    'vector-length': function(v) {
+      assertArgCount('vector-length', 1, arguments);
+      assertIsVector('vector-length', v);
+      return v.length;
+    },
+
+    'vector-ref': function(v, k) {
+      assertArgCount('vector-ref', 2, arguments);
+      assertIsVector('vector-ref', v);
+      assertIsNonNegativeInteger('vector-ref', k);
+      assertVectorIndexInRange(v, k);
+      return v[k];
+    },
+
+    'vector-set!': function(v, k, obj) {
+      assertArgCount('vector-set!', 3, arguments);
+      assertIsVector('vector-set!', v);
+      assertIsNonNegativeInteger('vector-set!', k);
+      assertVectorIndexInRange(v, k);
+      v[k] = obj;
+    },
+
+    'vector->list': function(v) {
+      assertArgCount('vector->list', 1, arguments);
+      assertIsVector('vector->list', v);
+
+      var lst = nil;
+      for (var i = v.length-1; i >= 0; i--)
+	lst = cons(v[i], lst);
+
+      return lst;
+    },
+
+    'list->vector': function(lst) {
+      assertArgCount('list->vector', 1, arguments);
+      assertIsList('list->vector', lst);
+
+      var v = [];
+      while (lst != nil) {
+	v.push(car(lst));
+	lst = cdr(lst);
+      }
+
+      return v;
     },
 
     gensym: (function () {
