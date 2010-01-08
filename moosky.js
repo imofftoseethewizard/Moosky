@@ -443,6 +443,12 @@ Moosky.Core.Primitives = (function ()
   var Cons = Moosky.Values.Cons;
   var nil = Cons.nil;
 
+  function makeFrame(env) {
+    var Frame = function () { };
+    Frame.prototype = env;
+    return new Frame();
+  }
+
   function isNull(pair) {
     return pair === Cons.nil;
   }
@@ -580,6 +586,7 @@ Moosky.Core.Primitives = (function ()
 
   Primitives = {};
   Primitives.exports = {
+    makeFrame: makeFrame,
     printSexp: Cons.printSexp,
     nil: Cons.nil,
     isNull: isNull,
@@ -1035,7 +1042,7 @@ Moosky.compile = (function ()
   }
 
   function parseSexp(sexp, env) {
-    console.log(sexp);
+//    console.log(sexp);
     if (env === undefined) {
       debugger;
     }
@@ -1319,13 +1326,13 @@ Moosky.compile = (function ()
       formals = cadr(sexp);
     }
 
-    var body = parseSequence(cddr(sexp), Moosky.Top.$makeFrame(env));
+    var body = parseSequence(cddr(sexp), makeFrame(env));
     return list($lambda, formals, body);
   }
 
   function parseLet(sexp, env) {
     var bindings = parseBindings(cadr(sexp), env);
-    var body = parseSequence(cddr(sexp), Moosky.Top.$makeFrame(env));
+    var body = parseSequence(cddr(sexp), makeFrame(env));
 
     return list($let, bindings, body);
   }
@@ -1410,10 +1417,23 @@ Moosky.compile = (function ()
     return list(car(sexp), cadr(sexp), parseSexp(caddr(sexp), env));
   }
 
-  function emit(sexp) {
-    console.log('emit: ' + sexp);
+  function pushContext(context) {
+    function copy(obj) {
+      var other = {};
+      for (var p in obj)
+	other[p] = obj[p];
+      return other;
+    }
+    return cons(copy(car(context)), context);
+  }
+
+  function emit(sexp, context) {
+    if (context === undefined)
+      debugger;
+
+//    console.log('emit' + (car(context).tail ? '*' : '') + ': ' + sexp);
     if (!isList(sexp)) {
-      return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp);
+      return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, context);
     }
 
     var op = car(sexp);
@@ -1429,10 +1449,13 @@ Moosky.compile = (function ()
 	     'or': emitOr,
 	     'quasiquote': emitQuasiQuote,
 	     'quote': emitQuote,
-	     'set!': emitSet}[car(sexp).toString()])(sexp);
+	     'set!': emitSet}[car(sexp).toString()])(sexp, context);
   }
 
-  function emitAnd(sexp) {
+  function emitAnd(sexp, context) {
+    var tail = car(context).tail;
+    context = pushContext(context);
+
     sexp = cdr(sexp);
 
     var values = length(sexp);
@@ -1440,81 +1463,111 @@ Moosky.compile = (function ()
       return 'true';
 
     if (values == 1)
-      return emit(car(sexp));
+      return emit(car(sexp), context);
 
     // (this.$temp = (expr)) == false ? false : ... : this.$temp)
     var chunks = ['('];
     while (sexp != nil) {
+      var next = cdr(sexp);
+      car(context).tail = tail && next == nil;
+
       chunks.push('(this.$temp = (');
-      chunks.push(emit(car(sexp)));
+      chunks.push(emit(car(sexp), context));
       chunks.push(')) == false ? false : ');
-      sexp = cdr(sexp);
+
+      sexp = next;
     }
     chunks.push('this.$temp)');
     return chunks.join('');
   }
 
-  function emitApply(sexp) {
+  function emitApply(sexp, context) {
+    var tail = car(context).tail;
+    context = pushContext(context);
+    car(context).tail = false;
+
     var applicand = cadr(sexp);
     var actuals = cddr(sexp);
 
-    // FIX  this will work where native code is directly referred to with
-    // eg, window.alert, but not in the case where an application returns
-    // it as a value.
-    var isPrimitive = isSymbol(applicand) && applicand.toString().match(/\./);
+    var values = tail
+		   ? ['applicand.$Moosky ? this : null']
+		   : ['applicand.$Moosky ? this.$makeFrame(this) : null'];
 
-    var values = isPrimitive ? [] : ['this.$makeFrame(this)'];
     while (actuals != nil) {
-      values.push(emit(car(actuals)));
+      values.push(emit(car(actuals), context));
       actuals = cdr(actuals);
     }
 
-    if (isPrimitive)
-      return emit(applicand) + '(' + values.join(', ') + ')';
-    else {
-      // trampoline handling
-      return '(' + emit(applicand) + ').call(' + values.join(', ') + ')';
+    var parameters = values.join(', ');
+    if (tail) {
+      car(context).tail = true;
+      return ['(function (applicand) {\n',
+	      '  return new this.$Trampoline(this, function() { \n',
+	      '    return applicand.call(', parameters, ');\n',
+	      '  })\n',
+	      '}).call(this, ', emit(applicand, context), ')'].join('');
+    } else {
+      return ['(function (applicand) {\n',
+	      '  var result = applicand.call(', parameters, ');\n',
+	      '  while (result instanceof this.$Trampoline)\n',
+	      '    result = result.bounce();\n',
+	      '  return result;\n',
+	      '}).call(this, ', emit(applicand, context), ')'].join('');
     }
   }
 
-  function emitBegin(sexp) {
-    return emitSequence(cdr(sexp));
+  function emitBegin(sexp, context) {
+    return emitSequence(cdr(sexp), context);
   }
 
   function emitBinding(symbol, value) {
     return symbol.emit() + ' = ' + value;
   }
 
-  function emitDefine(sexp) {
+  function emitDefine(sexp, context) {
+    var context = pushContext(context);
+    car(context).tail = false;
+
     var name = cadr(sexp);
-    var body = emit(caddr(sexp));
+    var body = emit(caddr(sexp), context);
     return name.emit() + ' = (' + body + ')';
   }
 
-  function emitIf(sexp) {
-    var test = emit(car(sexp = cdr(sexp)));
-    var consequent = emit(car(sexp = cdr(sexp)));
-    var alternate = emit(car(sexp = cdr(sexp)));
+  function emitIf(sexp, context) {
+    var context = pushContext(context);
+
+    car(context).tail = false;
+    var test = emit(car(sexp = cdr(sexp)), context);
+
+    context = cdr(context);
+    var consequent = emit(car(sexp = cdr(sexp)), context);
+    var alternate = emit(car(sexp = cdr(sexp)), context);
     return '(' + test + ' != false ' + ' ? (' + consequent + ') : (' + alternate + '))';
   }
 
-  function emitJavascript(sexp) {
+  function emitJavascript(sexp, context) {
+    var context = pushContext(context);
+    car(context).tail = false;
+
     sexp = cdr(sexp);
     var chunks = [];
     while (sexp != nil) {
       chunks.push(car(sexp));
       sexp = cdr(sexp);
       if (sexp != nil) {
-	chunks.push('(' + emit(car(sexp)) + ')');
+	chunks.push('(' + emit(car(sexp), context) + ')');
 	sexp = cdr(sexp);
       }
     }
     return '(function () { return ' + chunks.join('') + '}).call(this)';
   }
 
-  function emitLambda(sexp) {
+  function emitLambda(sexp, context) {
+    context = pushContext(context);
+    car(context).tail = true;
+
     var formals = cadr(sexp);
-    var body = emitSequence(caddr(sexp));
+    var body = emitSequence(caddr(sexp), context);
 
     var bindings = [];
     if (isSymbol(formals))
@@ -1534,20 +1587,13 @@ Moosky.compile = (function ()
       }
     }
 
-/*    return '(function () {\n'
-      + 'var env = this.$makeFrame(this);\n'
-      + bindings.join(';\n') + '\n'
-      + 'return (function () {\n'
-      + 'return ' + body + ';\n'
-      + '}).call(env);\n'
-      + '})\n';*/
-    return '(function () {\n'
-      + bindings.join(';\n') + '\n'
-      + 'return ' + body + ';\n'
-      + '})\n';
+    return ['((this.$lambda = function () {\n',
+	    bindings.join(';\n'), ';\n',
+	    'return ', body, ';\n',
+	    '}), this.$lambda.$Moosky = { type: "lambda" }, this.$lambda) '].join('');
   }
 
-  function emitLet(sexp) {
+  function emitLet(sexp, context) {
     var bindings = cadr(sexp);
     var formals = nil;
     var params = nil;
@@ -1559,23 +1605,28 @@ Moosky.compile = (function ()
     }
     var body = caddr(sexp);
     var lambda = list($lambda, reverse(formals), body);
-    return emitApply(cons($apply, cons(lambda, reverse(params))));
+    return emitApply(cons($apply, cons(lambda, reverse(params))), context);
   }
 
-  function emitOr(sexp) {
+  function emitOr(sexp, context) {
+    var tail = car(context).tail;
+    context = pushContext(context);
+
     sexp = cdr(sexp);
     var values = length(sexp);
     if (values == 0)
       return 'false';
 
     if (values == 1)
-      return emit(car(sexp));
+      return emit(car(sexp), context);
 
     // (this.$temp = (expr)) != false ? this.$temp : ... : false)
     var chunks = ['('];
     while (sexp != nil) {
+      var next = cdr(sexp);
+      car(context).tail = tail && next == nil;
       chunks.push('(this.$temp = (');
-      chunks.push(emit(car(sexp)));
+      chunks.push(emit(car(sexp), context));
       chunks.push(')) != false ? this.$temp : ');
       sexp = cdr(sexp);
     }
@@ -1583,52 +1634,63 @@ Moosky.compile = (function ()
     return chunks.join('');
   }
 
-  function emitPrimitive(sexp) {
+  function emitPrimitive(sexp, context) {
     if (sexp instanceof Array)
-      return emitQuote(list($quote, sexp));
+      return emitQuote(list($quote, sexp, context), context);
 
     return sexp.toString();
   }
 
-  function emitQuasiQuote(sexp) {
+  function emitQuasiQuote(sexp, context) {
+    context = pushContext(context);
+    car(context).tail = false;
+
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
 
     var expressions = [];
     var bindings = caddr(sexp);
     while (bindings != nil) {
-      expressions.push(emitBinding(caar(bindings), emit(cdar(bindings))));
+      expressions.push(emitBinding(caar(bindings), emit(cdar(bindings), context)));
       bindings = cdr(bindings);
     }
     expressions.push('this.$quasiUnquote(this.$quoted[' + quoteId + '])');
     return '(' + expressions.join('), (') + ')';
   }
 
-  function emitQuote(sexp) {
+  function emitQuote(sexp, context) {
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
     return '(this.$quoted[' + quoteId + '])';
   }
 
-  function emitSequence(sexp) {
+  function emitSequence(sexp, context) {
+    var tail = car(context).tail;
+    context = pushContext(context);
+
     var values = [];
     while (sexp != nil) {
-      values.push(emit(car(sexp)));
-      sexp = cdr(sexp);
+      var next = cdr(sexp);
+      car(context).tail = tail && next == nil;
+      values.push(emit(car(sexp), context));
+      sexp = next;
     }
     return values.join(', ');
   }
 
-  function emitSet(sexp) {
-    return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp)) + ')';
+  function emitSet(sexp, context) {
+    context = pushContext(context);
+    car(context).tail = false;
+    return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp), context) + ')';
   }
 
   return function compile(sexp, env) {
-    var env = env || Moosky.Top.$makeFrame(Moosky.Top);
-    var result = '(function () {\n'
-		+ 'return ' + emit(parseBegin(cons('begin', sexp), env)) + ';\n'
-		+ '}).call(Moosky.Top);';
-    console.log(result);
+    var env = env || makeFrame(Moosky.Top);
+    var context = list({ tail: false });
+    var result = ['(function () {\n',
+		  'return ', emit(parseSexp(list(listStar($lambda, list(), sexp)), env), context), ';\n',
+		  '}).call(Moosky.Top);'].join('');
+//    console.log(result);
     return result;
   }
 })();
@@ -1983,6 +2045,19 @@ Moosky.Top = (function ()
 
 
   var Top = {
+    $Trampoline: (function() {
+		    var Trampoline = function(env, p) {
+		      this.$env = env;
+		      this.$p = p;
+		    };
+
+		    Trampoline.prototype.bounce = function() {
+		      return this.$p.call(this.$env);
+		    }
+
+		    return Trampoline;
+		  })(),
+
     $argumentsList: function(args, n) {
       var list = nil;
       for (var i = args.length-1; i >= n; i--)
@@ -2018,11 +2093,7 @@ Moosky.Top = (function ()
       return cons(this.$quasiUnquote(A), this.$quasiUnquote(cdr(sexp)));
     },
 
-    $makeFrame: function (env) {
-      var Frame = function () { };
-      Frame.prototype = env;
-      return new Frame();
-    },
+    $makeFrame: makeFrame,
 
     '#f': false,
     '#n': null,
@@ -2586,3 +2657,4 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			{ tag: 'symbol',
 			  regexp: /[^#$\d\n\s\(\)\[\]'".`][^$\n\s\(\)"'`\[\]]*/ }
 		      ];
+

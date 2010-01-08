@@ -125,8 +125,6 @@ package.
 REPL: div with scrollable div on top, textarea on bottom
   on enter check for complete form, if so parse
 
-tail calls
-
 fix javascript interpolation
 
 Add preamble.
