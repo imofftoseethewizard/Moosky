@@ -2346,6 +2346,26 @@ Moosky.Top = (function ()
 	      return function(___) { return reverse(iter.apply(this, arguments)); }
 	    })(),
 
+    'apply': function(proc, ___, lst) {
+      assertMinArgs('apply', 2, arguments);
+      assertIsProcedure('apply', proc);
+      var tailIndex = arguments.length-1;
+      var tail = arguments[tailIndex];
+      if (!isList(tail))
+	throw new SyntaxError('apply: last argument must be a list: ' + tail);
+
+      var args = [];
+      for (var i = 1; i < tailIndex; i++)
+	args.push(arguments[i]);
+
+      while (tail != nil) {
+	args.push(car(tail));
+	tail = cdr(tail);
+      }
+
+      return proc.apply(this, args);
+    },
+
     gensym: (function () {
 	       var symbolCount = 0;
 	       return function (key) {
