@@ -1,13 +1,13 @@
 Copyright 2010 Pat M. Lasswell GPLv3
 
 Contents
-  1. Differences From R5RS
+  LICENSE
+  1. Differences From R6RS
     1.1 Features Not Supported
     1.2 Extensions
       1.2.1 Dotted Symbols
       1.2.2 Javascript/Scheme Interleaving
-      1.2.3 Syntax Reflection
-      1.2.4 String Handling
+      1.2.3 syntax/define-macro
 
   2. Usage
     2.1 Requirements
@@ -28,18 +28,38 @@ Contents
     4.3 Object Code
     4.4 Relationship With Javascript
 
+
   5. TODO
 
 
-1. Differences From R5RS
+
+LICENSE
+
+Moosky is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Moosky is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Moosky.  If not, see <http://www.gnu.org/licenses/>.
+
+
+
+1. Differences From R6RS
 
 
 1.1 Features Not Supported
 
 Continuations
 Ports
-Numeric Tower
-
+Numeric Tower (in particular, rationals and complex numbers)
+Values (values, let-values, call-with-values)
+Hygienic macros: define-syntax, etc
 
 1.2 Extensions
 
@@ -85,7 +105,7 @@ or
 (define foo { new Foo(@car) })
 
 
-1.2.3 Syntax Reflection
+1.2.3 define-macro
 
 R5RS specifices a hygienic macro system using define-syntax,
 syntax-rules, let-syntax, and letrec-syntax.  It is very powerful, and
@@ -95,21 +115,30 @@ nasty sharp edges, is lightweight, genuinely simple, and compact.
 I've included (gensym [label]) as well.  If I find a hygienic macro
 package written in Scheme, I'll add it as an optional package.
 
-1.2.4 String Handling
-
-Javascript has immutable strings.  R5RS presumes a mutable strings,
-whereas R6RS does not.  It therefore made more sense to implement the
-R6RS version of basic string handling.  The differences are the lack
-of string-set! and string-fill!, and the addition of string-for-each.
-
 
 5. TODO
 
+fix javascript interpolation
 Add preamble.
 Better error handling, source citation.
 Add debug info to compiled code.
-Add LICENSE file
 
+vector-map
+vector-for-each
+
+error
+assertion-violation
+assert
+named let looping construct
+
+tail calls
+
+REPL: div with scrollable div on top, textarea on bottom
+  on enter check for complete form, if so parse
+
+Greeting string
+
+Stuff from R5RS that's probably useful:
 4.2.4
 do
 
