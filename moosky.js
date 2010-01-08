@@ -343,7 +343,7 @@ Moosky.Values = (function ()
       }
 
       if (typeof(sexp) == 'string')
-	return '"' + sexp.replace(/"/g, '\\"') + '"';
+	return '"' + sexp.replace(/"/g, '\\"') + '"'; //" )
 
       return sexp.toString();
     }
@@ -787,6 +787,16 @@ Moosky.Core.read = (function ()
     return tokens;
   }
 
+  function makeVector(lst) {
+    var v = [];
+    while (lst != nil) {
+      v.push(car(lst));
+      lst = cdr(lst);
+    }
+
+    return v;
+  }
+
   function parseTokens(tokens, i) {
     var sexp = nil;
     var dotted = false;
@@ -795,14 +805,18 @@ Moosky.Core.read = (function ()
     var delimiter = false;
 
     if (i >= 0)
-      delimiter = {'[': ']', '(': ')'}[tokens[i].$lexeme];
+      delimiter = {'[': ']', '(': ')', '#(': ')'}[tokens[i].$lexeme];
 
     for (var j = i+1; j < tokens.length; j++) {
       var token = tokens[j];
       var next;
-      if (token.$lexeme.match(/^[\[\(]/)) {
+      if (token.$lexeme.match(/^[\[\(]|#\(/)) {
 	var result = parseTokens(tokens, j);
-	next = result.sexp;
+	if (token.$lexeme == '#(')
+	  next = makeVector(result.sexp);
+	else
+	  next = result.sexp;
+
 	j = result.index;
 
       } else if (token.$lexeme == delimiter)
@@ -1340,7 +1354,7 @@ Moosky.compile = (function ()
   function emit(sexp) {
     console.log('emit: ' + sexp);
     if (!isList(sexp)) {
-      return (sexp instanceof Value) ? sexp.emit() : '' + sexp;
+      return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp);
     }
 
     var op = car(sexp);
@@ -1502,6 +1516,13 @@ Moosky.compile = (function ()
     }
     chunks.push('false)');
     return chunks.join('');
+  }
+
+  function emitPrimitive(sexp) {
+    if (sexp instanceof Array)
+      return emitQuote(list($quote, sexp));
+
+    return sexp.toString();
   }
 
   function emitQuasiQuote(sexp) {
@@ -2245,6 +2266,7 @@ Moosky.Top = (function ()
       assertArgCount('list->vector', 1, arguments);
       assertIsList('list->vector', lst);
 
+      // use makeVector?
       var v = [];
       while (lst != nil) {
 	v.push(car(lst));
@@ -2355,7 +2377,7 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			  regexp: /#\{([^\}]|\}[^#])*\}#/m },
 
 			{ tag: 'punctuation',
-			  regexp: /[\.\(\)\[\]'`]|,@?/ }, //'
+			  regexp: /[\.\(\)\[\]'`]|,@?|#\(/ }, //'
 
 			{ tag: 'symbol',
 			  regexp: /[^#$\d\n\s\(\)\[\]'".`][^$\n\s\(\)"'`\[\]]*/ }

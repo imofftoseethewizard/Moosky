@@ -105,8 +105,6 @@ of string-set! and string-fill!, and the addition of string-for-each.
 
 5. TODO
 
-reader for vectors
-
 4.2.4
 do
 
