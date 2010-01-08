@@ -105,6 +105,11 @@ of string-set! and string-fill!, and the addition of string-for-each.
 
 5. TODO
 
+Add preamble.
+Better error handling, source citation.
+Add debug info to compiled code.
+Add LICENSE file
+
 4.2.4
 do
 
@@ -122,10 +127,7 @@ assv
 assoc
 
 6.4
-procedure?
 apply
-map
-for-each
 force
 
 6.5

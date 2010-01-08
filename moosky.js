@@ -360,7 +360,7 @@ Moosky.Values = (function ()
 	break;
       }
 
-      if (result.length == 0 && A instanceof Symbol && A == 'quote' && D.$d == Cons.nil)
+      if (result.length == 0 && A instanceof Symbol && A.$sym == 'quote' && D.$d == Cons.nil)
 	return "'" + Cons.printSexp(D.$a);
 
       result.push(Cons.printSexp(A));
@@ -849,7 +849,7 @@ Moosky.Core.read = (function ()
 	var translated = { "'": 'quote',
 			   '`': 'quasiquote',
 			   ',': 'unquote',
-			   ',@': 'unquote-splicing' }[car(sexp)];
+			   ',@': 'unquote-splicing' }[car(sexp).$sym];
 
 	if (translated === undefined)
 	  sexp = cons(next, sexp);
@@ -1834,6 +1834,43 @@ Moosky.Top = (function ()
 			      + v.length-1 + '] for vector ' + v);
   }
 
+  function iterator(name, collect) {
+    collect = collect || function () {};
+
+    return function(proc, lst0, ___) {
+      assertMinArgs(name, 2, arguments);
+      assertIsProcedure(name, proc);
+      assertIsList(name, lst0);
+
+      var lsts = [lst0];
+      for (var i = 2; i < arguments.length; i++) {
+	var lst = arguments[i];
+	assertIsList(name, lst);
+	lsts.push(lst);
+      }
+
+      var result = nil;
+      while (true) {
+	var args = [];
+	for (var i = 0; i < lsts.length; i++) {
+	  if (lsts[i] == nil)
+	    break;
+
+	  args.push(car(lsts[i]));
+	  lsts[i] = cdr(lsts[i]);
+	}
+
+	if (i != lsts.length)
+	  break;
+
+	result = collect(proc.apply(this, args), result);
+      }
+
+      return result;
+    }
+  }
+
+
   var Top = {
     $argumentsList: function(args, n) {
       var list = nil;
@@ -2292,6 +2329,22 @@ Moosky.Top = (function ()
       assertArgCount('string->symbol', 1, arguments);
       return new Values.Symbol(s);
     },
+
+    'procedure?': function(p) {
+      assertArgCount('procedure?', 1, arguments);
+      return typeof(p) == 'function';
+    },
+
+
+    'for-each': (function () {
+		   var iter = iterator('for-each');
+		   return function(___) { iter.apply(this, arguments); }
+		 })(),
+
+    'map': (function () {
+	      var iter = iterator('map', cons);
+	      return function(___) { return reverse(iter.apply(this, arguments)); }
+	    })(),
 
     gensym: (function () {
 	       var symbolCount = 0;
