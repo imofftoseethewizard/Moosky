@@ -77,7 +77,7 @@ Moosky.Values = (function ()
 
   // --------------------------------------------------------------------------
   function String(str) {
-    this.$str = eval(str.replace(/^"\s*\\\s*\n\s*/, '"') // '
+    this.$str = eval(str.replace(/"^\s*\\\s*\n\s*/, '"') // '
 		     .replace(/\s*\\\s*\n\s*"$/, '"') // '
 		     .replace(/\n/, '\\n')
 		     .replace(/\r/, '\\r'));
@@ -134,10 +134,20 @@ Moosky.Values = (function ()
       return this.$sym;
 
     else if (this.requiresQuotes())
-      return envName + '["' + this.$sym + '"]';
+      return envName + '["' + escapeString(this.toString()) + '"]';
 
     else
-      return envName + '.' + this.$sym;
+      return envName + '.' + this.toString();
+  }
+
+  Symbol.prototype.toString = function() {
+    if (this.$sym.length == 0)
+      return '||';
+
+    if (this.$sym.match(/[\]["'\(\),@#`\\\{\}]/g)) //" ])
+      return '|' + this.$sym + '|';
+
+    return this.$sym.replace(/\|/g, '\\|');
   }
 
   // --------------------------------------------------------------------------
@@ -331,6 +341,9 @@ Moosky.Values = (function ()
 
 	return '#(' + chunks.join(' ') + ')';
       }
+
+      if (typeof(sexp) == 'string')
+	return '"' + sexp.replace(/"/g, '\\"') + '"';
 
       return sexp.toString();
     }
@@ -954,7 +967,7 @@ Moosky.compile = (function ()
   }
 
   function parseSexp(sexp, env) {
-//    console.log(sexp);
+    console.log(sexp);
     if (env === undefined) {
       debugger;
     }
@@ -1325,7 +1338,7 @@ Moosky.compile = (function ()
   }
 
   function emit(sexp) {
-//    console.log('emit: ' + sexp);
+    console.log('emit: ' + sexp);
     if (!isList(sexp)) {
       return (sexp instanceof Value) ? sexp.emit() : '' + sexp;
     }
@@ -1529,7 +1542,7 @@ Moosky.compile = (function ()
     var result = '(function () {\n'
 		+ 'return ' + emit(parseBegin(cons('begin', sexp), env)) + ';\n'
 		+ '}).call(Moosky.Top);';
-//    console.log(result);
+    console.log(result);
     return result;
   }
 }})();
@@ -1541,6 +1554,8 @@ Moosky.compile = (function ()
 Moosky.Top = (function ()
 { with (Moosky.Core.Primitives.exports)
 {
+  var Values = Moosky.Values;
+
   function numericComparator(symbol, relation) {
     return function(___) {
       if (arguments.length == 0)
@@ -1650,11 +1665,11 @@ Moosky.Top = (function ()
   }
 
   function isSymbol(sexp) {
-    return sexp instanceof Moosky.Values.Symbol;
+    return sexp instanceof Values.Symbol;
   }
 
   function isList(sexp) {
-    return sexp instanceof Moosky.Values.Cons;
+    return sexp instanceof Values.Cons;
   }
 
   function assertMinArgs(name, count, arguments) {
@@ -1681,6 +1696,11 @@ Moosky.Top = (function ()
   function assertIsList(name, lst) {
     if (!isList(lst))
       throw new SyntaxError(name + ': list expected: ' + lst);
+  }
+
+  function assertIsSymbol(name, sym) {
+    if (!isSymbol(sym))
+      throw new SyntaxError(name + ': symbol expected: ' + sym);
   }
 
   function assertIsProcedure(name, fn) {
@@ -2234,10 +2254,27 @@ Moosky.Top = (function ()
       return v;
     },
 
+    'symbol?': function(s) {
+      assertArgCount('symbol?', 1, arguments);
+      return s instanceof Values.Symbol;
+    },
+
+    'symbol->string': function(sym) {
+      assertIsSymbol('symbol->string', sym);
+      assertArgCount('symbol->string', 1, arguments);
+      return sym.$sym;
+    },
+
+    'string->symbol': function(s) {
+      assertIsString('string->symbol', s);
+      assertArgCount('string->symbol', 1, arguments);
+      return new Values.Symbol(s);
+    },
+
     gensym: (function () {
 	       var symbolCount = 0;
 	       return function (key) {
-		 return new Moosky.Values.Symbol('$' + (key || '') + '_' + symbolCount++);
+		 return new Values.Symbol('$' + (key || '') + '_' + symbolCount++);
 	       }
 	     })()
   };

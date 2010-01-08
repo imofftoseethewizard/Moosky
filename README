@@ -105,6 +105,8 @@ of string-set! and string-fill!, and the addition of string-for-each.
 
 5. TODO
 
+reader for vectors
+
 4.2.4
 do
 
@@ -120,11 +122,6 @@ member
 assq
 assv
 assoc
-
-6.3.3
-symbol?
-symbol->string
-string->symbol
 
 6.4
 procedure?
