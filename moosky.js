@@ -449,6 +449,11 @@ Moosky.Core.Primitives = (function ()
     return new Frame();
   }
 
+  var symbolCount = 0;
+  function gensym(key) {
+    return new Values.Symbol('$' + (key || '') + '_' + symbolCount++);
+  }
+
   function isNull(pair) {
     return pair === Cons.nil;
   }
@@ -587,6 +592,7 @@ Moosky.Core.Primitives = (function ()
   Primitives = {};
   Primitives.exports = {
     makeFrame: makeFrame,
+    gensym: gensym,
     printSexp: Cons.printSexp,
     nil: Cons.nil,
     isNull: isNull,
@@ -856,8 +862,26 @@ Moosky.Core.read = (function ()
     return v;
   }
 
+  function ReaderError() {
+  }
+  ReaderError.prototype = new Error();
+
+  function IncompleteInputError() {
+  }
+  IncompleteInputError.prototype = new ReaderError();
+  IncompleteInputError.prototype.name = 'IncompleteInputError';
+  IncompleteInputError.prototype.message = 'Input does not form a complete s-expression.';
+
+  function MismatchedDelimitersError(msg) {
+    this.$msg = msg;
+  }
+  MismatchedDelimitersError.prototype = new ReaderError();
+
   function parseTokens(tokens, i) {
-    var sexp = Moosky.Core.Primitives.exports.nil; // Chrome bug
+    if (i == tokens.length)
+      throw new IncompleteInputError();
+
+    var sexp = nil;
     var dotted = false;
     var last;
 
@@ -919,8 +943,11 @@ Moosky.Core.read = (function ()
       }
     }
 
+    if (delimiter && token === undefined)
+      throw new IncompleteInputError();
+
     if (delimiter && token.$lexeme != delimiter) {
-      throw 'Mismatched ' + tokens[i] + ' at end of input.';
+      throw new MismatchedDelimitersError('Mismatched ' + tokens[i] + ' at end of input.');
     }
 
     if (dotted && last === undefined) {
@@ -952,7 +979,7 @@ Moosky.Core.read = (function ()
     var text = sexp.toString().slice(1, -1);
     var interpolates = text.match(backquoteRE);
     var components = nil;
-    for (var i = 0; i < interpolates.length; i++) {
+/*    for (var i = 0; i < interpolates.length; i++) {
       var target = interpolates[i];
       var index = text.indexOf(target);
       var js = text.substring(0, index);
@@ -960,8 +987,8 @@ Moosky.Core.read = (function ()
       components = cons(parseSexp(car(Moosky.Core.read(moosky)), env), cons(js, components));
       text = text.substring(index + target.length);
     }
-
-    return cons($javascript, reverse(cons(text, components)));
+*/
+    return cons(new Symbol('javascript'), reverse(cons(text, components)));
   }
 
   function parseLiteral(token) {
@@ -996,6 +1023,8 @@ Moosky.Core.read = (function ()
 
     return result.sexp;
   }
+
+  read.IncompleteInputError = IncompleteInputError;
 
   return read;
 })();
@@ -1131,7 +1160,7 @@ Moosky.compile = (function ()
   function parseCase(sexp, env) {
     var key = cadr(sexp);
     var caseClauses = nil;
-    var $temp = Moosky.Top.gensym('case');
+    var $temp = gensym('case');
 
     sexp = cddr(sexp);
     while (sexp != nil) {
@@ -1198,7 +1227,7 @@ Moosky.compile = (function ()
 	var elseClause = isSymbol(test) && test == 'else';
 	var expressions = cdr(clause);
 
-	var $temp = Moosky.Top.gensym('cond');
+	var $temp = gensym('cond');
 
 	function makeAnaphoricTest(test) {
 	  // ironically, this is implemented as an epistrophe
@@ -1388,7 +1417,7 @@ Moosky.compile = (function ()
       var A = car(sexp);
 
       if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote') {
-	var symbol = Moosky.Top.gensym('qq');
+	var symbol = gensym('qq');
 	bindings = cons(cons(symbol, parseSexp(list($lambda, list(), cadr(sexp)), env)), bindings);
 
 	return list(A, symbol);
@@ -1502,15 +1531,15 @@ Moosky.compile = (function ()
     if (tail) {
       car(context).tail = true;
       return ['(function (applicand) {\n',
-	      '  return new this.$Trampoline(this, function() { \n',
+	      '  return this.$makeBounce(this, function() { \n',
 	      '    return applicand.call(', parameters, ');\n',
 	      '  })\n',
 	      '}).call(this, ', emit(applicand, context), ')'].join('');
     } else {
       return ['(function (applicand) {\n',
 	      '  var result = applicand.call(', parameters, ');\n',
-	      '  while (result instanceof this.$Trampoline)\n',
-	      '    result = result.bounce();\n',
+	      '  while (result && result.$bounce)\n',
+	      '    result = result();\n',
 	      '  return result;\n',
 	      '}).call(this, ', emit(applicand, context), ')'].join('');
     }
@@ -1530,7 +1559,7 @@ Moosky.compile = (function ()
 
     var name = cadr(sexp);
     var body = emit(caddr(sexp), context);
-    return name.emit() + ' = (' + body + ')';
+    return ['((', name.emit(), ' = (', body, ')), undefined)'].join('');
   }
 
   function emitIf(sexp, context) {
@@ -1688,7 +1717,7 @@ Moosky.compile = (function ()
     var env = env || makeFrame(Moosky.Top);
     var context = list({ tail: false });
     var result = ['(function () {\n',
-		  'return ', emit(parseSexp(list(listStar($lambda, list(), sexp)), env), context), ';\n',
+		  'return ', emit(parseSexp(cons($begin, sexp), env), context), ';\n',
 		  '}).call(Moosky.Top);'].join('');
 //    console.log(result);
     return result;
@@ -2045,18 +2074,22 @@ Moosky.Top = (function ()
 
 
   var Top = {
-    $Trampoline: (function() {
-		    var Trampoline = function(env, p) {
-		      this.$env = env;
-		      this.$p = p;
-		    };
+    $makeBounce: function(env, p) {
+      var bounce = function () { return p.call(env); };
+      bounce.$bounce = true;
+      return bounce;
+    },
+/*		      var Continuation = function(env, p) {
+			this.$env = env;
+			this.$p = p;
+		      };
 
-		    Trampoline.prototype.bounce = function() {
-		      return this.$p.call(this.$env);
-		    }
+		      Continuation.prototype.bounce = function() {
+			return this.$p.call(this.$env);
+		      }
 
-		    return Trampoline;
-		  })(),
+		      return Continuation;
+		  })(),*/
 
     $argumentsList: function(args, n) {
       var list = nil;
@@ -2094,6 +2127,7 @@ Moosky.Top = (function ()
     },
 
     $makeFrame: makeFrame,
+    gensym: gensym,
 
     '#f': false,
     '#n': null,
@@ -2566,14 +2600,7 @@ Moosky.Top = (function ()
 
     version: function() {
       return Moosky.Version;
-    },
-
-    gensym: (function () {
-	       var symbolCount = 0;
-	       return function (key) {
-		 return new Values.Symbol('$' + (key || '') + '_' + symbolCount++);
-	       }
-	     })()
+    }
   };
 
   for (p in Moosky.Core.Primitives.mooskyExports) {

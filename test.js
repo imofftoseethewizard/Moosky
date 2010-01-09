@@ -29,10 +29,30 @@ function observe(element, eventName, handler) {
 }
 
 window.setTimeout(function () {
+		    var prompt = '> ';
 		    var textArea = document.getElementById('id_textarea');
-		    observe(textArea, 'change',
-			    function() {
-			      console.log(Moosky.Values.Cons.printSexp(Moosky(textArea.value)));
+		    textArea.value = Moosky.Top.greeting() + '\n' + prompt;
+		    var last = textArea.value.length;
+		    var env = Moosky.Core.Primitives.exports.makeFrame(Moosky.Top);
+		    textArea.focus();
+		    observe(textArea, 'keyup',
+			    function(event) {
+			      if (event.keyCode == 13) { // RETURN
+				try {
+				  var sexp = Moosky.Core.read(textArea.value.substring(last));
+				  var source = Moosky.compile(sexp, env);
+				  var result = eval(source);
+				  if (result !== undefined)
+				    textArea.value += Moosky.Values.Cons.printSexp(result) + '\n';
+				  textArea.value += prompt;
+				  last = textArea.value.length;
+				} catch(e) {
+				  if (!(e instanceof Moosky.Core.read.IncompleteInputError)) {
+				    textArea.value += [e.name, ': ', e.message, '\n', prompt].join('');
+				    last = textArea.value.length;
+				  }
+				}
+			      }
 			    });
 		  }, 500);
 

@@ -122,9 +122,6 @@ package.
 
 5. TODO
 
-REPL: div with scrollable div on top, textarea on bottom
-  on enter check for complete form, if so parse
-
 fix javascript interpolation
 
 Add preamble.
