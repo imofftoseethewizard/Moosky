@@ -108,20 +108,20 @@ Moosky.Values = (function ()
   }
 
   // --------------------------------------------------------------------------
-  function String(str) {
+  function MooskyString(str) {
     this.$str = eval(str.replace(/"^\s*\\\s*\n\s*/, '"') // '
 		     .replace(/\s*\\\s*\n\s*"$/, '"') // '
 		     .replace(/\n/, '\\n')
 		     .replace(/\r/, '\\r'));
   }
 
-  String.prototype = new Value();
+  MooskyString.prototype = new Value();
 
-  String.prototype.toString = function () {
+  MooskyString.prototype.toString = function () {
     return '"' + this.$str + '"';
   }
 
-  String.prototype.emit = function() {
+  MooskyString.prototype.emit = function() {
     return '"' + escapeString(this.$str) + '"';
   }
 
@@ -181,16 +181,16 @@ Moosky.Values = (function ()
   }
 
   // --------------------------------------------------------------------------
-  function RegExp(regexp) {
+  function MooskyRegExp(regexp) {
     this.$regexp = regexp;
   }
 
-  RegExp.prototype = new Value();
-  RegExp.prototype.emit = function() {
+  MooskyRegExp.prototype = new Value();
+  MooskyRegExp.prototype.emit = function() {
     return this.$regexp.toString();
   }
 
-  RegExp.prototype.toString = function () {
+  MooskyRegExp.prototype.toString = function () {
     return '#' + this.$regexp.toString();
   }
 
@@ -424,8 +424,8 @@ Moosky.Values = (function ()
 
   Cons.prototype.toString = function() { return Cons.printSexp(this); };
 
-  return { Value: Value, Character: Character, String: String,
-	   Symbol: Symbol, RegExp: RegExp, Javascript:Javascript,
+  return { Value: Value, Character: Character, String: MooskyString,
+	   Symbol: Symbol, RegExp: MooskyRegExp, Javascript:Javascript,
 	   Token: Token, Cite: Cite, Number: Number, Complex: Complex,
 	   Real: Real, Rational: Rational, Integer: Integer, Cons: Cons };
 })();
@@ -1572,12 +1572,12 @@ Moosky.compile = (function ()
 	      '.call(', parameters, ');\n',
 	      '}), (', temp, '.$bounce = true, ', temp, '.$env = this), ', temp, ')'].join('');
     } else {
-      return ['(function (applicand) {\n',
-	      '  var result = applicand.call(', parameters, ');\n',
+      return ['(function () {\n',
+	      '  var result = ', emit(applicand, context), '.call(', parameters, ');\n',
 	      '  while (result && result.$bounce)\n',
 	      '    result = result.call(result.$env);\n',
 	      '  return result;\n',
-	      '}).call(this, ', emit(applicand, context), ')'].join('');
+	      '}).call(this)'].join('');
     }
   }
 
