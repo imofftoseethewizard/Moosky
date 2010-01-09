@@ -38,17 +38,20 @@ window.setTimeout(function () {
 		    observe(textArea, 'keyup',
 			    function(event) {
 			      if (event.keyCode == 13) { // RETURN
+				var sexp;
+				var source;
+				var result;
 				try {
-				  var sexp = Moosky.Core.read(textArea.value.substring(last));
-				  var source = Moosky.compile(sexp, env);
-				  var result = eval(source);
+				  sexp = Moosky.Core.read(textArea.value.substring(last));
+				  source = Moosky.compile(sexp, env);
+				  result = eval(source);
 				  if (result !== undefined)
 				    textArea.value += Moosky.Values.Cons.printSexp(result) + '\n';
 				  textArea.value += prompt;
 				  last = textArea.value.length;
 				} catch(e) {
 				  if (!(e instanceof Moosky.Core.read.IncompleteInputError)) {
-				    textArea.value += [e.name, ': ', e.message, '\n', prompt].join('');
+				    textArea.value += [e.name, ': ', e.message, '\n', source, '\n', prompt].join('');
 				    last = textArea.value.length;
 				  }
 				}

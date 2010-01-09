@@ -1,36 +1,10 @@
-Copyright 2010 Pat M. Lasswell GPLv3
-
-Contents
-  LICENSE
-  1. Differences From R6RS
-    1.1 Features Not Supported
-    1.2 Extensions
-      1.2.1 Dotted Symbols
-      1.2.2 Javascript/Scheme Interleaving
-      1.2.3 syntax/define-macro
-
-  2. Usage
-    2.1 Requirements
-    2.2 Client
-    2.3 Server
-
-  3. Components
-    3.1 Moosky
-    3.2 Moosky.Cons
-    3.3 Moosky.read
-    3.4 Moosky.compile
-    3.5 Moosky.Top
-    3.6 Moosky.TokenClasses 
-
-  4. Implementation
-    4.1 Frames and Scope
-    4.2 Internal Representation
-    4.3 Object Code
-    4.4 Relationship With Javascript
+Moosky v0.1
+A lightweight Scheme^6 to Javascript compiler written in Javascript.
 
 
-  5. TODO
+COPYRIGHT
 
+Copyright 2010 Pat M. Lasswell.  All rights reserved.
 
 
 LICENSE
@@ -50,6 +24,39 @@ along with Moosky.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
+CONTENTS
+
+1. Differences From R6RS
+  1.1 Features Not Supported
+  1.2 Extensions
+    1.2.1 Dotted Symbols
+    1.2.2 Javascript/Scheme Interleaving
+    1.2.3 syntax/define-macro
+
+2. Usage
+  2.1 Requirements
+  2.2 Client
+  2.3 Server
+
+3. Components
+  3.1 Moosky
+  3.2 Moosky.Cons
+  3.3 Moosky.read
+  3.4 Moosky.compile
+  3.5 Moosky.Top
+  3.6 Moosky.TokenClasses 
+
+4. Implementation
+  4.1 Frames and Scope
+  4.2 Internal Representation
+  4.3 Object Code
+  4.4 Relationship With Javascript
+
+
+5. TODO
+
+
+
 1. Differences From R6RS
 
 
@@ -66,7 +73,7 @@ Hygienic macros: define-syntax, etc
 
 1.2.1 Dotted Symbols
 
-In R5RS foo.bar is an acceptible symbol with no special handling.  In
+In R6RS foo.bar is an acceptible symbol with no special handling.  In
 Moosky, to allow easy access to Javascript objects, symbols with a '.'
 in them are assumed to refer to objects in the Javascript namespace.
 Hence 'Hello, World!' can be as simple as
@@ -79,10 +86,9 @@ Hence 'Hello, World!' can be as simple as
 Javascript can be inserted directly into Scheme code by quoting with
 braces.  Both simple inline quotes and extended multiline quotes are
 supported.  Furthermore, Scheme can be inserted into these blocks
-using the backquote.
+using @( ) or @^( ) expressions.
 
-Single line Javscript starts with an open brace in the second or
-subsequent column.  
+Single line Javscript starts with an open brace.
 
 (define foo { new Foo() })
 
@@ -94,23 +100,39 @@ won't fly, but
 
 (map #{ function(a) { return a.split(','); } }# args)
 
-is just fine.
+is just fine.  Nesting of #{ }# is not currently supported.
 
-<<<< CURRENTLY BROKEN ----
+To interpolate scheme code into javascript code, use @( ) or @^( ). A
+few examples will probably suffice to demonstrate how this works:
 
-To interpolate bits of Scheme into Javascript, use @:
+{ @(parent-of elem).nextSibling }
 
-(map #{ function(a) { return @(car a).split(','); } }# args)
+will evaluate (parent-of elem) and access the nextSibling member of
+the resulting object.  To get next sibling of elem, use the splicing
+interpolator @^( ):
 
-or 
+{ @^(elem).nextSibling }
 
-(define foo { new Foo(@car) })
+This evaluates elem (as opposed to (elem), which would treat elem as a
+procedure), and returns the nextSibling member of that object.  One
+last item of note is splicing a list:
 
----- CURRENTLY BROKEN >>>>
+{ str.splice(@^(start end)) }
+
+start and end will be evaluated, and the results interpolated
+separated by ', ', making it simple to build argument lists.  Note,
+however, that this a syntatic conversion, not a runtime-value
+conversion, so that if we have
+
+{ str.splice(@^(params)) }
+
+where params evaluates to a list, then the result will NOT be a 
+comma separated list, but a reference to a Moosky list.
+
 
 1.2.3 define-macro
 
-R5RS specifices a hygienic macro system using define-syntax,
+R6RS specifices a hygienic macro system using define-syntax,
 syntax-rules, let-syntax, and letrec-syntax.  It is very powerful, and
 relatively easy to use, but at the cost of being a rather large chunk
 of software.  The old define-macro system, while having some rather
@@ -121,8 +143,6 @@ package.
 
 
 5. TODO
-
-fix javascript interpolation
 
 Add preamble.
 

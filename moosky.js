@@ -174,7 +174,7 @@ Moosky.Values = (function ()
     if (this.$sym.length == 0)
       return '||';
 
-    if (this.$sym.match(/[\]["'\(\),@#`\\\{\}]/g)) //" ])
+    if (this.$sym.match(/[\]["'\(\),@#`\\\{\}]/g)) //" ])))
       return '|' + this.$sym + '|';
 
     return this.$sym.replace(/\|/g, '\\|');
@@ -200,6 +200,8 @@ Moosky.Values = (function ()
   }
 
   Javascript.prototype = new Value();
+  Javascript.prototype.toString = function () { return this.$js; };
+
 
   // --------------------------------------------------------------------------
   function Token(lexeme, tag, cite, norm) {
@@ -440,6 +442,7 @@ Moosky.Core = {};
 
 Moosky.Core.Primitives = (function ()
 {
+  var Symbol = Moosky.Values.Symbol;
   var Cons = Moosky.Values.Cons;
   var nil = Cons.nil;
 
@@ -451,7 +454,7 @@ Moosky.Core.Primitives = (function ()
 
   var symbolCount = 0;
   function gensym(key) {
-    return new Values.Symbol('$' + (key || '') + '_' + symbolCount++);
+    return new Symbol('$' + (key || '') + '_' + symbolCount++);
   }
 
   function isNull(pair) {
@@ -731,7 +734,7 @@ Moosky.Core.read = (function ()
       for (var j = 0; j < width; j++)
 	section.push(inputs[j][i]);
 
-      var result = fn.apply(null, section);
+      var result = fn.apply(this, section);
 
       if (result)
 	return result;
@@ -757,7 +760,7 @@ Moosky.Core.read = (function ()
       for (var j = 0; j < width; j++)
 	section.push(inputs[j][i]);
 
-      result.push(fn.apply(null, section));
+      result.push(fn.apply(this, section));
     }
 
     return result;
@@ -788,49 +791,62 @@ Moosky.Core.read = (function ()
     return result;
   }
 
-  function tokenize(lexemeClasses, str) {
-    lexemeClasses = map(function (lexemeClass) {
-			  return { tag: lexemeClass.tag,
-				   regexp: new RegExp(lexemeClass.regexp.source, 'g'),
-				   normalize: lexemeClass.normalize,
-				   condition: lexemeClass.condition,
-				   nextMatch: { index: -1 } };
-			}, lexemeClasses);
+  function TokenStream(lexemeClasses, str, predicate) {
+    this.lexemeClasses = map(function (lexemeClass) {
+			       return { tag: lexemeClass.tag,
+					regexp: new RegExp(lexemeClass.regexp.source, 'g'),
+					normalize: lexemeClass.normalize,
+					condition: lexemeClass.condition,
+					nextMatch: { index: -1 } };
+			     }, lexemeClasses);
+    this.index = 0;
+    this.length = str.length;
+    this.text = str;
+    this.predicate = predicate || function() { return true; }
+  }
 
-    var tokens = [];
-    var i = 0, length = str.length;
-    while (i < length) {
+  TokenStream.prototype.constructor = TokenStream;
+
+  TokenStream.prototype.makeCite = function(lexeme) {
+    return new Cite(this.text, this.index, this.index+lexeme.length);
+  }
+
+  TokenStream.prototype.getIndex = function() { return this.index; };
+  TokenStream.prototype.setIndex = function(i) { return this.index = Math.max(0, Math.min(i, this.length)); };
+
+  TokenStream.prototype.next = function() {
+    while (this.index < this.length) {
       var token =
-	any(
+	any.call(this,
 	  function (lexemeClass) {
 	    if (lexemeClass.nextMatch === null)
 	      return false;
 
-	    if (lexemeClass.nextMatch.index < i) {
-	      lexemeClass.regexp.lastIndex = i;
-	      lexemeClass.nextMatch = lexemeClass.regexp.exec(str);
+	    if (lexemeClass.nextMatch.index < this.index) {
+	      lexemeClass.regexp.lastIndex = this.index;
+	      lexemeClass.nextMatch = lexemeClass.regexp.exec(this.text);
 	    }
 
 	    if (lexemeClass.nextMatch === null)
 	      return false;
 
-	    if (lexemeClass.nextMatch.index == i) {
+	    if (lexemeClass.nextMatch.index == this.index) {
 	      var lexeme = lexemeClass.nextMatch[0];
 	      var norm;
 
 	      if (lexemeClass.normalize)
 		norm = lexemeClass.normalize(lexemeClass.nextMatch);
 
-	      if (!lexemeClass.condition || lexemeClass.condition(tokens, lexeme))
-		return new Token(lexeme, lexemeClass.tag, new Cite(str, i, i+lexeme.length), norm);
+	      if (!lexemeClass.condition || lexemeClass.condition(this, lexeme))
+		return new Token(lexeme, lexemeClass.tag, this.makeCite(lexeme), norm);
 	    }
 
 	    return false;
-	  }, lexemeClasses);
+	  }, this.lexemeClasses);
 
       if (!token) {
-	var preview = str.slice(Math.max(0, i-30), i);
-	var remainder = str.slice(i, Math.min(length, i+30));
+	var preview = this.text.slice(Math.max(0, this.index-30), this.index);
+	var remainder = this.text.slice(this.index, Math.min(this.length, this.index+30));
 	var caret_position = preview.slice(preview.lastIndexOf('\n')+1).length-1;
 	var message = 'lexing failure at: \n'
 			+ preview + remainder + '\n'
@@ -840,17 +856,25 @@ Moosky.Core.read = (function ()
 	throw message;
       }
 
-      if (token.$lexeme.length == 0) {
+      if (token.$lexeme.length == 0)
 	throw 'zero length lexeme: ' + token.$tag;
-	break;
-      }
 
-      tokens.push(token);
-      i += token.$lexeme.length;
+      this.index += token.$lexeme.length;
+      if (this.predicate(token))
+	return token;
     }
-
-    return tokens;
+    return null;
   }
+
+  function MooskyTokenStream(str) {
+    TokenStream.call(this, Moosky.LexemeClasses, str,
+		      function (token) {
+			return token.$tag != 'comment' && token.$tag != 'space';
+		      });
+  }
+
+  MooskyTokenStream.prototype = new TokenStream([], '');
+  MooskyTokenStream.prototype.constructor = MooskyTokenStream;
 
   function makeVector(lst) {
     var v = [];
@@ -877,45 +901,43 @@ Moosky.Core.read = (function ()
   }
   MismatchedDelimitersError.prototype = new ReaderError();
 
-  function parseTokens(tokens, i) {
-    if (i == tokens.length)
-      throw new IncompleteInputError();
-
+  function parseTokens(tokens, openDelimiter) {
     var sexp = nil;
     var dotted = false;
     var last;
 
     var delimiter = false;
 
-    if (i >= 0)
-      delimiter = {'[': ']', '(': ')', '#(': ')'}[tokens[i].$lexeme];
+    if (openDelimiter)
+      delimiter = {'[': ']', '(': ')', '#(': ')'}[openDelimiter.$lexeme];
 
-    for (var j = i+1; j < tokens.length; j++) {
-      var token = tokens[j];
+    var token;
+    while ((token = tokens.next())) {
       var next;
       if (token.$lexeme.match(/^[\[\(]|#\(/)) {
-	var result = parseTokens(tokens, j);
+	var result = parseTokens(tokens, token);
 	if (token.$lexeme == '#(')
-	  next = makeVector(result.sexp);
+	  next = makeVector(result);
 	else
-	  next = result.sexp;
-
-	j = result.index;
+	  next = result;
 
       } else if (token.$lexeme == delimiter)
 	break;
 
-      else if (token.$lexeme.match(/^[\]\)]/))
-	throw 'Mismatched ' + tokens[i].$lexeme + ': found ' + tokens[j].$lexeme;
+      else if (token.$lexeme.match(/^[\]\)]/)) {
+	if (openDelimiter)
+	  throw 'Mismatched ' + openDelimiter.$lexeme + ': found ' + token.$lexeme;
+	else
+	  break;
 
-      else if (token.$lexeme == '.') {
+      } else if (token.$lexeme == '.') {
 	if (dotted)
 	  throw new SyntaxError('improper dotted list');
 	dotted = true;
 	continue;
 
       } else
-	next = parseToken(tokens[j]);
+	next = parseToken(token);
 
       if (dotted) {
 	if (last !== undefined)
@@ -943,12 +965,8 @@ Moosky.Core.read = (function ()
       }
     }
 
-    if (delimiter && token === undefined)
+    if (openDelimiter && delimiter && (token === null || token.$lexeme != delimiter))
       throw new IncompleteInputError();
-
-    if (delimiter && token.$lexeme != delimiter) {
-      throw new MismatchedDelimitersError('Mismatched ' + tokens[i] + ' at end of input.');
-    }
 
     if (dotted && last === undefined) {
       throw 'Dotted list ended abruptly.';
@@ -959,7 +977,7 @@ Moosky.Core.read = (function ()
       result = cons(car(sexp), result);
       sexp = cdr(sexp);
     }
-    return { sexp: result, index: j };
+    return result;
   }
 
   function parseToken(token) {
@@ -973,22 +991,42 @@ Moosky.Core.read = (function ()
 	     'symbol':      function(token) { return new Symbol(token.$lexeme); } }[token.$tag](token);
   }
 
-  function parseJavascript(sexp, env) {
-    var backquoteRE = /`([^`\\]|\\.)*`/mg;
+  function parseJavascript(token) {
 
-    var text = sexp.toString().slice(1, -1);
-    var interpolates = text.match(backquoteRE);
+    var text = token.$lexeme.slice(0, -1);
+    var tokens = new MooskyTokenStream(text);
+
     var components = nil;
-/*    for (var i = 0; i < interpolates.length; i++) {
-      var target = interpolates[i];
-      var index = text.indexOf(target);
-      var js = text.substring(0, index);
-      var moosky = target.slice(1, -1);
-      components = cons(parseSexp(car(Moosky.Core.read(moosky)), env), cons(js, components));
-      text = text.substring(index + target.length);
+    var last = 1;
+
+    var match;
+    var interpolateRE = /[^\\](\\\\)*(@\^?)\(/mg;
+    while ((match = interpolateRE.exec(text))) {
+      tokens.setIndex(match.index + match[0].length);
+
+      components = cons(text.substring(last, match.index+1), components);
+
+      var splice = match[2] == '@^';
+      var sexp = parseTokens(tokens, null);
+      if (!splice)
+	components = cons(sexp, components);
+
+      else if (sexp != nil) {
+	components = cons(car(sexp), components);
+	sexp = cdr(sexp);
+	while (sexp != nil) {
+	  components = cons(', ', components);
+	  components = cons(car(sexp), components);
+	  sexp = cdr(sexp);
+	}
+      }
+
+      last = tokens.getIndex();
     }
-*/
-    return cons(new Symbol('javascript'), reverse(cons(text, components)));
+    if (last < text.length)
+      components = cons(text.substring(last), components);
+
+    return listStar(new Symbol('javascript'), reverse(components));
   }
 
   function parseLiteral(token) {
@@ -1012,16 +1050,7 @@ Moosky.Core.read = (function ()
   }
 
   function read(str) {
-    var tokens = tokenize(Moosky.LexemeClasses, str);
-
-    tokens = filter(function (token) {
-		      return token.$tag != 'comment' &&
-			token.$tag != 'space';
-		    }, tokens);
-
-    var result = parseTokens(tokens, -1);
-
-    return result.sexp;
+    return parseTokens(new MooskyTokenStream(str), null);
   }
 
   read.IncompleteInputError = IncompleteInputError;
@@ -1089,6 +1118,7 @@ Moosky.compile = (function ()
 		      'define': parseDefine,
 		      'define-macro': parseDefineMacro,
 		      'if': parseIf,
+		      'javascript': parseJavascript,
 		      'lambda': parseLambda,
 		      'let': parseLet,
 		      'let*': parseLetStar,
@@ -1336,6 +1366,10 @@ Moosky.compile = (function ()
     return cons(car(sexp), parseSequence(cdr(sexp), env));
   }
 
+  function parseJavascript(sexp, env) {
+    return cons(car(sexp), parseSequence(cdr(sexp), env));
+  }
+
   function parseLambda(sexp, env) {
     var formals = cadr(sexp);
     if (!isList(formals)) {
@@ -1460,7 +1494,7 @@ Moosky.compile = (function ()
     if (context === undefined)
       debugger;
 
-//    console.log('emit' + (car(context).tail ? '*' : '') + ': ' + sexp);
+//    console.log('emit' + (car(context).tailCall ? '*' : '') + ': ' + sexp);
     if (!isList(sexp)) {
       return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, context);
     }
@@ -1482,7 +1516,7 @@ Moosky.compile = (function ()
   }
 
   function emitAnd(sexp, context) {
-    var tail = car(context).tail;
+    var tailCall = car(context).tailCall;
     context = pushContext(context);
 
     sexp = cdr(sexp);
@@ -1498,7 +1532,7 @@ Moosky.compile = (function ()
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
-      car(context).tail = tail && next == nil;
+      car(context).tailCall = tailCall && next == nil;
 
       chunks.push('(this.$temp = (');
       chunks.push(emit(car(sexp), context));
@@ -1511,35 +1545,37 @@ Moosky.compile = (function ()
   }
 
   function emitApply(sexp, context) {
-    var tail = car(context).tail;
+    var tailCall = car(context).tailCall;
     context = pushContext(context);
-    car(context).tail = false;
+    car(context).tailCall = false;
 
     var applicand = cadr(sexp);
     var actuals = cddr(sexp);
 
-    var values = tail
-		   ? ['applicand.$Moosky ? this : null']
-		   : ['applicand.$Moosky ? this.$makeFrame(this) : null'];
+    var nativeCall = isSymbol(applicand) && applicand.toString().match(/\./);
 
+    var values = nativeCall ? [] : tailCall ? ['this'] : ['this.$makeFrame(this)'];
     while (actuals != nil) {
       values.push(emit(car(actuals), context));
       actuals = cdr(actuals);
     }
 
     var parameters = values.join(', ');
-    if (tail) {
-      car(context).tail = true;
-      return ['(function (applicand) {\n',
-	      '  return this.$makeBounce(this, function() { \n',
-	      '    return applicand.call(', parameters, ');\n',
-	      '  })\n',
-	      '}).call(this, ', emit(applicand, context), ')'].join('');
+    if (nativeCall)
+      return [applicand.emit(), '(', parameters, ')'].join('');
+
+    else if (tailCall) {
+      car(context).tailCall = true;
+      var temp = gensym();
+      return ['(', temp, ' = (function () {\n',
+	      '  return ', emit(applicand, context),
+	      '.call(', parameters, ');\n',
+	      '}), (', temp, '.$bounce = true, ', temp, '.$env = this), ', temp, ')'].join('');
     } else {
       return ['(function (applicand) {\n',
 	      '  var result = applicand.call(', parameters, ');\n',
 	      '  while (result && result.$bounce)\n',
-	      '    result = result();\n',
+	      '    result = result.call(result.$env);\n',
 	      '  return result;\n',
 	      '}).call(this, ', emit(applicand, context), ')'].join('');
     }
@@ -1555,7 +1591,7 @@ Moosky.compile = (function ()
 
   function emitDefine(sexp, context) {
     var context = pushContext(context);
-    car(context).tail = false;
+    car(context).tailCall = false;
 
     var name = cadr(sexp);
     var body = emit(caddr(sexp), context);
@@ -1565,7 +1601,7 @@ Moosky.compile = (function ()
   function emitIf(sexp, context) {
     var context = pushContext(context);
 
-    car(context).tail = false;
+    car(context).tailCall = false;
     var test = emit(car(sexp = cdr(sexp)), context);
 
     context = cdr(context);
@@ -1576,24 +1612,26 @@ Moosky.compile = (function ()
 
   function emitJavascript(sexp, context) {
     var context = pushContext(context);
-    car(context).tail = false;
+    car(context).tailCall = false;
 
     sexp = cdr(sexp);
     var chunks = [];
     while (sexp != nil) {
-      chunks.push(car(sexp));
+      var chunk = car(sexp);
+
+      if (typeof(chunk) == 'string')
+	chunks.push(chunk);
+      else
+	chunks.push(emit(chunk, context));
+
       sexp = cdr(sexp);
-      if (sexp != nil) {
-	chunks.push('(' + emit(car(sexp), context) + ')');
-	sexp = cdr(sexp);
-      }
     }
     return '(function () { return ' + chunks.join('') + '}).call(this)';
   }
 
   function emitLambda(sexp, context) {
     context = pushContext(context);
-    car(context).tail = true;
+    car(context).tailCall = true;
 
     var formals = cadr(sexp);
     var body = emitSequence(caddr(sexp), context);
@@ -1638,7 +1676,7 @@ Moosky.compile = (function ()
   }
 
   function emitOr(sexp, context) {
-    var tail = car(context).tail;
+    var tailCall = car(context).tailCall;
     context = pushContext(context);
 
     sexp = cdr(sexp);
@@ -1653,7 +1691,7 @@ Moosky.compile = (function ()
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
-      car(context).tail = tail && next == nil;
+      car(context).tailCall = tailCall && next == nil;
       chunks.push('(this.$temp = (');
       chunks.push(emit(car(sexp), context));
       chunks.push(')) != false ? this.$temp : ');
@@ -1672,7 +1710,7 @@ Moosky.compile = (function ()
 
   function emitQuasiQuote(sexp, context) {
     context = pushContext(context);
-    car(context).tail = false;
+    car(context).tailCall = false;
 
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
@@ -1694,13 +1732,13 @@ Moosky.compile = (function ()
   }
 
   function emitSequence(sexp, context) {
-    var tail = car(context).tail;
+    var tailCall = car(context).tailCall;
     context = pushContext(context);
 
     var values = [];
     while (sexp != nil) {
       var next = cdr(sexp);
-      car(context).tail = tail && next == nil;
+      car(context).tailCall = tailCall && next == nil;
       values.push(emit(car(sexp), context));
       sexp = next;
     }
@@ -1709,13 +1747,13 @@ Moosky.compile = (function ()
 
   function emitSet(sexp, context) {
     context = pushContext(context);
-    car(context).tail = false;
+    car(context).tailCall = false;
     return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp), context) + ')';
   }
 
   return function compile(sexp, env) {
     var env = env || makeFrame(Moosky.Top);
-    var context = list({ tail: false });
+    var context = list({ tailCall: false });
     var result = ['(function () {\n',
 		  'return ', emit(parseSexp(cons($begin, sexp), env), context), ';\n',
 		  '}).call(Moosky.Top);'].join('');
@@ -2074,6 +2112,15 @@ Moosky.Top = (function ()
 
 
   var Top = {
+    $makeBouncer: function(env, applicand) {
+      if (!applicand.$Moosky)
+	return applicand;
+
+      return function(___) {
+	  return applicand.apply(env, arguments);
+      }
+    },
+
     $makeBounce: function(env, p) {
       var bounce = function () { return p.call(env); };
       bounce.$bounce = true;
