@@ -2657,6 +2657,86 @@ Moosky.Top = (function ()
   return Top;
 })();
 
+Moosky.HTML = (function ()
+{
+  if (typeof(XMLHttpRequest)  === "undefined") {
+    XMLHttpRequest = function() {
+      try { return new ActiveXObject("Msxml2.XMLHTTP.6.0"); }
+	catch(e) {}
+      try { return new ActiveXObject("Msxml2.XMLHTTP.3.0"); }
+	catch(e) {}
+      try { return new ActiveXObject("Msxml2.XMLHTTP"); }
+	catch(e) {}
+      try { return new ActiveXObject("Microsoft.XMLHTTP"); }
+	catch(e) {}
+      throw new Error("This browser does not support XMLHttpRequest.");
+    };
+  }
+
+  function makeScriptElement(text) {
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.text = text;
+
+    return script;
+  }
+
+  function compileScripts() {
+    var scripts = document.getElementsByTagName('script');
+
+    var waitCount = 0, loopFinished = false;
+    var texts = [];
+
+    function makeScriptElements() {
+      for (var j = 0, length = texts.length; j < length; j++)
+
+	// parentNode becomes null after the script has been processed
+	if (texts[j] != undefined && texts[j].script.parentNode) {
+	  var js = Moosky.compile(Moosky.Core.read(texts[j].text), Moosky.Top);
+	  var replacement = makeScriptElement(js);
+	  texts[j].script.parentNode.replaceChild(replacement, texts[j].script);
+	}
+    }
+
+    for (var i = 0, length = scripts.length; i < length; i++) {
+      var s = scripts[i];
+      if (s.type == 'text/moosky') {
+	if (s.text)
+	  texts[i] = { script: s, text: s.text };
+
+	if (s.src) {
+	  waitCount++;
+	  var r = new XMLHttpRequest();
+	  r.open('get', s.src, true);
+	  r.overrideMimeType('text/plain');
+	  r.onreadystatechange =
+	    function(state) {
+	      var script = s;
+	      var index = i;
+	      var response = state.currentTarget;
+
+	      if (response.readyState == 4) {
+		texts[index] = { script: script,
+				 text: response.responseText };
+		if (--waitCount == 0 && loopFinished) {
+		  makeScriptElements();
+		}
+	      }
+	    };
+	  r.send();
+	}
+      }
+    }
+
+    if (waitCount != 0)
+      loopFinished = true;
+    else
+      makeScriptElements();
+  }
+
+  return { compileScripts: compileScripts };
+})();
+
 //=============================================================================
 //
 //
@@ -2732,3 +2812,5 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			  regexp: /[^#$\d\n\s\(\)\[\]'".`][^$\n\s\(\)"'`\[\]]*/ }
 		      ];
 
+Moosky.HTML.compileScripts();
+Moosky.HTML.compileScripts();

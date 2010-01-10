@@ -28,35 +28,43 @@ function observe(element, eventName, handler) {
   }
 }
 
-window.setTimeout(function () {
-		    var prompt = '> ';
-		    var textArea = document.getElementById('id_textarea');
-		    textArea.value = Moosky.Top.greeting() + '\n' + prompt;
-		    var last = textArea.value.length;
-		    var env = Moosky.Core.Primitives.exports.makeFrame(Moosky.Top);
-		    textArea.focus();
-		    observe(textArea, 'keyup',
-			    function(event) {
-			      if (event.keyCode == 13) { // RETURN
-				var sexp;
-				var source;
-				var result;
-				try {
-				  sexp = Moosky.Core.read(textArea.value.substring(last));
-				  source = Moosky.compile(sexp, env);
-				  result = eval(source);
-				  if (result !== undefined)
-				    textArea.value += Moosky.Values.Cons.printSexp(result) + '\n';
-				  textArea.value += prompt;
-				  last = textArea.value.length;
-				} catch(e) {
-				  if (!(e instanceof Moosky.Core.read.IncompleteInputError)) {
-				    textArea.value += [e.name, ': ', e.message, '\n', source, '\n', prompt].join('');
-				    last = textArea.value.length;
-				  }
-				}
-			      }
-			    });
-		  }, 500);
+var intervalID = window.setInterval(startREPL, 100);
+
+function startREPL() {
+  var textArea = document.getElementById('id_textarea');
+  if (!textArea)
+    return;
+
+  window.clearInterval(intervalID);
+
+  var prompt = '> ';
+  textArea.value = Moosky.Top.greeting() + '\n' + prompt;
+  var last = textArea.value.length;
+  var env = Moosky.Core.Primitives.exports.makeFrame(Moosky.Top);
+  textArea.focus();
+  observe(textArea, 'keyup',
+	  function(event) {
+	    if (event.keyCode == 13) { // RETURN
+	      var sexp;
+	      var source;
+	      var result;
+	      try {
+		sexp = Moosky.Core.read(textArea.value.substring(last));
+		source = Moosky.compile(sexp, env);
+		result = eval(source);
+		if (result !== undefined)
+		  textArea.value += Moosky.Values.Cons.printSexp(result) + '\n';
+		textArea.value += prompt;
+		last = textArea.value.length;
+	      } catch(e) {
+		if (!(e instanceof Moosky.Core.read.IncompleteInputError)) {
+		  textArea.value += [e.name, ': ', e.message, '\n', source, '\n', prompt].join('');
+		  last = textArea.value.length;
+		}
+	      }
+	    }
+	  });
+}
+
 
 

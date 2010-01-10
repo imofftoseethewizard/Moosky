@@ -142,9 +142,13 @@ package written in Scheme, and I'll add it later as an optional
 package.
 
 
-5. TODO
+2. Usage
 
-Add preamble.
+Add scripts to your page with type="text/moosky".  If they precede
+moosky.js in the header, they will be automatically executed once
+Moosky loads.
+
+5. TODO
 
 Better error handling, source citation.
 error
@@ -162,8 +166,6 @@ do
 delay
 
 6.3.2
-list-tail
-list-ref
 memq
 memv
 member
