@@ -2673,6 +2673,22 @@ Moosky.HTML = (function ()
     };
   }
 
+  function observe(element, eventName, handler) {
+    if (element.addEventListener) {
+      element.addEventListener(eventName, handler, false);
+    } else {
+      element.attachEvent("on" + eventName, handler);
+    }
+  }
+
+  function stopObserving(element, eventName, handler) {
+    if (element.removeEventListener) {
+      element.removeEventListener(eventName, handler, false);
+    } else {
+      element.detachEvent("on" + eventName, handler);
+    }
+  }
+
   function makeScriptElement(text) {
     var script = document.createElement('script');
     script.type = 'text/javascript';
@@ -2734,7 +2750,98 @@ Moosky.HTML = (function ()
       makeScriptElements();
   }
 
-  return { compileScripts: compileScripts };
+  function dragStartREPL(div, event) {
+    var style = window.getComputedStyle(div, null);
+    div.style.zIndex = '10';
+    div.startX = parseFloat(style.left);
+    div.startY = parseFloat(style.top);
+    div.originX = event.clientX;
+    div.originY = event.clientY;
+    div.moveHandler = function() { dragMoveREPL.apply(null, [].concat.apply([div], arguments)); };
+    div.endHandler = function() { dragEndREPL.apply(null, [].concat.apply([div], arguments)); };
+    observe(document, 'mousemove', div.moveHandler);
+    observe(document, 'mouseup', div.endHandler);
+  }
+
+  function dragMoveREPL(div, event) {
+    var deltaX = event.clientX - div.originX;
+    var deltaY = event.clientY - div.originY;
+
+    div.style.left = div.startX + deltaX + 'px';
+    div.style.top = div.startY + deltaY + 'px';
+  }
+
+  function dragEndREPL(div, event) {
+    stopObserving(document, 'mousemove', div.moveHandler);
+    stopObserving(document, 'mouseup', div.endHandler);
+  }
+
+  function REPL() {
+    function Div() { return document.createElement('div'); };
+    function TextArea() { return document.createElement('textarea'); };
+    function TextNode(text) { return document.createTextNode(text); };
+
+    var div = new Div();
+    div.style.position = 'absolute';
+    div.style.width = '480px';
+    div.style.background = '#202090';
+
+    var titleBar = new Div();
+    div.appendChild(titleBar);
+    titleBar.appendChild(new TextNode('Moosky'));
+    titleBar.style.width = '100%';
+    titleBar.style.color = 'white';
+    titleBar.style.textAlign = 'center';
+    titleBar.style.cursor = 'move';
+    observe(titleBar, 'mousedown', function() { dragStartREPL.apply(null, [].concat.apply([div], arguments)); });
+
+    var divTextAreaCtnr = new Div();
+    div.appendChild(divTextAreaCtnr);
+    divTextAreaCtnr.style.border = '2px solid #4040c2';
+    divTextAreaCtnr.style.margin = '0';
+    divTextAreaCtnr.style.padding = '0';
+
+
+    var textArea = new TextArea();
+    divTextAreaCtnr.appendChild(textArea);
+    textArea.style.margin = '0';
+    textArea.style.padding = '0';
+    textArea.style.width = parseFloat(div.style.width) - 8 + 'px';
+    textArea.style.height = '45em';
+    textArea.style.border = '2px solid white';
+
+    var prompt = '> ';
+    textArea.value = Moosky.Top.greeting() + '\n' + prompt;
+    var last = textArea.value.length;
+    var env = Moosky.Core.Primitives.exports.makeFrame(Moosky.Top);
+    textArea.focus();
+    observe(textArea, 'keyup',
+	    function(event) {
+	      if (event.keyCode == 13) { // RETURN
+		var sexp;
+		var source;
+		var result;
+		try {
+		  sexp = Moosky.Core.read(textArea.value.substring(last));
+		  source = Moosky.compile(sexp, env);
+		  result = eval(source);
+		  if (result !== undefined)
+		    textArea.value += Moosky.Values.Cons.printSexp(result) + '\n';
+		  textArea.value += prompt;
+		  last = textArea.value.length;
+		} catch(e) {
+		  if (!(e instanceof Moosky.Core.read.IncompleteInputError)) {
+		    textArea.value += [e.name, ': ', e.message, '\n', source, '\n', prompt].join('');
+		    last = textArea.value.length;
+		  }
+		}
+	      }
+	    });
+
+    return div;
+  }
+  return { compileScripts: compileScripts,
+	   REPL: REPL };
 })();
 
 //=============================================================================
