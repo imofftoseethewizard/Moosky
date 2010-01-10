@@ -2254,23 +2254,23 @@ Moosky.Top = (function ()
     '>=': numericComparator('>=', function(a, b) { return a >= b; }),
 
     'zero?': function(a) {
-      return typeof(a) == 'number' && a.valueOf() == 0;
+      return isNumber(a) && a.valueOf() == 0;
     },
 
     'positive?': function(a) {
-      return typeof(a) == 'number' && a.valueOf() > 0;
+      return isNumber(a) && a.valueOf() > 0;
     },
 
     'negative?': function(a) {
-      return typeof(a) == 'number' && a.valueOf() < 0;
+      return isNumber(a) && a.valueOf() < 0;
     },
 
     'odd?': function(a) {
-      return typeof(a) == 'number' && Math.abs(a.valueOf() % 2) == 1;
+      return isNumber(a) && Math.abs(a.valueOf() % 2) == 1;
     },
 
     'even?': function(a) {
-      return typeof(a) == 'number' && a.valueOf() % 2 == 0;
+      return isNumber(a) && a.valueOf() % 2 == 0;
     },
 
     max: numericFold('max', function(m, a) { return m > a ? m : a }),
