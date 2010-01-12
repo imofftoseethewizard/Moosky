@@ -2766,7 +2766,7 @@ Moosky.compile = (function ()
 		  '  var $E = Moosky.Top;\n',
 		  '  return ', emit(parseSexp(cons($begin, sexp), env), context), ';\n',
 		  '})();'].join('');
-    console.log(result);
+//    console.log(result);
     return result;
   }
 })();
