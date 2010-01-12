@@ -65,7 +65,6 @@ CONTENTS
 Continuations
 Ports
 Numeric Tower (in particular, rationals and complex numbers)
-Values (values, let-values, call-with-values)
 Hygienic macros: define-syntax, etc
 
 1.2 Extensions
@@ -152,11 +151,12 @@ Moosky loads.
 
 5.1 Misc
 
+let*-values
+call-with-values
 Better error handling, source citation.
 error
 assertion-violation
 assert
-named let looping construct
 moosky.org
 basic website
 Add debug info to compiled code.
@@ -164,7 +164,6 @@ Add debug info to compiled code.
 
 5.2 Libraries
 
-R6RS list library
 DOM
 
 5.3 Stuff from R5RS that's probably useful:

@@ -2492,15 +2492,19 @@ Moosky.compile = (function ()
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
+      var $temp = gensym('and');
       car(context).tailCall = tailCall && next == nil;
 
-      chunks.push('($E.$temp = (');
+      chunks.push('(');
+      chunks.push($temp.emit());
+      chunks.push(' = (');
       chunks.push(emit(car(sexp), context));
       chunks.push(')) == false ? false : ');
 
       sexp = next;
     }
-    chunks.push('$E.$temp)');
+    chunks.push($temp.emit());
+    chunks.push(')');
     return chunks.join('');
   }
 
@@ -2690,10 +2694,15 @@ Moosky.compile = (function ()
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
+      var $temp = gensym('or');
       car(context).tailCall = tailCall && next == nil;
-      chunks.push('($E.$temp = (');
+      chunks.push('(');
+      chunks.push($temp.emit());
+      chunks.push(' = (');
       chunks.push(emit(car(sexp), context));
-      chunks.push(')) != false ? $E.$temp : ');
+      chunks.push(')) != false ? ');
+      chunks.push($temp.emit());
+      chunks.push(' : ');
       sexp = cdr(sexp);
     }
     chunks.push('false)');
@@ -2757,7 +2766,7 @@ Moosky.compile = (function ()
 		  '  var $E = Moosky.Top;\n',
 		  '  return ', emit(parseSexp(cons($begin, sexp), env), context), ';\n',
 		  '})();'].join('');
-//    console.log(result);
+    console.log(result);
     return result;
   }
 })();

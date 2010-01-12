@@ -73,10 +73,59 @@
                     matches
                     (cons head misses)))))))
 
+(define (fold-left combine nil . lists)
+  (or (and (null? lists)
+           nil)
+      (if (null? (car lists))
+          ; all lists must be empty
+          (let loop ([lists (cdr lists)])
+            (or (and (null? lists)
+                     nil)
+                (if (not (null? (car lists)))
+                    '&exception
+                    (loop (cdr lists)))))
+          ; all lists must have at least one element
+          (let loop ([lists lists]
+                     [args '()]
+                     [remainders '()])
+            (if (null? lists)
+                (apply fold-left combine (apply combine nil (reverse args))
+                       (reverse remainders))
+                (let ([lst (car lists)])
+                  (if (null? lst)
+                      ; should be an exception
+                      '&exception
+                      (loop (cdr lists)
+                            (cons (car lst) args)
+                            (cons (cdr lst) remainders)))))))))
 
 
-(define (fold-left combine nil . lists) 'not-implemented)
-(define (fold-right combine nil . lists) 'not-implemented)
+(define (fold-right combine nil . lists)
+  (or (and (null? lists)
+           nil)
+      (if (null? (car lists))
+          ; all lists must be empty
+          (let loop ([lists (cdr lists)])
+            (or (and (null? lists)
+                     nil)
+                (if (not (null? (car lists)))
+                    '&exception
+                    (loop (cdr lists)))))
+          ; all lists must have at least one element
+          (let loop ([lists lists]
+                     [args '()]
+                     [remainders '()])
+            (if (null? lists)
+                (apply combine (reverse (cons (apply fold-right combine nil (reverse remainders))
+                                              args)))
+                (let ([lst (car lists)])
+                  (if (null? lst)
+                      ; should be an exception
+                      '&exception
+                      (loop (cdr lists)
+                            (cons (car lst) args)
+                            (cons (cdr lst) remainders)))))))))
+
 
 (define (remp proc  lst) 'not-implemented)
 (define (remove obj lst) 'not-implemented)
@@ -93,7 +142,13 @@
 (define (assv obj lst) 'not-implemented)
 (define (assq obj lst) 'not-implemented)
 
-(define (cons* . objs) 'not-implemented)
+(define (cons* . objs)
+  (fold-right (lambda (lst nil)
+                      (if (null? nil)
+                          lst
+                          (cons lst nil)))
+              '() objs))
+
 
 ;(define (reduce combine zero . lists) 'not-implemented)
 ;
