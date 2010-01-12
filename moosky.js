@@ -1152,18 +1152,18 @@ Moosky.Top = (function ()
 
     $quoted: [],
 
-    $quasiUnquote: function(sexp) {
+    $quasiUnquote: function(sexp, lambdas) {
       if (!isPair(sexp))
 	return sexp;
 
       var A = car(sexp);
       if (isPair(A) && isSymbol(car(A)) && car(A) == 'unquote-splicing') {
-	var unquoted = cadr(A)();
+	var unquoted = lambdas.shift()();
 
 	if (isList(unquoted))
-	  return append(unquoted, Top.$quasiUnquote(cdr(sexp)));
+	  return append(unquoted, Top.$quasiUnquote(cdr(sexp), lambdas));
 
-	return cons(unquoted, Top.$quasiUnquote(cdr(sexp)));
+	return cons(unquoted, Top.$quasiUnquote(cdr(sexp), lambdas));
       }
 
       if (isSymbol(A)) {
@@ -1171,10 +1171,10 @@ Moosky.Top = (function ()
 	  throw new SyntaxError('quasiquote: illegal splice' + sexp);
 
 	if (A == 'unquote')
-	  return cadr(sexp)();
+	  return lambdas.shift()();
       }
 
-      return cons(Top.$quasiUnquote(A), Top.$quasiUnquote(cdr(sexp)));
+      return cons(Top.$quasiUnquote(A, lambdas), Top.$quasiUnquote(cdr(sexp), lambdas));
     },
 
     $makeFrame: makeFrame,
@@ -2395,8 +2395,6 @@ Moosky.compile = (function ()
     if (length(sexp) != 2)
       throw new SyntaxError('quasiquote: wrong number of parts.');
 
-    var bindings = nil;
-
     var quoted = cadr(sexp);
     if (!isPair(quoted))
       return list($quote, quoted);
@@ -2407,17 +2405,13 @@ Moosky.compile = (function ()
 
       var A = car(sexp);
 
-      if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote') {
-	var symbol = gensym('qq');
-	bindings = cons(cons(symbol, parseSexp(list($lambda, list(), cadr(sexp)), env)), bindings);
-
-	return list(A, symbol);
-      }
+      if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote')
+	return list(A, parseSexp(list($lambda, list(), cadr(sexp)), env));
 
       return cons(parseQQ(A), parseQQ(cdr(sexp)));
     }
 
-    return list(car(sexp), parseQQ(quoted), bindings);
+    return list(car(sexp), parseQQ(quoted));
   }
 
   function parseQuote(sexp, env) {
@@ -2508,39 +2502,37 @@ Moosky.compile = (function ()
     return chunks.join('');
   }
 
+  function emitApplication(applicand, parameters, context) {
+    var values = [];
+    while (parameters != nil) {
+      values.push(emit(car(parameters), context));
+      parameters = cdr(parameters);
+    }
+
+    return [emit(applicand, context), '(', values.join(', '), ')'].join('');
+  }
+
   function emitApply(sexp, context) {
     var tailCall = car(context).tailCall;
     context = pushContext(context);
     car(context).tailCall = false;
 
     var applicand = cadr(sexp);
-    var actuals = cddr(sexp);
+    var parameters = cddr(sexp);
 
     var nativeCall = isSymbol(applicand) && applicand.toString().match(/\./);
-
-    var values = [];
-    while (actuals != nil) {
-      values.push(emit(car(actuals), context));
-      actuals = cdr(actuals);
-    }
-
-    var parameters = values.join(', ');
     if (nativeCall)
-      return [applicand.emit(), '(', parameters, ')'].join('');
+      return emitApplication(applicand, parameters, context);
 
-    else if (tailCall) {
+    else if (!tailCall)
+      return ['(', emitTrampoline(applicand, parameters, context), ')()'].join('');
+
+    else {
       car(context).tailCall = true;
       var temp = gensym();
       return ['(', temp, ' = (function () {\n',
-	      '    return ', emit(applicand, context), '(', parameters, ');\n',
+	      '    return ', emitApplication(applicand, parameters, context), ';\n',
 	      '}), (', temp, '.$bounce = true), ', temp, ')'].join('');
-    } else {
-      return ['(function () {\n',
-	      '  var result = ', emit(applicand, context), '(', parameters, ');\n',
-	      '  while (result && result.$bounce)\n',
-	      '    result = result();\n',
-	      '  return result;\n',
-	      '})()'].join('');
     }
   }
 
@@ -2723,14 +2715,23 @@ Moosky.compile = (function ()
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
 
-    var expressions = [];
-    var bindings = caddr(sexp);
-    while (bindings != nil) {
-      expressions.push(emitBinding(caar(bindings), emit(cdar(bindings), context)));
-      bindings = cdr(bindings);
+    var lambdas = [];
+
+    function emitQQ(sexp) {
+      if (!isPair(sexp))
+	return sexp;
+
+      var A = car(sexp);
+
+      if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote')
+	return lambdas.push(emitTrampoline(cadr(sexp), nil, context));
+
+      return emitQQ(A), emitQQ(cdr(sexp));
     }
-    expressions.push('$E.$quasiUnquote($E.$quoted[' + quoteId + '])');
-    return '(' + expressions.join('), (') + ')';
+
+    emitQQ(cadr(sexp));
+
+    return ['$E.$quasiUnquote($E.$quoted[', quoteId, '], [', lambdas.join(', '), '])'].join('');
   }
 
   function emitQuote(sexp, context) {
@@ -2757,6 +2758,15 @@ Moosky.compile = (function ()
     context = pushContext(context);
     car(context).tailCall = false;
     return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp), context) + ')';
+  }
+
+  function emitTrampoline(applicand, parameters, context) {
+      return ['function () {\n',
+	      '  var result = ', emitApplication(applicand, parameters, context), ';\n',
+	      '  while (result && result.$bounce)\n',
+	      '    result = result();\n',
+	      '  return result;\n',
+	      '}'].join('');
   }
 
   return function compile(sexp, env) {
