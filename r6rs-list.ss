@@ -26,12 +26,10 @@
           (find proc (cdr lst)))))
 
 (define (for-all proc . lists)
-  (console.log lists)
   (or (null? lists)
       (if (null? (car lists))
           ; all lists must be empty
           (let loop ([lists (cdr lists)])
-            (console.log 'null)
             (or (null? lists)
                 (if (not (null? (car lists)))
                     '&exception
@@ -40,14 +38,9 @@
           (let loop ([lists lists]
                      [args '()]
                      [remainders '()])
-            (console.log 'check)
             (if (null? lists)
-                (and (begin
-                       (console.log 'applying-args)
-                       (apply proc args))
-                     (begin
-                       (console.log 'recurring
-                       (apply for-all proc remainders))))
+                (and (apply proc args)
+                     (apply for-all proc remainders))
                 (let ([lst (car lists)])
                   (if (null? lst)
                       ; should be an exception
@@ -58,7 +51,6 @@
 
 (define (exists proc . lists)
   (not (apply for-all (lambda args
-                        (console.log args)
                         (not (apply proc args))) lists)))
 ;;
 ;;  (and (not (null? lists))
