@@ -2560,16 +2560,16 @@ Moosky.compile = (function ()
 
     var bindings = [];
     if (isSymbol(formals))
-      bindings.push(emitBinding(formals, '$E.$argumentsList($args, 0)'));
+      bindings.push(emitBinding(formals, '$E.$argumentsList(arguments, 0)'));
 
     else {
       var i = 0;
       while (formals != nil) {
 	if (!isList(formals)) {
-	  bindings.push(emitBinding(formals, '$E.$argumentsList($args, ' + i + ')'));
+	  bindings.push(emitBinding(formals, '$E.$argumentsList(arguments, ' + i + ')'));
 	  break;
 	} else
-	  bindings.push(emitBinding(car(formals), '$args[' + i + ']'));
+	  bindings.push(emitBinding(car(formals), 'arguments[' + i + ']'));
 
 	formals = cdr(formals);
 	i++;
@@ -2577,12 +2577,11 @@ Moosky.compile = (function ()
     }
 
     return ['(function () {\n',
-	    '  var $Parent = $E, $args = arguments;\n',
+	    '  var $E = this;\n    ',
 	    '  return function() {\n',
-	    '    var $E = $Parent.$makeFrame($Parent);\n    ',
 	    bindings.join(';\n    '), ';\n',
-	    '  return ', body, ';\n  }();\n',
-	    '})'].join('');
+	    '  return ', body, ';\n  };\n',
+	    '}).call($E.$makeFrame($E))'].join('');
   }
 
   function emitLet(sexp, context) {
@@ -2683,7 +2682,7 @@ Moosky.compile = (function ()
 		  '  var $E = Moosky.Top;\n',
 		  '  return ', emit(parseSexp(cons($begin, sexp), env), context), ';\n',
 		  '})();'].join('');
-//    console.log(result);
+    console.log(result);
     return result;
   }
 })();
