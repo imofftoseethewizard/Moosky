@@ -19,11 +19,8 @@
 
 
 (define (find proc lst)
-  (if (null? lst)
-      #f
-      (if (proc (car lst))
-          (car lst)
-          (find proc (cdr lst)))))
+  (let ([tail (memp proc lst)])
+    (and tail (car tail))))
 
 (define (for-all proc . lists)
   (or (null? lists)
@@ -127,20 +124,66 @@
                             (cons (cdr lst) remainders)))))))))
 
 
-(define (remp proc  lst) 'not-implemented)
-(define (remove obj lst) 'not-implemented)
-(define (remv obj lst) 'not-implemented)
-(define (remq obj lst) 'not-implemented)
+(define (remp proc lst)
+  (let-values ([(matches misses) (partition proc lst)])
+    misses))
 
-(define (memp proc  lst) 'not-implemented)
-(define (member obj lst) 'not-implemented)
-(define (memv obj lst) 'not-implemented)
-(define (memq obj lst) 'not-implemented)
+(define (remove obj lst)
+  (remp (lambda (a)
+          (equal? a obj))
+        lst))
 
-(define (assp proc  lst) 'not-implemented)
-(define (assoc obj lst) 'not-implemented)
-(define (assv obj lst) 'not-implemented)
-(define (assq obj lst) 'not-implemented)
+(define (remv obj lst)
+  (remp (lambda (a)
+          (eqv? a obj))
+        lst))
+
+(define (remq obj lst)
+  (remp (lambda (a)
+          (eq? a obj))
+        lst))
+
+(define (memp proc lst)
+  (if (null? lst)
+      #f
+      (if (proc (car lst))
+          lst
+          (memp proc (cdr lst)))))
+
+(define (member obj lst)
+  (memp (lambda (a)
+          (equal? a obj))
+        lst))
+
+(define (memv obj lst)
+  (memp (lambda (a)
+          (eqv? a obj))
+        lst))
+
+(define (memq obj lst)
+  (memp (lambda (a)
+          (eq? a obj))
+        lst))
+
+(define (assp proc lst)
+  (find (lambda (pair)
+          (proc (car pair)))
+        lst))
+
+(define (assoc obj lst)
+  (assp (lambda (a)
+          (equal? a obj))
+        lst))
+
+(define (assv obj lst)
+  (assp (lambda (a)
+          (eqv? a obj))
+        lst))
+
+(define (assq obj lst)
+  (assp (lambda (a)
+          (eq? a obj))
+        lst))
 
 (define (cons* . objs)
   (fold-right (lambda (lst nil)
@@ -150,12 +193,3 @@
               '() objs))
 
 
-;(define (reduce combine zero . lists) 'not-implemented)
-;
-;(define (list-tail lst k)
-;  (if (not (positive? k))
-;      lst
-;      (list-tail (cdr lst) (- k 1))))
-;
-;(define (list-ref lst k)
-;  (car (list-tail lst k)))
