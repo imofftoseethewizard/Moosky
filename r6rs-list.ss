@@ -52,42 +52,27 @@
 (define (exists proc . lists)
   (not (apply for-all (lambda args
                         (not (apply proc args))) lists)))
-;;
-;;  (and (not (null? lists))
-;;       (if (null? (car lists))
-;;           ;; all lists must be empty
-;;           (let loop ([lists (cdr lists)])
-;;             (and (not (null? lists))
-;;                  (if (not (null? (car lists)))
-;;                      '&exception
-;;                      (loop (cdr lists)))))
-;;           ;; all lists must have at least one element
-;;           (let loop ([lists lists]
-;;                      [args '()]
-;;                      [remainders '()])
-;;             (if (null? lists)
-;;                 (or (apply proc args)
-;;                     (apply for-all proc remainders))
-;;                 (let ([lst (car lists)])
-;;                   (if (null? lst)
-;;                       '&exception
-;;                       (loop (cdr lists)
-;;                             (cons (car lst) args)
-;;                             (cons (cdr lst) remainders)))))))))
 
 (define (filter proc lst)
-  (let loop ([lst lst]
-             [result '()])
-    (if (null? lst)
-        (reverse result)
-        (let ([head (car lst)])
-          (loop (cdr lst)
-                (if (proc head)
-                    (cons head result)
-                    result))))))
+  (let-values ([(matches misses) (partition proc lst)])
+    matches))
 
-;;; TODO: implement values
-(define (partition proc ls) 'not-implemented)
+(define (partition proc lst)
+  (let loop ([lst lst]
+             [matches '()]
+             [misses '()])
+    (if (null? lst)
+        (values (reverse matches)
+                (reverse misses))
+        (let ([head (car lst)])
+          (if (proc head)
+              (loop (cdr lst)
+                    (cons head matches)
+                    misses)
+              (loop (cdr lst)
+                    matches
+                    (cons head misses)))))))
+
 
 
 (define (fold-left combine nil . lists) 'not-implemented)

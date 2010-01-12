@@ -1975,6 +1975,7 @@ Moosky.compile = (function ()
   var $letStar     = new Symbol('let*');
   var $letrec      = new Symbol('letrec');
   var $letrecStar  = new Symbol('letrec*');
+  var $letValues   = new Symbol('let-values');
   var $or          = new Symbol('or');
   var $quote       = new Symbol('quote');
   var $quasiquote  = new Symbol('quasiquote');
@@ -2013,6 +2014,7 @@ Moosky.compile = (function ()
 		      'let*': parseLetStar,
 		      'letrec': parseLetrec,
 		      'letrec*': parseLetrec,
+		      'let-values': parseLetValues,
 		      'or': parseOr,
 		      'quote': parseQuote,
 		      'quasiquote': parseQuasiQuote,
@@ -2052,6 +2054,31 @@ Moosky.compile = (function ()
 
       var value = parseSexp(cadr(binding), env);
       bindings = cons(cons(symbol, value), bindings);
+      sexp = cdr(sexp);
+    }
+
+    return reverse(bindings);
+  }
+
+  function parseMultiValueBindings(sexp, env) {
+    var bindings = nil;
+    while (sexp != nil) {
+      var binding = car(sexp);
+      if (length(binding) != 2)
+	throw new SyntaxError('improper binding: ' + binding);
+
+      var symbols = car(binding);
+      if (!isList(symbols))
+	throw new SyntaxError('symbol list expected in binding: ' + binding);
+
+      while (symbols != nil) {
+	if (!isSymbol(car(symbols)))
+	  throw new SyntaxError('symbol list expected in binding: ' + binding);
+	symbols = cdr(symbols);
+      }
+
+      var value = parseSexp(cadr(binding), env);
+      bindings = cons(cons(car(binding), value), bindings);
       sexp = cdr(sexp);
     }
 
@@ -2353,6 +2380,13 @@ Moosky.compile = (function ()
 			 listStar(car(sexp), cdr(bindings), body)), env);
   }
 
+  function parseLetValues(sexp, env) {
+    var bindings = parseMultiValueBindings(cadr(sexp), env);
+    var body = parseSequence(cddr(sexp), makeFrame(env));
+
+    return list(car(sexp), bindings, body);
+  }
+
   function parseOr(sexp, env) {
     return cons(car(sexp), parseSequence(cdr(sexp), env));
   }
@@ -2426,12 +2460,15 @@ Moosky.compile = (function ()
 
     return ({'and': emitAnd,
 	     'apply': emitApply,
-	     'define': emitDefine,
 	     'begin': emitBegin,
+	     'clear-values': emitClearValues,
+	     'define': emitDefine,
+	     'extract-value': emitExtractValue,
 	     'if': emitIf,
 	     'javascript': emitJavascript,
 	     'lambda': emitLambda,
 	     'let': emitLet,
+	     'let-values': emitLetValues,
 	     'or': emitOr,
 	     'quasiquote': emitQuasiQuote,
 	     'quote': emitQuote,
@@ -2511,6 +2548,11 @@ Moosky.compile = (function ()
     return symbol.emit() + ' = ' + value;
   }
 
+  function emitClearValues(sexp, context) {
+    var valuesRef = cadr(sexp);
+    return ['(', emit(valuesRef, context), '.$values = undefined)'].join('');
+  }
+
   function emitDefine(sexp, context) {
     var context = pushContext(context);
     car(context).tailCall = false;
@@ -2518,6 +2560,12 @@ Moosky.compile = (function ()
     var name = cadr(sexp);
     var body = emit(caddr(sexp), context);
     return ['((', name.emit(), ' = (', body, ')), undefined)'].join('');
+  }
+
+  function emitExtractValue(sexp, context) {
+    var valuesRef = cadr(sexp);
+    var index = caddr(sexp);
+    return [emit(valuesRef, context), '.$values[', index, ']'].join('');
   }
 
   function emitIf(sexp, context) {
@@ -2596,6 +2644,33 @@ Moosky.compile = (function ()
     }
     var body = caddr(sexp);
     var lambda = list($lambda, reverse(formals), body);
+    return emitApply(cons($apply, cons(lambda, reverse(params))), context);
+  }
+
+  function emitLetValues(sexp, context) {
+    var bindings = cadr(sexp);
+    var formals = nil;
+    var params = nil;
+    var setters = nil;
+    var cleaners = nil;
+    while (bindings != nil) {
+      var binding = car(bindings);
+      var formal = gensym('mv');
+      formals = cons(formal, formals);
+      var symbols = car(binding);
+      var index = 0;
+      while (symbols != nil) {
+	setters = cons(list($set, car(symbols), list('extract-value', formal, index)),
+		       setters);
+	index++;
+	symbols = cdr(symbols);
+      }
+      cleaners = cons(list('clear-values', formal), cleaners);
+      params = cons(cdr(binding), params);
+      bindings = cdr(bindings);
+    }
+    var body = caddr(sexp);
+    var lambda = list($lambda, reverse(formals), append(setters, cleaners, body));
     return emitApply(cons($apply, cons(lambda, reverse(params))), context);
   }
 
@@ -2682,7 +2757,7 @@ Moosky.compile = (function ()
 		  '  var $E = Moosky.Top;\n',
 		  '  return ', emit(parseSexp(cons($begin, sexp), env), context), ';\n',
 		  '})();'].join('');
-    console.log(result);
+//    console.log(result);
     return result;
   }
 })();
