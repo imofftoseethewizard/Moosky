@@ -75,14 +75,40 @@
   (mutable prefix)
   (mutable textContent))
 
+(define-macro (define-element-method form)
+  (let* ([descriptor (cadr form)]
+         [method-name (car descriptor)]
+         [formals (cdr descriptor)]
+         [object-argument (car formals)]
+         [method-arguments (cdr formals)])
+    `(define ,method-name
+       (let ([method-name-string ,(symbol->string method-name)])
+         (lambda (elem . arguments)
+           { @^(elem)[@^(method-name-string)].apply(@^(elem), @(list->vector arguments)) } )))))
+
+(define-element-methods
+  (appendChild elem child)
+  (cloneNode elem)
+  (compareDocumentPosition elem other)
+  (hasAttributes elem)
+  (hasChildNodes elem)
+  (insertBefore elem other)
+  (isEqualNode elem other)
+  (isSameNode elem other)
+  (lookupNamespaceURI elem prefix)
+  (lookupPrefix elem URI)
+  (normalize elem)
+  (removeChild elem child)
+  (replaceChild elem new old))
+
+
+;; Here's a little usage example.
+;;   #n means null.
 (define (lastSibling elem)
   (let ([next (nextSibling elem)])
     (if (eq? #n next)
         elem
         (lastSibling next))))
-
-(define (lastChild elem)
-  (lastSibling (firstChild elem)))
 
 (define window { window })
 (define document { document })
