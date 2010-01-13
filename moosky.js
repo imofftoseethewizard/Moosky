@@ -1727,7 +1727,7 @@ Moosky.Top = (function ()
 				  '-': '$minus',
 				  '*': '$times',
 				  '/': '$divides' });
-  
+
   var munge = Values.Symbol.munge;
   for (p in UnmungedTop) {
     Top[munge(p)] = UnmungedTop[p];
@@ -2886,7 +2886,7 @@ Moosky.compile = (function ()
     var env = env || makeFrame(Moosky.Top);
     var ctx = list({ tailCall: true });
     var result = emitForceTop(emit(parseSexp(cons($begin, sexp), env), ctx));
-    console.log(result);
+//    console.log(result);
     return result;
   }
 })();
