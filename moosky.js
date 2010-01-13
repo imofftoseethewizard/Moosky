@@ -160,6 +160,13 @@ Moosky.Values = (function ()
   Symbol.translationOrigins = {};
   Symbol.collisionCount = 0;
 
+  Symbol.setTranslations = function(dict) {
+    for (s in dict) {
+      Symbol.translationResults[s] = dict[s];
+      Symbol.translationOrigins[dict[s]] = s;
+    }
+  }
+
   Symbol.camelize = function(str) {
     var parts = str.split('-'), len = parts.length;
     if (len == 1) return parts[0];
@@ -1715,6 +1722,12 @@ Moosky.Top = (function ()
   };
 
   var Top = {};
+
+  Values.Symbol.setTranslations({ '+': '$plus',
+				  '-': '$minus',
+				  '*': '$times',
+				  '/': '$divides' });
+  
   var munge = Values.Symbol.munge;
   for (p in UnmungedTop) {
     Top[munge(p)] = UnmungedTop[p];
@@ -2341,9 +2354,9 @@ Moosky.compile = (function ()
       body = listStar($lambda, cdr(nameClause), body);
     }
 
-    var context = list({ tailCall: false });
+    var ctx = list({ tailCall: false });
 //    env[name] = eval(emitForce('var $E = Moosky.Top;\n',
-    env[name] = eval(emitForceTop(emit(parseSexp(body, env), context)));
+    env[name] = eval(emitForceTop(emit(parseSexp(body, env), ctx)));
     env[name].env = env;
     env[name].tag = 'macro';
     return undefined;
@@ -2515,39 +2528,39 @@ Moosky.compile = (function ()
     return list(car(sexp), cadr(sexp), parseSexp(caddr(sexp), env));
   }
 
-  function pushContext(context) {
+  function pushContext(ctx) {
     function copy(obj) {
       var other = {};
       for (var p in obj)
 	other[p] = obj[p];
       return other;
     }
-    return cons(copy(car(context)), context);
+    return cons(copy(car(ctx)), ctx);
   }
 
-  function tailContext(context) {
-    context = pushContext(context);
-    car(context).tailCall = true;
-    return context;
+  function tailContext(ctx) {
+    ctx = pushContext(ctx);
+    car(ctx).tailCall = true;
+    return ctx;
   }
 
-  function nonTailContext(context) {
-    context = pushContext(context);
-    car(context).tailCall = false;
-    return context;
+  function nonTailContext(ctx) {
+    ctx = pushContext(ctx);
+    car(ctx).tailCall = false;
+    return ctx;
   }
 
-  function isTailCall(context) {
-    return car(context).tailCall;
+  function isTailCall(ctx) {
+    return car(ctx).tailCall;
   }
 
-  function emit(sexp, context) {
-    if (context === undefined)
+  function emit(sexp, ctx) {
+    if (ctx === undefined)
       debugger;
 
-//    console.log('emit' + (car(context).tailCall ? '*' : '') + ': ' + sexp);
+//    console.log('emit' + (car(ctx).tailCall ? '*' : '') + ': ' + sexp);
     if (!isList(sexp)) {
-      return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, context);
+      return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, ctx);
     }
 
     var op = car(sexp);
@@ -2566,12 +2579,11 @@ Moosky.compile = (function ()
 	     'or': emitOr,
 	     'quasiquote': emitQuasiQuote,
 	     'quote': emitQuote,
-	     'set!': emitSet}[car(sexp).toString()])(sexp, context);
+	     'set!': emitSet}[car(sexp).toString()])(sexp, ctx);
   }
 
-  function emitAnd(sexp, context) {
-    var tailCall = car(context).tailCall;
-    context = pushContext(context);
+  function emitAnd(sexp, ctx) {
+    var nonTailCtx = nonTailContext(ctx);
 
     sexp = cdr(sexp);
 
@@ -2580,19 +2592,18 @@ Moosky.compile = (function ()
       return 'true';
 
     if (values == 1)
-      return emit(car(sexp), context);
+      return emit(car(sexp), ctx);
 
     // ($Temp.$and_34 = (expr)) == false ? false : ... : $Temp.$and_34)
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
       var $temp = gensym('and');
-      car(context).tailCall = tailCall && next == nil;
 
       chunks.push('($Temp.');
       chunks.push($temp.emit());
       chunks.push(' = (');
-      chunks.push(emit(car(sexp), context));
+      chunks.push(emit(car(sexp), next == nil ? ctx : nonTailCtx));
       chunks.push(')) == false ? false : ');
 
       sexp = next;
@@ -2603,58 +2614,59 @@ Moosky.compile = (function ()
     return chunks.join('');
   }
 
-  function emitApplication(applicand, parameters, context) {
+  function emitApplication(applicand, parameters, ctx) {
     var values = [];
     while (parameters != nil) {
-      values.push(emit(car(parameters), nonTailContext(context)));
+      values.push(emit(car(parameters), nonTailContext(ctx)));
       parameters = cdr(parameters);
     }
 
-    return [emit(applicand, context), '(', values.join(', '), ')'].join('');
+    return [emit(applicand, ctx), '(', values.join(', '), ')'].join('');
   }
 
-  function emitApply(sexp, context) {
+  function emitApply(sexp, ctx) {
     var applicand = cadr(sexp);
     var parameters = cddr(sexp);
-    var application = emitApplication(applicand, parameters, context);
+    var application = emitApplication(applicand, parameters, ctx);
 
     var nativeCall = isSymbol(applicand) && applicand.toString().match(/\./);
     if (nativeCall)
       return application;
 
-    else if (!isTailCall(context))
-      return emitForce(application);
-
-    else
+    else if (!isTailCall(ctx)) {
+      if (ctx.hasPromise)
+	return emitForce(application);
+      else
+	return application;
+    } else {
+      ctx.hasPromise = true;
       return emitPromise(application);
+    }
   }
 
-  function emitBegin(sexp, context) {
-    return emitSequence(cdr(sexp), context);
+  function emitBegin(sexp, ctx) {
+    return emitSequence(cdr(sexp), ctx);
   }
 
   function emitBinding(symbol, value) {
     return 'var ' + symbol.emit() + ' = ' + value;
   }
 
-  function emitClearValues(sexp, context) {
+  function emitClearValues(sexp, ctx) {
     var valuesRef = cadr(sexp);
-    return ['(', emit(valuesRef, context), '.$values = undefined)'].join('');
+    return ['(', emit(valuesRef, ctx), '.$values = undefined)'].join('');
   }
 
-  function emitDefine(sexp, context) {
-    var context = pushContext(context);
-    car(context).tailCall = false;
-
+  function emitDefine(sexp, ctx) {
     var name = cadr(sexp);
-    var body = emit(caddr(sexp), context);
+    var body = emit(caddr(sexp), nonTailContext(ctx));
     return ['((Moosky.Top.', name.emit(), ' = $force(', body, ')), undefined)'].join('');
   }
 
-  function emitExtractValue(sexp, context) {
+  function emitExtractValue(sexp, ctx) {
     var valuesRef = cadr(sexp);
     var index = caddr(sexp);
-    return [emit(valuesRef, context), '.$values[', index, ']'].join('');
+    return [emit(valuesRef, ctx), '.$values[', index, ']'].join('');
   }
 
   function emitForce(body) {
@@ -2670,16 +2682,15 @@ Moosky.compile = (function ()
 	    '})()'].join('');
   }
 
-  function emitIf(sexp, context) {
-    var test = emit(car(sexp = cdr(sexp)), nonTailContext(context));
-    var consequent = emit(car(sexp = cdr(sexp)), context);
-    var alternate = emit(car(sexp = cdr(sexp)), context);
+  function emitIf(sexp, ctx) {
+    var test = emit(car(sexp = cdr(sexp)), nonTailContext(ctx));
+    var consequent = emit(car(sexp = cdr(sexp)), ctx);
+    var alternate = emit(car(sexp = cdr(sexp)), ctx);
     return '(' + test + ' != false ' + ' ? (' + consequent + ') : (' + alternate + '))';
   }
 
-  function emitJavascript(sexp, context) {
-    var context = pushContext(context);
-    car(context).tailCall = false;
+  function emitJavascript(sexp, ctx) {
+    var ctx = nonTailContext(ctx);
 
     sexp = cdr(sexp);
     var chunks = [];
@@ -2689,19 +2700,19 @@ Moosky.compile = (function ()
       if (typeof(chunk) == 'string')
 	chunks.push(chunk);
       else
-	chunks.push(emit(chunk, context));
+	chunks.push(emit(chunk, ctx));
 
       sexp = cdr(sexp);
     }
     return chunks.join('');
   }
 
-  function emitLambda(sexp, context) {
-    context = pushContext(context);
-    car(context).tailCall = true;
+  function emitLambda(sexp, ctx) {
+    var bodyCtx = tailContext(ctx);
 
     var formals = cadr(sexp);
-    var body = emitSequence(caddr(sexp), context);
+    var body = emitSequence(caddr(sexp), bodyCtx);
+    ctx.hasPromise = bodyCtx.hasPromise;
 
     var emittedFormals = [];
     var bindings = [];
@@ -2718,7 +2729,6 @@ Moosky.compile = (function ()
 	  emittedFormals.push('___');
 	  break;
 	} else
-//	  bindings.push(emitBinding(car(formals), 'arguments[' + i + ']'));
 	  emittedFormals.push(car(formals).emit());
 
 	formals = cdr(formals);
@@ -2730,16 +2740,9 @@ Moosky.compile = (function ()
 	    (bindings.length > 0) ? bindings.join('  ;\n') + ';\n' : '',
 	    '  return (', body, ');\n',
 	    '})\n'].join('');
-/*    return ['(function () {\n',
-	    '  var $E = this;\n    ',
-	    '  return function () {\n    ',
-	    bindings.join(';\n    '), ';\n',
-	    '    return (', body, ');\n',
-	    '  }\n',
-	    '}).call($E.$makeFrame($E))'].join('');*/
   }
 
-  function emitLet(sexp, context) {
+  function emitLet(sexp, ctx) {
     var bindings = cadr(sexp);
     var formals = nil;
     var params = nil;
@@ -2751,10 +2754,10 @@ Moosky.compile = (function ()
     }
     var body = caddr(sexp);
     var lambda = list($lambda, reverse(formals), body);
-    return emitApply(cons($apply, cons(lambda, reverse(params))), context);
+    return emitApply(cons($apply, cons(lambda, reverse(params))), ctx);
   }
 
-  function emitLetValues(sexp, context) {
+  function emitLetValues(sexp, ctx) {
     var bindings = cadr(sexp);
     var formals = nil;
     var params = nil;
@@ -2778,19 +2781,18 @@ Moosky.compile = (function ()
     }
     var body = caddr(sexp);
     var lambda = list($lambda, reverse(formals), append(setters, cleaners, body));
-    return emit(cons($apply, cons(lambda, reverse(params))), context);
+    return emit(cons($apply, cons(lambda, reverse(params))), ctx);
   }
 
-  function emitObject(sexp, context) {
+  function emitObject(sexp, ctx) {
     if (sexp instanceof Array)
-      return emitQuote(list($quote, sexp, context), context);
+      return emitQuote(list($quote, sexp, ctx), ctx);
 
     return sexp && sexp.toString && sexp.toString() || sexp;
   }
 
-  function emitOr(sexp, context) {
-    var tailCall = car(context).tailCall;
-    context = pushContext(context);
+  function emitOr(sexp, ctx) {
+    var nonTailCtx = nonTailContext(ctx);
 
     sexp = cdr(sexp);
     var values = length(sexp);
@@ -2798,18 +2800,17 @@ Moosky.compile = (function ()
       return 'false';
 
     if (values == 1)
-      return emit(car(sexp), context);
+      return emit(car(sexp), ctx);
 
     // ($Temp.$or_45 = (expr)) != false ? $Temp.$or_45 : ... : false)
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
       var $temp = gensym('or');
-      car(context).tailCall = tailCall && next == nil;
       chunks.push('($Temp.');
       chunks.push($temp.emit());
       chunks.push(' = (');
-      chunks.push(emit(car(sexp), context));
+      chunks.push(emit(car(sexp), next == nil ? ctx : nonTailCtx));
       chunks.push(')) != false ? $Temp.');
       chunks.push($temp.emit());
       chunks.push(' : ');
@@ -2819,14 +2820,14 @@ Moosky.compile = (function ()
     return chunks.join('');
   }
 
-  function emitPrimitive(sexp, context) {
+  function emitPrimitive(sexp, ctx) {
     return { 'undefined': function(u) { return 'undefined'; },
 	     'boolean':   function(b) { return b ? 'true' : 'false'; },
 	     'number' :   function(n) { return n.toString(); },
 	     'string':    function(s) { return new Values.String(s).emit(); },
 	     'function':  function(f) { throw new SyntaxError('cannot emit function literal.'); },
-	     'object':    function(o, context) { return emitObject(sexp, context); }
-	   }[typeof(sexp)](sexp, context);
+	     'object':    function(o, ctx) { return emitObject(sexp, ctx); }
+	   }[typeof(sexp)](sexp, ctx);
   }
 
   function emitPromise(expression) {
@@ -2836,7 +2837,7 @@ Moosky.compile = (function ()
 	    '}), (', temp, '.$promise = true), ', temp, ')'].join('');
   }
 
-  function emitQuasiQuote(sexp, context) {
+  function emitQuasiQuote(sexp, ctx) {
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
 
@@ -2849,7 +2850,7 @@ Moosky.compile = (function ()
       var A = car(sexp);
 
       if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote')
-	return promises.push(emitPromise(emit(cadr(sexp), nonTailContext(context))));
+	return promises.push(emitPromise(emit(cadr(sexp), nonTailContext(ctx))));
 
       return emitQQ(A), emitQQ(cdr(sexp));
     }
@@ -2859,36 +2860,32 @@ Moosky.compile = (function ()
     return ['$quasiUnquote($quoted[', quoteId, '], [', promises.join(', '), '])'].join('');
   }
 
-  function emitQuote(sexp, context) {
+  function emitQuote(sexp, ctx) {
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
     return '($quoted[' + quoteId + '])';
   }
 
-  function emitSequence(sexp, context) {
-    var tailCall = car(context).tailCall;
-    context = pushContext(context);
+  function emitSequence(sexp, ctx) {
+    var nonTailCtx = nonTailContext(ctx);
 
     var values = [];
     while (sexp != nil) {
       var next = cdr(sexp);
-      car(context).tailCall = tailCall && next == nil;
-      values.push(emit(car(sexp), context));
+      values.push(emit(car(sexp), next == nil ? ctx : nonTailCtx));
       sexp = next;
     }
     return values.join(', ');
   }
 
-  function emitSet(sexp, context) {
-    context = pushContext(context);
-    car(context).tailCall = false;
-    return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp), context) + ')';
+  function emitSet(sexp, ctx) {
+    return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp), nonTailContext(ctx)) + ')';
   }
 
   return function compile(sexp, env) {
     var env = env || makeFrame(Moosky.Top);
-    var context = list({ tailCall: true });
-    var result = emitForceTop(emit(parseSexp(cons($begin, sexp), env), context));
+    var ctx = list({ tailCall: true });
+    var result = emitForceTop(emit(parseSexp(cons($begin, sexp), env), ctx));
     console.log(result);
     return result;
   }
