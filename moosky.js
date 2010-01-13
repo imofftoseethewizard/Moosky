@@ -148,23 +148,63 @@ Moosky.Values = (function ()
 			 "static", "super", "synchronized", "throws",
 			 "transient", "volatile"];
 
-  var jsReservedRE = new RegExp('^' + jsKeywords.join('|') + '|'
-				+ jsReservedWords.join('|') + '$');
+  var jsReservedRE = new RegExp('^(' + jsKeywords.join('|') + '|'
+				+ jsReservedWords.join('|') + ')$');
 
   Symbol.prototype.requiresQuotes = function() {
     var value = this.toString();
     return !value.match(jsIdentifierRE) || value.match(jsReservedRE);
   }
 
+  Symbol.translationResults = {};
+  Symbol.translationOrigins = {};
+  Symbol.collisionCount = 0;
+
+  Symbol.camelize = function(str) {
+    var parts = str.split('-'), len = parts.length;
+    if (len == 1) return parts[0];
+
+    var camelized = str.charAt(0) == '-'
+      ? parts[0].charAt(0).toUpperCase() + parts[0].substring(1)
+      : parts[0];
+
+    for (var i = 1; i < len; i++)
+      camelized += parts[i].charAt(0).toUpperCase() + parts[i].substring(1);
+
+    return camelized;
+  }
+
   Symbol.prototype.emit = function() {
     if (this.$sym.match(/\./))
       return this.$sym;
 
-    else if (this.requiresQuotes())
-      return '$E["' + escapeString(this.toString()) + '"]';
+    return Symbol.munge(this.$sym);
+  }
 
-    else
-      return '$E.' + this.toString();
+  Symbol.munge = function(sym) {
+    var cached = Symbol.translationResults[sym];
+    if (cached)
+      return cached;
+
+    var value = sym;
+    if (value.match(jsReservedRE))
+      value = '_' + value;
+
+    if (value.match(/\?$/))
+      value = 'is-' + value.replace(/\?$/, '');
+
+    value = value.replace(/->/g, '-to-').replace(/\*$/, '-ext');
+    value = Symbol.camelize(value);
+    value = value.replace(/[^_$a-zA-Z0-9]/g, '_');
+
+    var originalForValue = Symbol.translationOrigins[value];
+    if (originalForValue && originalForValue != sym)
+      value += '$' + Symbol.collisionCount++;
+
+    Symbol.translationResults[sym] = value;
+    Symbol.translationOrigins[value] = sym;
+
+    return value;
   }
 
   Symbol.prototype.toString = function() {
@@ -269,7 +309,7 @@ Moosky.Values = (function ()
   }
 
   Rational.prototype.emit = function() {
-    return '$E.$makeRational(' + this.$n + ', ' + this.$d + ')';
+    return '$makeRational(' + this.$n + ', ' + this.$d + ')';
   }
 
   // --------------------------------------------------------------------------
@@ -727,7 +767,7 @@ Moosky.Core.Primitives = (function ()
     return list.reverse();
   }
 
-  function force(result) {
+  function $force(result) {
     while (result && result.$promise)
       result = result();
     return result;
@@ -755,7 +795,7 @@ Moosky.Core.Primitives = (function ()
     assertArgCount('call-with-values', 2, arguments);
     assertIsProcedure('call-with-values', producer);
     assertIsProcedure('call-with-values', consumer);
-    var values = force(producer);
+    var values = $force(producer);
     return consumer.apply(null, values && values.$values || [values]);
   }
 
@@ -828,7 +868,7 @@ Moosky.Core.Primitives = (function ()
     length: length,
     append: append,
     reverse: reverse,
-    force: force,
+    $force: $force,
 //    promise: promise,
     values: values,
     callWithValues: callWithValues,
@@ -875,7 +915,7 @@ Moosky.Core.Primitives = (function ()
     length: length,
     append: append,
     reverse: reverse,
-    force: force,
+    $force: $force,
     values: values,
     'call-with-values': callWithValues,
   };
@@ -1148,7 +1188,7 @@ Moosky.Top = (function ()
   }
 
 
-  var Top = {
+  var UnmungedTop = {
     $makeBouncer: function(env, applicand) {
       if (!applicand.$bounce)
 	return applicand;
@@ -1180,7 +1220,7 @@ Moosky.Top = (function ()
 
       var A = car(sexp);
       if (isPair(A) && isSymbol(car(A)) && car(A) == 'unquote-splicing') {
-	var unquoted = force(promises.shift());
+	var unquoted = $force(promises.shift());
 
 	if (isList(unquoted))
 	  return append(unquoted, Top.$quasiUnquote(cdr(sexp), promises));
@@ -1193,7 +1233,7 @@ Moosky.Top = (function ()
 	  throw new SyntaxError('quasiquote: illegal splice' + sexp);
 
 	if (A == 'unquote')
-	  return force(promises.shift());
+	  return $force(promises.shift());
       }
 
       return cons(Top.$quasiUnquote(A, promises), Top.$quasiUnquote(cdr(sexp), promises));
@@ -1523,7 +1563,7 @@ Moosky.Top = (function ()
 	for (var j = 0; j < strs.length; j++)
 	  chs.push(strs[j].charAt(i));
 
-	force(proc(chs));
+	$force(proc(chs));
       }
     },
 
@@ -1658,7 +1698,7 @@ Moosky.Top = (function ()
 	tail = cdr(tail);
       }
 
-      return force(proc.apply(null, args));
+      return $force(proc.apply(null, args));
     },
 
     greeting: function() {
@@ -1674,8 +1714,14 @@ Moosky.Top = (function ()
     }
   };
 
+  var Top = {};
+  var munge = Values.Symbol.munge;
+  for (p in UnmungedTop) {
+    Top[munge(p)] = UnmungedTop[p];
+  }
+
   for (p in Moosky.Core.Primitives.mooskyExports) {
-    Top[p] = Moosky.Core.Primitives.mooskyExports[p];
+    Top[munge(p)] = Moosky.Core.Primitives.mooskyExports[p];
   }
 
   return Top;
@@ -1901,9 +1947,9 @@ Moosky.Core.read = (function ()
     var text = token.$lexeme.slice(1, -1);
 
     if (block)
-      text = ' ' + text.slice(1, -1);
+      text = ['(function () { return ', text.slice(1, -1), ' })()'].join('');
     else
-      text = ' return ' + text;
+      text = ' ' + text;
 
     var tokens = new MooskyTokenStream(text);
 
@@ -2049,7 +2095,7 @@ Moosky.compile = (function ()
 
       var applicand = env[key];
       if (isMacro(applicand)) {
-	var result = parseSexp(force(applicand.call(applicand.env, sexp)), env);
+	var result = parseSexp($force(applicand.call(applicand.env, sexp)), env);
 	return result;
       }
     }
@@ -2296,8 +2342,8 @@ Moosky.compile = (function ()
     }
 
     var context = list({ tailCall: false });
-    env[name] = eval(emitForce('var $E = Moosky.Top;\n',
-			       emit(parseSexp(body, env), context)));
+//    env[name] = eval(emitForce('var $E = Moosky.Top;\n',
+    env[name] = eval(emitForceTop(emit(parseSexp(body, env), context)));
     env[name].env = env;
     env[name].tag = 'macro';
     return undefined;
@@ -2536,14 +2582,14 @@ Moosky.compile = (function ()
     if (values == 1)
       return emit(car(sexp), context);
 
-    // ($E.$temp = (expr)) == false ? false : ... : $E.$temp)
+    // ($Temp.$and_34 = (expr)) == false ? false : ... : $Temp.$and_34)
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
       var $temp = gensym('and');
       car(context).tailCall = tailCall && next == nil;
 
-      chunks.push('(');
+      chunks.push('($Temp.');
       chunks.push($temp.emit());
       chunks.push(' = (');
       chunks.push(emit(car(sexp), context));
@@ -2551,6 +2597,7 @@ Moosky.compile = (function ()
 
       sexp = next;
     }
+    chunks.push('$Temp.');
     chunks.push($temp.emit());
     chunks.push(')');
     return chunks.join('');
@@ -2576,7 +2623,7 @@ Moosky.compile = (function ()
       return application;
 
     else if (!isTailCall(context))
-      return emitForce('', application);
+      return emitForce(application);
 
     else
       return emitPromise(application);
@@ -2587,7 +2634,7 @@ Moosky.compile = (function ()
   }
 
   function emitBinding(symbol, value) {
-    return symbol.emit() + ' = ' + value;
+    return 'var ' + symbol.emit() + ' = ' + value;
   }
 
   function emitClearValues(sexp, context) {
@@ -2601,7 +2648,7 @@ Moosky.compile = (function ()
 
     var name = cadr(sexp);
     var body = emit(caddr(sexp), context);
-    return ['((', name.emit(), ' = $E.force(', body, ')), undefined)'].join('');
+    return ['((Moosky.Top.', name.emit(), ' = $force(', body, ')), undefined)'].join('');
   }
 
   function emitExtractValue(sexp, context) {
@@ -2610,13 +2657,16 @@ Moosky.compile = (function ()
     return [emit(valuesRef, context), '.$values[', index, ']'].join('');
   }
 
-  function emitForce(preamble, body) {
+  function emitForce(body) {
+    return ['$force(', body, ')'].join('');
+  }
+
+  function emitForceTop(body) {
     return ['(function () {\n  ',
-	    preamble, ';\n',
-	    '  var result = (', body, ');\n',
-	    '  while (result && result.$promise)\n',
-	    '    result = result();\n',
-	    '  return result;\n',
+	    '  with (Moosky.Top) {\n',
+	    '    var $Temp = {};\n',
+	    '    return $force(', body, ');\n',
+	    '  }\n',
 	    '})()'].join('');
   }
 
@@ -2643,7 +2693,7 @@ Moosky.compile = (function ()
 
       sexp = cdr(sexp);
     }
-    return '(function () { ' + chunks.join('') + '})()';
+    return chunks.join('');
   }
 
   function emitLambda(sexp, context) {
@@ -2653,31 +2703,40 @@ Moosky.compile = (function ()
     var formals = cadr(sexp);
     var body = emitSequence(caddr(sexp), context);
 
+    var emittedFormals = [];
     var bindings = [];
-    if (isSymbol(formals))
-      bindings.push(emitBinding(formals, '$E.$argumentsList(arguments, 0)'));
+    if (isSymbol(formals)) {
+      bindings.push(emitBinding(formals, '$argumentsList(arguments, 0)'));
+      emittedFormals.push('___');
+    }
 
     else {
       var i = 0;
       while (formals != nil) {
 	if (!isList(formals)) {
-	  bindings.push(emitBinding(formals, '$E.$argumentsList(arguments, ' + i + ')'));
+	  bindings.push(emitBinding(formals, '$argumentsList(arguments, ' + i + ')'));
+	  emittedFormals.push('___');
 	  break;
 	} else
-	  bindings.push(emitBinding(car(formals), 'arguments[' + i + ']'));
+//	  bindings.push(emitBinding(car(formals), 'arguments[' + i + ']'));
+	  emittedFormals.push(car(formals).emit());
 
 	formals = cdr(formals);
 	i++;
       }
     }
 
-    return ['(function () {\n',
+    return ['(function (', emittedFormals.join(', '), ') {\n',
+	    (bindings.length > 0) ? bindings.join('  ;\n') + ';\n' : '',
+	    '  return (', body, ');\n',
+	    '})\n'].join('');
+/*    return ['(function () {\n',
 	    '  var $E = this;\n    ',
 	    '  return function () {\n    ',
 	    bindings.join(';\n    '), ';\n',
 	    '    return (', body, ');\n',
 	    '  }\n',
-	    '}).call($E.$makeFrame($E))'].join('');
+	    '}).call($E.$makeFrame($E))'].join('');*/
   }
 
   function emitLet(sexp, context) {
@@ -2741,17 +2800,17 @@ Moosky.compile = (function ()
     if (values == 1)
       return emit(car(sexp), context);
 
-    // ($E.$temp = (expr)) != false ? $E.$temp : ... : false)
+    // ($Temp.$or_45 = (expr)) != false ? $Temp.$or_45 : ... : false)
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
       var $temp = gensym('or');
       car(context).tailCall = tailCall && next == nil;
-      chunks.push('(');
+      chunks.push('($Temp.');
       chunks.push($temp.emit());
       chunks.push(' = (');
       chunks.push(emit(car(sexp), context));
-      chunks.push(')) != false ? ');
+      chunks.push(')) != false ? $Temp.');
       chunks.push($temp.emit());
       chunks.push(' : ');
       sexp = cdr(sexp);
@@ -2761,7 +2820,6 @@ Moosky.compile = (function ()
   }
 
   function emitPrimitive(sexp, context) {
-//    console.log(typeof(sexp) + ': ' + sexp);
     return { 'undefined': function(u) { return 'undefined'; },
 	     'boolean':   function(b) { return b ? 'true' : 'false'; },
 	     'number' :   function(n) { return n.toString(); },
@@ -2798,13 +2856,13 @@ Moosky.compile = (function ()
 
     emitQQ(cadr(sexp));
 
-    return ['$E.$quasiUnquote($E.$quoted[', quoteId, '], [', promises.join(', '), '])'].join('');
+    return ['$quasiUnquote($quoted[', quoteId, '], [', promises.join(', '), '])'].join('');
   }
 
   function emitQuote(sexp, context) {
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
-    return '($E.$quoted[' + quoteId + '])';
+    return '($quoted[' + quoteId + '])';
   }
 
   function emitSequence(sexp, context) {
@@ -2830,9 +2888,8 @@ Moosky.compile = (function ()
   return function compile(sexp, env) {
     var env = env || makeFrame(Moosky.Top);
     var context = list({ tailCall: true });
-    var result = emitForce('  var $E = Moosky.Top;\n',
-			   emit(parseSexp(cons($begin, sexp), env), context));
-//    console.log(result);
+    var result = emitForceTop(emit(parseSexp(cons($begin, sexp), env), context));
+    console.log(result);
     return result;
   }
 })();
