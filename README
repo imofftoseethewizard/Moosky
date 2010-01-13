@@ -159,23 +159,17 @@ moosky.org
 basic website
 Add debug info to compiled code.
 
-
 5.2 Libraries
 
+R6RS Records
 DOM
+CSS
+XHR
 
 5.3 Stuff from R5RS that's probably useful:
 
 4.2.4
 do
-
-4.2.5
-delay
-
-6.3.2
-
-6.4
-force
 
 6.5
 eval
