@@ -151,8 +151,6 @@ Moosky loads.
 
 5.1 Misc
 
-let*-values
-call-with-values
 Better error handling, source citation.
 error
 assertion-violation

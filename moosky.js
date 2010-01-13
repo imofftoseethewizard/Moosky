@@ -709,6 +709,13 @@ Moosky.Core.Primitives = (function ()
     return list.reverse();
   }
 
+  function force(thunk) {
+    var result = thunk();
+    while (result && result.$promise)
+      result = result();
+    return result;
+  }
+
   function values(___) {
     assertMinArgs('values', 1, arguments);
     var value = arguments[0];
@@ -725,6 +732,14 @@ Moosky.Core.Primitives = (function ()
 
     value.$values = Array.apply(Array, arguments);
     return value;
+  }
+
+  function callWithValues(producer, consumer) {
+    assertArgCount('call-with-values', 2, arguments);
+    assertIsProcedure('call-with-values', producer);
+    assertIsProcedure('call-with-values', consumer);
+    var values = force(producer);
+    return consumer.apply(null, values && values.$values || [values]);
   }
 
   Primitives = {};
@@ -792,6 +807,7 @@ Moosky.Core.Primitives = (function ()
     append: append,
     reverse: reverse,
     values: values,
+    callWithValues: callWithValues,
   };
 
   Primitives.mooskyExports = {
@@ -836,6 +852,7 @@ Moosky.Core.Primitives = (function ()
     append: append,
     reverse: reverse,
     values: values,
+    'call-with-values': callWithValues,
   };
 
   return Primitives;
@@ -2015,6 +2032,7 @@ Moosky.compile = (function ()
 		      'letrec': parseLetrec,
 		      'letrec*': parseLetrec,
 		      'let-values': parseLetValues,
+		      'let*-values': parseLetStarValues,
 		      'or': parseOr,
 		      'quote': parseQuote,
 		      'quasiquote': parseQuasiQuote,
@@ -2387,6 +2405,17 @@ Moosky.compile = (function ()
     return list(car(sexp), bindings, body);
   }
 
+  function parseLetStarValues(sexp, env) {
+    var bindings = cadr(sexp);
+    var body = cddr(sexp);
+
+    if (bindings == nil)
+      return parseLet(cons($let, cdr(sexp)), env);
+
+    return parseLetValues(list($letValues, list(car(bindings)),
+			       listStar(car(sexp), cdr(bindings), body)), env);
+  }
+
   function parseOr(sexp, env) {
     return cons(car(sexp), parseSequence(cdr(sexp), env));
   }
@@ -2439,6 +2468,22 @@ Moosky.compile = (function ()
       return other;
     }
     return cons(copy(car(context)), context);
+  }
+
+  function tailContext(context) {
+    context = pushContext(context);
+    car(context).tailCall = true;
+    return context;
+  }
+
+  function nonTailContext(context) {
+    context = pushContext(context);
+    car(context).tailCall = false;
+    return context;
+  }
+
+  function isTailCall(context) {
+    return car(context).tailCall;
   }
 
   function emit(sexp, context) {
@@ -2505,7 +2550,7 @@ Moosky.compile = (function ()
   function emitApplication(applicand, parameters, context) {
     var values = [];
     while (parameters != nil) {
-      values.push(emit(car(parameters), context));
+      values.push(emit(car(parameters), nonTailContext(context)));
       parameters = cdr(parameters);
     }
 
@@ -2513,27 +2558,19 @@ Moosky.compile = (function ()
   }
 
   function emitApply(sexp, context) {
-    var tailCall = car(context).tailCall;
-    context = pushContext(context);
-    car(context).tailCall = false;
-
     var applicand = cadr(sexp);
     var parameters = cddr(sexp);
+    var application = emitApplication(applicand, parameters, context);
 
     var nativeCall = isSymbol(applicand) && applicand.toString().match(/\./);
     if (nativeCall)
-      return emitApplication(applicand, parameters, context);
+      return application;
 
-    else if (!tailCall)
-      return ['(', emitTrampoline(applicand, parameters, context), ')()'].join('');
+    else if (!isTailCall(context))
+      return emitForce('', application);
 
-    else {
-      car(context).tailCall = true;
-      var temp = gensym();
-      return ['(', temp, ' = (function () {\n',
-	      '    return ', emitApplication(applicand, parameters, context), ';\n',
-	      '}), (', temp, '.$bounce = true), ', temp, ')'].join('');
-    }
+    else
+      return emitPromise(application, context);
   }
 
   function emitBegin(sexp, context) {
@@ -2564,13 +2601,18 @@ Moosky.compile = (function ()
     return [emit(valuesRef, context), '.$values[', index, ']'].join('');
   }
 
+  function emitForce(preamble, body) {
+    return ['(function () {\n  ',
+	    preamble, ';\n',
+	    '  var result = (', body, ');\n',
+	    '  while (result && result.$promise)\n',
+	    '    result = result();\n',
+	    '  return result;\n',
+	    '})()'].join('');
+  }
+
   function emitIf(sexp, context) {
-    var context = pushContext(context);
-
-    car(context).tailCall = false;
-    var test = emit(car(sexp = cdr(sexp)), context);
-
-    context = cdr(context);
+    var test = emit(car(sexp = cdr(sexp)), nonTailContext(context));
     var consequent = emit(car(sexp = cdr(sexp)), context);
     var alternate = emit(car(sexp = cdr(sexp)), context);
     return '(' + test + ' != false ' + ' ? (' + consequent + ') : (' + alternate + '))';
@@ -2622,9 +2664,10 @@ Moosky.compile = (function ()
 
     return ['(function () {\n',
 	    '  var $E = this;\n    ',
-	    '  return function() {\n',
+	    '  return function () {\n    ',
 	    bindings.join(';\n    '), ';\n',
-	    '  return ', body, ';\n  };\n',
+	    '    return (', body, ');\n',
+	    '  }\n',
 	    '}).call($E.$makeFrame($E))'].join('');
   }
 
@@ -2667,7 +2710,7 @@ Moosky.compile = (function ()
     }
     var body = caddr(sexp);
     var lambda = list($lambda, reverse(formals), append(setters, cleaners, body));
-    return emitApply(cons($apply, cons(lambda, reverse(params))), context);
+    return emit(cons($apply, cons(lambda, reverse(params))), context);
   }
 
   function emitOr(sexp, context) {
@@ -2708,6 +2751,13 @@ Moosky.compile = (function ()
     return sexp && sexp.toString && sexp.toString() || sexp;
   }
 
+  function emitPromise(sexp, context) {
+    var temp = gensym();
+    return ['((', temp, ' = function () {\n',
+	    '    return ', emit(sexp, context), ';\n',
+	    '}), (', temp, '.$promise = true), ', temp, ')'].join('');
+  }
+
   function emitQuasiQuote(sexp, context) {
     context = pushContext(context);
     car(context).tailCall = false;
@@ -2724,7 +2774,7 @@ Moosky.compile = (function ()
       var A = car(sexp);
 
       if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote')
-	return lambdas.push(emitTrampoline(cadr(sexp), nil, context));
+	return lambdas.push(emit(list($lambda, nil, cdr(sexp)), context));
 
       return emitQQ(A), emitQQ(cdr(sexp));
     }
@@ -2760,22 +2810,11 @@ Moosky.compile = (function ()
     return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp), context) + ')';
   }
 
-  function emitTrampoline(applicand, parameters, context) {
-      return ['function () {\n',
-	      '  var result = ', emitApplication(applicand, parameters, context), ';\n',
-	      '  while (result && result.$bounce)\n',
-	      '    result = result();\n',
-	      '  return result;\n',
-	      '}'].join('');
-  }
-
   return function compile(sexp, env) {
     var env = env || makeFrame(Moosky.Top);
-    var context = list({ tailCall: false });
-    var result = ['(function () {\n',
-		  '  var $E = Moosky.Top;\n',
-		  '  return ', emit(parseSexp(cons($begin, sexp), env), context), ';\n',
-		  '})();'].join('');
+    var context = list({ tailCall: true });
+    var result = emitForce('  var $E = Moosky.Top;\n',
+			   emit(parseSexp(cons($begin, sexp), env), context));
 //    console.log(result);
     return result;
   }
@@ -2817,6 +2856,14 @@ Moosky.HTML = (function ()
     var script = document.createElement('script');
     script.type = 'text/javascript';
     script.text = text;
+
+    return script;
+  }
+
+  function makeMooskySrcElement(location) {
+    var script = document.createElement('script');
+    script.type = 'text/moosky';
+    script.src = src;
 
     return script;
   }
@@ -2961,7 +3008,7 @@ Moosky.HTML = (function ()
 		  last = textArea.value.length;
 		} catch(e) {
 		  if (!(e instanceof Moosky.Core.read.IncompleteInputError)) {
-		    textArea.value += [e.name, ': ', e.message, '\n', source, '\n', prompt].join('');
+		    textArea.value += [e.name, ': ', e.message, '\n', prompt].join('');
 		    last = textArea.value.length;
 		  }
 		}
@@ -2970,6 +3017,15 @@ Moosky.HTML = (function ()
 
     return div;
   }
+
+  function bookmarklet() {
+    var dir = window.location.replace(/moosky\.js$/, '');
+    for (script in ['preamble.ss', 'r6rs-list.ss'])
+      document.body.appendChild(makeMooskySrcElement(dir + script));
+
+    compileScripts();
+  }
+
   return { compileScripts: compileScripts,
 	   REPL: REPL };
 })();
