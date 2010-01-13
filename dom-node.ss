@@ -56,6 +56,29 @@
                               (cons `(define-element-property-getter ,property)
                                     defs))))))))
 
+(define-macro (define-element-method form)
+  (let* ([descriptor (cadr form)]
+         [method-name (car descriptor)]
+         [formals (cdr descriptor)]
+         [object-argument (car formals)]
+         [method-arguments (cdr formals)])
+    `(define ,method-name
+       (let ([method-name-string ,(symbol->string method-name)])
+         (lambda (elem . arguments)
+           { @^(elem)[@^(method-name-string)].apply(@^(elem), @(list->vector arguments)) } )))))
+
+(define-macro (define-element-methods form)
+  `(begin ,@(let loop ([descriptors (cdr form)]
+                       [defs '(#u)])
+              (if (null? descriptors)
+                  (reverse defs)
+                  (loop (cdr descriptors)
+                        (cons `(define-element-method ,(car descriptors))
+                              defs))))))
+
+
+;; DOM Node
+
 (define-element-property-accessors
   baseURI
   childNodes
@@ -75,17 +98,6 @@
   (mutable prefix)
   (mutable textContent))
 
-(define-macro (define-element-method form)
-  (let* ([descriptor (cadr form)]
-         [method-name (car descriptor)]
-         [formals (cdr descriptor)]
-         [object-argument (car formals)]
-         [method-arguments (cdr formals)])
-    `(define ,method-name
-       (let ([method-name-string ,(symbol->string method-name)])
-         (lambda (elem . arguments)
-           { @^(elem)[@^(method-name-string)].apply(@^(elem), @(list->vector arguments)) } )))))
-
 (define-element-methods
   (appendChild elem child)
   (cloneNode elem)
@@ -100,6 +112,197 @@
   (normalize elem)
   (removeChild elem child)
   (replaceChild elem new old))
+
+
+;;; HTML Document Object
+
+;; Document Object Collections
+
+(define-element-property-accessors
+  anchors
+  forms
+  images
+  links)
+
+(define-element-property-accessors
+  body
+  domain
+  lastModified
+  referrer
+  title
+  URL
+  (mutable cookie))
+
+(define-element-methods
+  (close doc)
+  (getElementById doc id)
+  (getElementsByName doc name)
+  (getElementsByTagName doc tagName)
+  (open doc mimeType replace)
+  (write doc . expressions)
+  (writeln doc . expressions))
+
+
+
+;;; Common HTML Object Properties and Methods
+
+(define-element-property-accessors
+  contentDocument
+  (mutable accessKey)
+  (mutable alt)
+  (mutable align)
+  (mutable coords)
+  (mutable className)
+  (mutable dir)
+  (mutable frameBorder)
+  (mutable height)
+  (mutable href)
+  (mutable id)
+  (mutable lang)
+  (mutable longDesc)
+  (mutable marginHeight)
+  (mutable marginWidth)
+  (mutable scrolling)
+  (mutable shape)
+  (mutable src)
+  (mutable tabIndex)
+  (mutable target)
+  (mutable title)
+  (mutable type)
+  (mutable width))
+
+
+
+;;; HTML Anchor Object
+
+(define-element-property-accessors
+  (mutable charset)
+  (mutable hreflang)
+  (mutable innerHTML)
+  (mutable name)
+  (mutable rel)
+  (mutable rev))
+
+(define-element-methods
+  (blur elem)
+  (focus elem))
+
+
+
+;;; HTML Area Object
+
+(define-element-property-accessors
+  (mutable hash)
+  (mutable host)
+  (mutable noHref)
+  (mutable pathname)
+  (mutable protocol)
+  (mutable search))
+
+
+
+;;; HTML Base Object
+
+;;; HTML Body Object
+
+
+
+;;; HTML Button Object
+
+(define-element-property-accessors
+  (mutable disabled)
+  form
+  (mutable value))
+
+
+
+;;; HTML Event Object
+
+(define-element-property-accessors
+  altKey
+  button
+  clientX
+  clientY
+  ctrlKey
+  metaKey
+  relatedTarget
+  screenX
+  screenY
+  shiftKey
+
+  bubbles
+  cancelable
+  currentTarget
+  eventPhase
+  timeStamp
+  
+  (mutable onabort)
+  (mutable onblur)
+  (mutable onchange)
+  (mutable onclick)
+  (mutable ondblclick)
+  (mutable onerror)
+  (mutable onfocus)
+  (mutable onkeydown)
+  (mutable onkeypress)
+  (mutable onkeyup)
+  (mutable onload)
+  (mutable onmousedown)
+  (mutable onmousemove)
+  (mutable onmouseout)
+  (mutable onmouseover)
+  (mutable onmouseup)
+  (mutable onreset)
+  (mutable onresize)
+  (mutable onselect)
+  (mutable onsubmit)
+  (mutable onunload))
+
+
+
+;;; HTML Form Object
+
+(define-element-property-accessors
+  elements)
+
+(define-element-property-accessors
+  (mutable acceptCharset)
+  (mutable action)
+  (mutable enctype)
+  length
+  (mutable method))
+
+(define-element-methods
+  (reset form)
+  (submit form))
+
+
+;;; HTML Frame Object
+
+(define-element-property-accessors
+  (mutable noResize))
+
+
+;;; HTML Frameset Object
+
+(define-element-property-accessors
+  (mutable cols)
+  (mutable rows))
+
+
+;;; HTML IFrame Object
+
+
+;;; HTML Frame Object
+
+(define-element-property-accessors
+  complete
+  isMap
+  (mutable border)
+  (mutable hspace)
+  (mutable lowsrc)
+  (mutable useMap)
+  (mutable vspace))
 
 
 ;; Here's a little usage example.
