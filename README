@@ -151,7 +151,34 @@ Moosky loads.
 
 5.1 Misc
 
-generalize . symbols (get and set handling)
+Emit quote construction
+  
+(compile "file://home/pat/src/moosky/r6rs-list.ss")
+  produces a new div with text of the result, suitable for uploading
+  without full Moosky.
+
+Create moosky-runtime.js.
+  1. strip out lexer, parser, emitter, html.
+  2. reduce remainder to what is actually used by compile code
+
+(let loop ...) --> (function () { while () { ... } })()
+  where all (loop ...) are in tail position
+  (loop ...) --> set! ... {continue;}
+  (begin
+    (form) ...
+    (loop ...)
+  --> (emitted form), ...; 
+      set! ...
+      continue;
+
+  (if (test)
+    (form)
+    (loop ...)
+  --> (if (emitted test)
+          return (emitted form)
+
+  and/or ... reduce to if
+
 
 Better error handling, source citation.
 error

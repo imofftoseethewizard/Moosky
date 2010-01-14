@@ -1746,7 +1746,6 @@ Moosky.Top = (function ()
 	tail = cdr(tail);
       }
 
-      console.log('apply: ' + args);
       return $force(proc.apply(null, args));
     },
 
@@ -1998,7 +1997,7 @@ Moosky.Core.read = (function ()
 	     'punctuation': function(token) { return new Symbol(token.$lexeme); },
 	     'regexp':      function(token) { return new Values.RegExp(new RegExp(token.$norm)); },
 	     'string':      function(token) { return new Values.String(token.$norm); },
-	     'symbol':      function(token) { return new Symbol(token.$lexeme); } }[token.$tag](token);
+	     'symbol':      parseSymbol }[token.$tag](token);
   }
 
   function parseJavascript(token) {
@@ -2065,6 +2064,19 @@ Moosky.Core.read = (function ()
     return new Values.Real(parseFloat(lexeme));
   }
 
+  function parseSymbol(token) {
+    // has a dot that is not the first character
+    var match = token.$lexeme.match(/^(.+)(\.[^.]+)$/);
+
+    if (!match || !match[2] || match[2].length == 0)
+      return new Symbol(token.$lexeme);
+
+    var tailToken = new Token(match[2], 'symbol', token.$cite, token.$norm);
+    var headToken = new Token(match[1], 'symbol', token.$cite, token.$norm);
+
+    return list(new Symbol(tailToken.$lexeme), parseSymbol(headToken));
+  }
+
   function read(str) {
     return parseTokens(new MooskyTokenStream(str), null);
   }
@@ -2116,6 +2128,11 @@ Moosky.compile = (function ()
     return sexp instanceof Symbol;
   }
 
+  function isJavascript(sexp) {
+    var key;
+    return isPair(sexp) && isSymbol(key = car(sexp)) && key == 'javascript';
+  }
+
   function parseSexp(sexp, env) {
 //    console.log(sexp);
     if (env === undefined) {
@@ -2128,6 +2145,12 @@ Moosky.compile = (function ()
     var key = car(sexp);
 
     if (isSymbol(key)) {
+      var applicand = env[key];
+      if (isMacro(applicand)) {
+	var result = parseSexp($force(applicand.call(applicand.env, sexp)), env);
+	return result;
+      }
+
       var parsers = { 'and': parseAnd,
 		      'begin': parseBegin,
 		      'case': parseCase,
@@ -2152,11 +2175,8 @@ Moosky.compile = (function ()
       if (parser)
 	return parser(sexp, env);
 
-      var applicand = env[key];
-      if (isMacro(applicand)) {
-	var result = parseSexp($force(applicand.call(applicand.env, sexp)), env);
-	return result;
-      }
+      if (key.toString().match(/^\./))
+	return parseDotSymbol(sexp, env);
     }
 
     return parseApplication(sexp, env);
@@ -2412,6 +2432,11 @@ Moosky.compile = (function ()
     return undefined;
   }
 
+  function parseDotSymbol(sexp, env) {
+    return list($javascript, parseSexp(cadr(sexp), env),
+		'.' + Symbol.munge(car(sexp).$sym.substring(1)));
+  }
+
   function parseIf(sexp, env) {
     if (length(sexp) != 4)
       throw new SyntaxError('if: wrong number of parts:' + sexp);
@@ -2572,10 +2597,12 @@ Moosky.compile = (function ()
     if (length(sexp) != 3)
       throw new SyntaxError('set!: expected (set! <variable> <expression>), not ' + sexp);
 
-    if (!isSymbol(cadr(sexp)))
-      throw new SyntaxError('set!: expected (set! <variable> <expression>); ' + cadr(sexp) + ' is not a variable');
+    var target = parseSexp(cadr(sexp), env);
+    if (!isSymbol(target) && !isJavascript(target))
+      throw new SyntaxError('set!: expected (set! <variable|javascript> <expression>): '
+			    + target + ' is neither a variable nor Javascript');
 
-    return list(car(sexp), cadr(sexp), parseSexp(caddr(sexp), env));
+    return list(car(sexp), target, parseSexp(caddr(sexp), env));
   }
 
   function Context(ctx, options) {
@@ -2673,6 +2700,7 @@ Moosky.compile = (function ()
     return !isPair(sexp) ||
       isSymbol(symbol = car(sexp)) && ({ 'clear-values': true,
 					 'extract-value': true,
+					 'javascript': true,
 					 'lambda': true,
 					 'quote': true,
 					 'quasiquote': true,
@@ -2951,7 +2979,7 @@ Moosky.compile = (function ()
   }
 
   function emitSet(sexp, ctx) {
-    return '(' + cadr(sexp).emit() + ' = ' + emitEagerly(caddr(sexp), ctx) + ')';
+    return '(' + emit(cadr(sexp), ctx) + ' = ' + emitEagerly(caddr(sexp), ctx) + ')';
   }
 
   return function compile(sexp, env) {
@@ -3248,11 +3276,11 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			{ tag: 'javascript',
 			  regexp: /#\{([^\}]|\}[^#])*\}#/m },
 
+			{ tag: 'symbol',
+			  regexp: /[^#$\d\n\s\(\)\[\]'"`][^$\n\s\(\)"'`\[\]]*/ },
+
 			{ tag: 'punctuation',
 			  regexp: /[\.\(\)\[\]'`]|,@?|#\(/ }, //'
-
-			{ tag: 'symbol',
-			  regexp: /[^#$\d\n\s\(\)\[\]'".`][^$\n\s\(\)"'`\[\]]*/ }
 		      ];
 
 Moosky.HTML.compileScripts();
