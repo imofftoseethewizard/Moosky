@@ -1260,8 +1260,6 @@ Moosky.Top = (function ()
       return list;
     },
 
-    $quoted: [],
-
     $quasiUnquote: function(sexp, lambdas) {
       if (!isPair(sexp))
 	return sexp;
@@ -2422,11 +2420,7 @@ Moosky.compile = (function ()
     }
 
     var ctx = new Context(null, { tail: false });
-//    console.log('body of macro: ');
-//    console.log(emit(parseSexp(body, env), ctx));
-//    console.log(emitForceTop(emit(parseSexp(body, env), ctx)));
-//    console.log('defining macro ' + name + '...');
-    env[name] = eval(emitForceTop(emit(parseSexp(body, env), ctx)));
+    env[name] = eval(emitTop(emit(parseSexp(body, env), ctx)));
     env[name].env = env;
     env[name].tag = 'macro';
     return undefined;
@@ -2609,11 +2603,17 @@ Moosky.compile = (function ()
     if (ctx)
       this.parent = ctx;
 
-    this.tail = options && options.tail;
+    options = options || {};
+    this.type = options.type;
+    this.tail = options.tail;
 //    this.id = Context.count++;
   }
 
   Context.count = 0;
+
+  function lambdaContext(ctx) {
+    return new Context(ctx, { type: 'lambda', tail: true });
+  }
 
   function tailContext(ctx) {
     return new Context(ctx, { tail: true });
@@ -2625,6 +2625,52 @@ Moosky.compile = (function ()
 
   function isTailCall(ctx) {
     return ctx.tail;
+  }
+
+  Context.quotes = [];
+  Context.addQuote = function(ctx, symbol, value) {
+    Context.quotes.push({ ctx: ctx.quoteHolder(), symbol: symbol, value: value });
+  }
+
+  Context.prototype.containsContext = function(ctx) {
+    var parent;
+    return ctx && (ctx == this || (parent = ctx.parent) && this.containsContext(parent));
+  }
+
+  Context.prototype.quoteHolder = function() {
+    var ctx = this;
+    while (ctx && ctx.type != 'lambda')
+      ctx = ctx.parent;
+
+    return ctx && ctx.parent;
+  }
+
+  Context.getQuotes = function(ctx) {
+    var quotes = [];
+    var remainder = [];
+
+    if (!ctx)
+      quotes = Context.quotes;
+
+    else
+      for (var i = 0; i < Context.quotes.length; i++) {
+	var quote = Context.quotes[i];
+	if (ctx.containsContext(quote.ctx))
+	  quotes.push(quote);
+	else
+	  remainder.push(quote);
+      }
+
+    Context.quotes = remainder;
+    return quotes;
+  }
+
+  function addQuote(ctx, symbol, value) {
+    Context.addQuote(ctx, symbol, value);
+  }
+
+  function getQuotes(ctx) {
+    return Context.getQuotes(ctx);
   }
 
   function emit(sexp, ctx) {
@@ -2772,9 +2818,17 @@ Moosky.compile = (function ()
     return ['$force(', body, ')'].join('');
   }
 
-  function emitForceTop(body) {
+  function emitTop(body) {
+    var bindings = [];
+    var quotes = getQuotes();
+    for (var i = 0; i < quotes.length; i++) {
+      var quote = quotes[i];
+      bindings.push(emitBinding(quote.symbol, quote.value));
+    }
+
     return ['(function () {\n  ',
 	    '  with (Moosky.Top) {\n',
+	    (bindings.length > 0) ? '    ' + bindings.join('    ;\n') + ';\n' : '',
 	    '    var $Temp = {};\n',
 	    '    return ', emitForce(body), ';\n',
 	    '  }\n',
@@ -2805,7 +2859,7 @@ Moosky.compile = (function ()
   }
 
   function emitLambda(sexp, ctx) {
-    var bodyCtx = tailContext(ctx);
+    var bodyCtx = lambdaContext(ctx);
 
     var formals = cadr(sexp);
     var emittedFormals = [];
@@ -2831,6 +2885,12 @@ Moosky.compile = (function ()
     }
 
     var body = emitSequence(caddr(sexp), bodyCtx);
+
+    var quotes = getQuotes(bodyCtx);
+    for (var i = 0; i < quotes.length; i++) {
+      var quote = quotes[i];
+      bindings.push(emitBinding(quote.symbol, quote.value));
+    }
 
     return ['(function (', emittedFormals.join(', '), ') {\n',
 	    (bindings.length > 0) ? bindings.join('  ;\n') + ';\n' : '',
@@ -2929,9 +2989,6 @@ Moosky.compile = (function ()
   }
 
   function emitQuasiQuote(sexp, ctx) {
-    var quoteId = Moosky.Top.$quoted.length;
-    Moosky.Top.$quoted.push(cadr(sexp));
-
     var lambdas = [];
 
     function emitQQ(sexp) {
@@ -2940,15 +2997,17 @@ Moosky.compile = (function ()
 
       var A = car(sexp);
 
-      if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote')
-	return lambdas.push(emitEagerly(list($lambda, nil, cdr(sexp)), ctx));
+      if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote') {
+	lambdas.push(emitEagerly(list($lambda, nil, cdr(sexp)), ctx));
+	return list(A);
+      }
 
-      return emitQQ(A), emitQQ(cdr(sexp));
+      return cons(emitQQ(A), emitQQ(cdr(sexp)));
     }
 
-    emitQQ(cadr(sexp));
+    var quoted = list($quote, emitQQ(cadr(sexp)));
 
-    return ['$quasiUnquote($quoted[', quoteId, '], [', lambdas.join(', '), '])'].join('');
+    return ['$quasiUnquote(', emitQuote(quoted, ctx), ', [', lambdas.join(', '), '])'].join('');
   }
 
   function emitQuote(sexp, ctx) {
@@ -2963,9 +3022,23 @@ Moosky.compile = (function ()
       return (quoted instanceof Value) ? quoted.emit() : '' + emitPrimitive(quoted, ctx);
     }
 
-    var quoteId = Moosky.Top.$quoted.length;
-    Moosky.Top.$quoted.push(cadr(sexp));
-    return '($quoted[' + quoteId + '])';
+    function emitQ(sexp, ctx) {
+      if (sexp == nil)
+	return '$nil';
+
+      if (isSymbol(sexp))
+	return ['stringToSymbol(', (new Values.String(sexp.$sym)).emit(), ')'].join('');
+
+      if (!isList(sexp)) {
+	return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, ctx);
+      }
+
+      return ['cons(', emitQ(car(sexp), ctx), ', ', emitQ(cdr(sexp), ctx), ')'].join('');
+    }
+    var $temp = gensym('quote');
+    addQuote(ctx, $temp, emitQ(quoted, ctx));
+
+    return $temp.emit();
   }
 
   function emitSequence(sexp, ctx) {
@@ -2985,7 +3058,7 @@ Moosky.compile = (function ()
   return function compile(sexp, env) {
     var env = env || makeFrame(Moosky.Top);
     var ctx = new Context(null, { tail: true });
-    var result = emitForceTop(emit(parseSexp(cons($begin, sexp), env), ctx));
+    var result = emitTop(emit(parseSexp(cons($begin, sexp), env), ctx));
 //    console.log(result);
     return result;
   }
@@ -3277,7 +3350,7 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			  regexp: /#\{([^\}]|\}[^#])*\}#/m },
 
 			{ tag: 'symbol',
-			  regexp: /[^#$\d\n\s\(\)\[\]'"`][^$\n\s\(\)"'`\[\]]*/ },
+			  regexp: /[^#$\d\n\s\(\)\[\],@'"`][^$\n\s\(\)"'`\[\]]*/ },
 
 			{ tag: 'punctuation',
 			  regexp: /[\.\(\)\[\]'`]|,@?|#\(/ }, //'
