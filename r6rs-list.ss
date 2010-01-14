@@ -96,7 +96,6 @@
                             (cons (car lst) args)
                             (cons (cdr lst) remainders)))))))))
 
-
 (define (fold-right combine nil . lists)
   (or (and (null? lists)
            nil)

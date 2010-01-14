@@ -391,6 +391,7 @@ Moosky.Values = (function ()
       step(fast);
       fast = fast.$d;
       if (!(fast instanceof Cons)) {
+	debugger;
 	throw new SyntaxError('improper list.');
       }
     }
@@ -840,7 +841,7 @@ Moosky.Core.Primitives = (function ()
     assertArgCount('call-with-values', 2, arguments);
     assertIsProcedure('call-with-values', producer);
     assertIsProcedure('call-with-values', consumer);
-    var values = $force(producer);
+    var values = $force(producer());
     return consumer.apply(null, values && values.$values || [values]);
   }
 
@@ -920,6 +921,7 @@ Moosky.Core.Primitives = (function ()
   };
 
   Primitives.mooskyExports = {
+    '$nil': Cons.nil,
     'null?': isNull,
     'list?': isList,
     'pair?': isPair,
@@ -1193,7 +1195,7 @@ Moosky.Top = (function ()
 	if (i != lsts.length)
 	  break;
 
-	result = collect(proc.apply(this, args), result);
+	result = collect($force(proc.apply(this, args)), result);
       }
 
       return result;
@@ -1226,7 +1228,7 @@ Moosky.Top = (function ()
 	for (var j = 0; j < vs.length; j++)
 	  args.push(vs[j][i]);
 
-	result = collect(proc.apply(this, args), result);
+	result = collect($force(proc.apply(this, args)), result);
       }
 
       return result;
@@ -1744,6 +1746,7 @@ Moosky.Top = (function ()
 	tail = cdr(tail);
       }
 
+      console.log('apply: ' + args);
       return $force(proc.apply(null, args));
     },
 
@@ -1775,6 +1778,10 @@ Moosky.Top = (function ()
   for (p in Moosky.Core.Primitives.mooskyExports) {
     Top[munge(p)] = Moosky.Core.Primitives.mooskyExports[p];
   }
+
+  for (p in Top)
+    if (typeof(Top[p]) == "function")
+      Top[p].$primitive = true;
 
   return Top;
 })();
@@ -2651,8 +2658,32 @@ Moosky.compile = (function ()
     return chunks.join('');
   }
 
+  function isNative(symbol) {
+    return symbol.toString().match(/\./);
+  }
+
+  function isPrimitive(symbol) {
+    var v = Moosky.Top[symbol.emit()];
+    return v && v.$primitive;
+  }
+
+  function neverPromise(sexp) {
+    var symbol, applicand;
+
+    return !isPair(sexp) ||
+      isSymbol(symbol = car(sexp)) && ({ 'clear-values': true,
+					 'extract-value': true,
+					 'lambda': true,
+					 'quote': true,
+					 'quasiquote': true,
+				         'set!': true }[symbol]
+				       || symbol == 'apply'
+					 && (applicand = cadr(sexp)) && isSymbol(applicand)
+				         && (isNative(applicand) || isPrimitive(applicand)));
+  }
+
   function emitEagerly(sexp, ctx) {
-    return !isList(sexp) ? emit(sexp, ctx) : emitForce(emit(sexp, nonTailContext(ctx)));
+    return neverPromise(sexp) ? emit(sexp, ctx) : emitForce(emit(sexp, nonTailContext(ctx)));
   }
 
   function emitParameter(parameter, ctx) {
@@ -2678,8 +2709,7 @@ Moosky.compile = (function ()
     var parameters = cddr(sexp);
     var application = emitApplication(applicand, parameters, ctx);
 
-    var nativeCall = isSymbol(applicand) && applicand.toString().match(/\./);
-    if (nativeCall || !isTailCall(ctx))
+    if (neverPromise(sexp) || !isTailCall(ctx))
       return application;
     else
       return emitPromise(application);
@@ -2695,7 +2725,7 @@ Moosky.compile = (function ()
 
   function emitClearValues(sexp, ctx) {
     var valuesRef = cadr(sexp);
-    return ['(', emit(valuesRef, ctx), '.$values = undefined)'].join('');
+    return ['($Temp.', emit(valuesRef, ctx), '.$values = undefined)'].join('');
   }
 
   function emitDefine(sexp, ctx) {
@@ -2707,7 +2737,7 @@ Moosky.compile = (function ()
   function emitExtractValue(sexp, ctx) {
     var valuesRef = cadr(sexp);
     var index = caddr(sexp);
-    return [emit(valuesRef, ctx), '.$values[', index, ']'].join('');
+    return ['$Temp.', emit(valuesRef, ctx), '.$values[', index, ']'].join('');
   }
 
   function emitForce(body) {
@@ -2808,12 +2838,12 @@ Moosky.compile = (function ()
       var symbols = car(binding);
       var index = 0;
       while (symbols != nil) {
-	setters = cons(list($set, car(symbols), list('extract-value', formal, index)),
+	setters = cons(list($set, car(symbols), list(new Symbol('extract-value'), formal, index)),
 		       setters);
 	index++;
 	symbols = cdr(symbols);
       }
-      cleaners = cons(list('clear-values', formal), cleaners);
+      cleaners = cons(list(new Symbol('clear-values'), formal), cleaners);
       params = cons(cdr(binding), params);
       bindings = cdr(bindings);
     }
@@ -2894,6 +2924,17 @@ Moosky.compile = (function ()
   }
 
   function emitQuote(sexp, ctx) {
+    var quoted = cadr(sexp);
+    if (quoted == nil)
+      return '$nil';
+
+    if (isSymbol(quoted))
+      return ['stringToSymbol(', (new Values.String(quoted.$sym)).emit(), ')'].join('');
+
+    if (!isList(quoted)) {
+      return (quoted instanceof Value) ? quoted.emit() : '' + emitPrimitive(quoted, ctx);
+    }
+
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
     return '($quoted[' + quoteId + '])';
