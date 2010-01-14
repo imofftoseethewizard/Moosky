@@ -44,9 +44,10 @@
                         (let ([property (car names)])
                           (if (pair? property)
                               (if (eq? 'mutable (car property))
-                                  (cons* `(define-element-property-getter ,(cadr property))
-                                         `(define-element-property-setter ,(cadr property))
-                                         defs)
+                                  (let ([result (cons* `(define-element-property-getter ,(cadr property))
+                                                       `(define-element-property-setter ,(cadr property))
+                                                       defs)])
+                                    result)
                                   (begin
                                     ;; should throw an exception
                                     (console.log "Unrecognized property descriptor:")
@@ -315,3 +316,4 @@
 
 (define window { window })
 (define document { document })
+

@@ -200,7 +200,14 @@ Moosky.Values = (function ()
     if (value.match(/\?$/))
       value = 'is-' + value.replace(/\?$/, '');
 
-    value = value.replace(/->/g, '-to-').replace(/\*$/, '-ext');
+    value = value.replace(/->/g, '-to-')
+                 .replace(/\*$/, '-ext')
+		 .replace(/<=/, '-lte-')
+                 .replace(/</, '-lt-')
+		 .replace(/>=/, '-gte-')
+                 .replace(/>/, '-gt-')
+		 .replace(/=/, '-eq-')
+
     value = Symbol.camelize(value);
     value = value.replace(/[^_$a-zA-Z0-9]/g, '_');
 
@@ -337,6 +344,31 @@ Moosky.Values = (function ()
   Integer.prototype.emit = Integer.prototype.toString;
 
   // --------------------------------------------------------------------------
+
+  function Promise(p) {
+    if (p.$promise)
+      return p;
+
+    p.$promise = true;
+    p.$pending = true;
+
+    p.$p = p;
+    p.$v = undefined;
+
+    p.force = function () {
+      if (!this.$pending) return this.$v;
+      var result = this();
+      while (result && result.$promise)
+	result = result();
+      this.$pending = false;
+      return this.$v = result;
+    }
+
+    return p;
+  }
+
+
+  // --------------------------------------------------------------------------
   function Cons(a, d) {
     this.$a = a,
     this.$d = d;
@@ -441,6 +473,9 @@ Moosky.Values = (function ()
       if (typeof(sexp) == 'string')
 	return '"' + sexp.replace(/"/g, '\\"') + '"'; //" )
 
+      if (sexp && sexp.$promise)
+	return Cons.printSexp(sexp.force());
+
       return sexp.toString();
     }
 
@@ -471,7 +506,8 @@ Moosky.Values = (function ()
   return { Value: Value, Character: Character, String: MooskyString,
 	   Symbol: Symbol, RegExp: MooskyRegExp, Javascript:Javascript,
 	   Token: Token, Cite: Cite, Number: Number, Complex: Complex,
-	   Real: Real, Rational: Rational, Integer: Integer, Cons: Cons };
+	   Real: Real, Rational: Rational, Integer: Integer, Promise: Promise,
+	   Cons: Cons };
 })();
 
 //=============================================================================
@@ -774,10 +810,12 @@ Moosky.Core.Primitives = (function ()
     return list.reverse();
   }
 
+  function $promise(p) {
+    return new Values.Promise(p);
+  }
+
   function $force(result) {
-    while (result && result.$promise)
-      result = result();
-    return result;
+    return (result && result.$promise) ? result.force() : result;
   }
 
   function values(___) {
@@ -875,8 +913,8 @@ Moosky.Core.Primitives = (function ()
     length: length,
     append: append,
     reverse: reverse,
+    $promise: $promise,
     $force: $force,
-//    promise: promise,
     values: values,
     callWithValues: callWithValues,
   };
@@ -922,6 +960,7 @@ Moosky.Core.Primitives = (function ()
     length: length,
     append: append,
     reverse: reverse,
+    $promise: $promise,
     $force: $force,
     values: values,
     'call-with-values': callWithValues,
@@ -1221,18 +1260,18 @@ Moosky.Top = (function ()
 
     $quoted: [],
 
-    $quasiUnquote: function(sexp, promises) {
+    $quasiUnquote: function(sexp, lambdas) {
       if (!isPair(sexp))
 	return sexp;
 
       var A = car(sexp);
       if (isPair(A) && isSymbol(car(A)) && car(A) == 'unquote-splicing') {
-	var unquoted = $force(promises.shift());
+	var unquoted = $force(lambdas.shift()());
 
 	if (isList(unquoted))
-	  return append(unquoted, Top.$quasiUnquote(cdr(sexp), promises));
+	  return append(unquoted, Top.$quasiUnquote(cdr(sexp), lambdas));
 
-	return cons(unquoted, Top.$quasiUnquote(cdr(sexp), promises));
+	return cons(unquoted, Top.$quasiUnquote(cdr(sexp), lambdas));
       }
 
       if (isSymbol(A)) {
@@ -1240,10 +1279,10 @@ Moosky.Top = (function ()
 	  throw new SyntaxError('quasiquote: illegal splice' + sexp);
 
 	if (A == 'unquote')
-	  return $force(promises.shift());
+	  return $force(lambdas.shift()());
       }
 
-      return cons(Top.$quasiUnquote(A, promises), Top.$quasiUnquote(cdr(sexp), promises));
+      return cons(Top.$quasiUnquote(A, lambdas), Top.$quasiUnquote(cdr(sexp), lambdas));
     },
 
     $makeFrame: makeFrame,
@@ -1281,13 +1320,13 @@ Moosky.Top = (function ()
     'equal?': function(a, b) {
       assertArgCount('equal?', 2, arguments);
 
-      if (Top['eq?'](a, b))
+      if (Top.isEq(a, b))
 	return true;
 
       if (!isList(a) || !isList(b))
 	return false;
 
-      return Top['equal?'](car(a), car(b)) && Top['equal?'](cdr(a), cdr(b));
+      return Top.isEqual(car(a), car(b)) && Top.isEqual(cdr(a), cdr(b));
     },
 
     'number?': function(a) {
@@ -1299,7 +1338,7 @@ Moosky.Top = (function ()
     },
 
     'real?': function(a) {
-      return Top['number?'](a);
+      return Top.isNumber(a);
     },
 
     'rational?': function(a) {
@@ -1315,7 +1354,7 @@ Moosky.Top = (function ()
     },
 
     'inexact?': function(a) {
-      return Top['number?'](a);
+      return Top.isNumber(a);
     },
 
     '=': numericComparator('=', function(a, b) { return a == b; }),
@@ -2348,14 +2387,18 @@ Moosky.compile = (function ()
 
     else {
       if (length(nameClause) != 2 || !isSymbol(car(nameClause)) || !isSymbol(cadr(nameClause)))
-	throw new SyntaxError('define-macro: expects 2nd element is either an identifier or a list of two identifiers: ' + nameClause);
+	throw new SyntaxError('define-macro: expects 2nd element is either an '
+			      + 'identifier or a list of two identifiers: ' + nameClause);
 
       name = car(nameClause);
       body = listStar($lambda, cdr(nameClause), body);
     }
 
-    var ctx = list({ tailCall: false });
-//    env[name] = eval(emitForce('var $E = Moosky.Top;\n',
+    var ctx = new Context(null, { tail: false });
+//    console.log('body of macro: ');
+//    console.log(emit(parseSexp(body, env), ctx));
+//    console.log(emitForceTop(emit(parseSexp(body, env), ctx)));
+//    console.log('defining macro ' + name + '...');
     env[name] = eval(emitForceTop(emit(parseSexp(body, env), ctx)));
     env[name].env = env;
     env[name].tag = 'macro';
@@ -2528,37 +2571,33 @@ Moosky.compile = (function ()
     return list(car(sexp), cadr(sexp), parseSexp(caddr(sexp), env));
   }
 
-  function pushContext(ctx) {
-    function copy(obj) {
-      var other = {};
-      for (var p in obj)
-	other[p] = obj[p];
-      return other;
-    }
-    return cons(copy(car(ctx)), ctx);
+  function Context(ctx, options) {
+    if (ctx)
+      this.parent = ctx;
+
+    this.tail = options && options.tail;
+//    this.id = Context.count++;
   }
 
+  Context.count = 0;
+
   function tailContext(ctx) {
-    ctx = pushContext(ctx);
-    car(ctx).tailCall = true;
-    return ctx;
+    return new Context(ctx, { tail: true });
   }
 
   function nonTailContext(ctx) {
-    ctx = pushContext(ctx);
-    car(ctx).tailCall = false;
-    return ctx;
+    return new Context(ctx, { tail: false });
   }
 
   function isTailCall(ctx) {
-    return car(ctx).tailCall;
+    return ctx.tail;
   }
 
   function emit(sexp, ctx) {
     if (ctx === undefined)
       debugger;
 
-//    console.log('emit' + (car(ctx).tailCall ? '*' : '') + ': ' + sexp);
+//    console.log('emit' + (isTailCall(ctx) ? '*' : '') + ': ' + sexp);
     if (!isList(sexp)) {
       return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, ctx);
     }
@@ -2583,8 +2622,6 @@ Moosky.compile = (function ()
   }
 
   function emitAnd(sexp, ctx) {
-    var nonTailCtx = nonTailContext(ctx);
-
     sexp = cdr(sexp);
 
     var values = length(sexp);
@@ -2603,7 +2640,7 @@ Moosky.compile = (function ()
       chunks.push('($Temp.');
       chunks.push($temp.emit());
       chunks.push(' = (');
-      chunks.push(emit(car(sexp), next == nil ? ctx : nonTailCtx));
+      chunks.push(next == nil ? emitEagerly(car(sexp), ctx) : emit(car(sexp), ctx));
       chunks.push(')) == false ? false : ');
 
       sexp = next;
@@ -2614,14 +2651,26 @@ Moosky.compile = (function ()
     return chunks.join('');
   }
 
+  function emitEagerly(sexp, ctx) {
+    return !isList(sexp) ? emit(sexp, ctx) : emitForce(emit(sexp, nonTailContext(ctx)));
+  }
+
+  function emitParameter(parameter, ctx) {
+    return emitEagerly(parameter, ctx);
+  }
+
+  function emitApplicand(applicand, ctx) {
+    return emitEagerly(applicand, ctx);
+  }
+
   function emitApplication(applicand, parameters, ctx) {
     var values = [];
     while (parameters != nil) {
-      values.push(emit(car(parameters), nonTailContext(ctx)));
+      values.push(emitParameter(car(parameters), ctx));
       parameters = cdr(parameters);
     }
 
-    return [emit(applicand, ctx), '(', values.join(', '), ')'].join('');
+    return [emitApplicand(applicand, ctx), '(', values.join(', '), ')'].join('');
   }
 
   function emitApply(sexp, ctx) {
@@ -2630,18 +2679,10 @@ Moosky.compile = (function ()
     var application = emitApplication(applicand, parameters, ctx);
 
     var nativeCall = isSymbol(applicand) && applicand.toString().match(/\./);
-    if (nativeCall)
+    if (nativeCall || !isTailCall(ctx))
       return application;
-
-    else if (!isTailCall(ctx)) {
-      if (ctx.hasPromise)
-	return emitForce(application);
-      else
-	return application;
-    } else {
-      ctx.hasPromise = true;
+    else
       return emitPromise(application);
-    }
   }
 
   function emitBegin(sexp, ctx) {
@@ -2659,8 +2700,8 @@ Moosky.compile = (function ()
 
   function emitDefine(sexp, ctx) {
     var name = cadr(sexp);
-    var body = emit(caddr(sexp), nonTailContext(ctx));
-    return ['((Moosky.Top.', name.emit(), ' = $force(', body, ')), undefined)'].join('');
+    var body = emitEagerly(caddr(sexp), ctx);
+    return ['((Moosky.Top.', name.emit(), ' = ', body, '), undefined)'].join('');
   }
 
   function emitExtractValue(sexp, ctx) {
@@ -2677,21 +2718,19 @@ Moosky.compile = (function ()
     return ['(function () {\n  ',
 	    '  with (Moosky.Top) {\n',
 	    '    var $Temp = {};\n',
-	    '    return $force(', body, ');\n',
+	    '    return ', emitForce(body), ';\n',
 	    '  }\n',
 	    '})()'].join('');
   }
 
   function emitIf(sexp, ctx) {
-    var test = emit(car(sexp = cdr(sexp)), nonTailContext(ctx));
+    var test = emitEagerly(car(sexp = cdr(sexp)), nonTailContext(ctx));
     var consequent = emit(car(sexp = cdr(sexp)), ctx);
     var alternate = emit(car(sexp = cdr(sexp)), ctx);
     return '(' + test + ' != false ' + ' ? (' + consequent + ') : (' + alternate + '))';
   }
 
   function emitJavascript(sexp, ctx) {
-    var ctx = nonTailContext(ctx);
-
     sexp = cdr(sexp);
     var chunks = [];
     while (sexp != nil) {
@@ -2700,7 +2739,7 @@ Moosky.compile = (function ()
       if (typeof(chunk) == 'string')
 	chunks.push(chunk);
       else
-	chunks.push(emit(chunk, ctx));
+	chunks.push(emitEagerly(chunk, ctx));
 
       sexp = cdr(sexp);
     }
@@ -2711,9 +2750,6 @@ Moosky.compile = (function ()
     var bodyCtx = tailContext(ctx);
 
     var formals = cadr(sexp);
-    var body = emitSequence(caddr(sexp), bodyCtx);
-    ctx.hasPromise = bodyCtx.hasPromise;
-
     var emittedFormals = [];
     var bindings = [];
     if (isSymbol(formals)) {
@@ -2735,6 +2771,8 @@ Moosky.compile = (function ()
 	i++;
       }
     }
+
+    var body = emitSequence(caddr(sexp), bodyCtx);
 
     return ['(function (', emittedFormals.join(', '), ') {\n',
 	    (bindings.length > 0) ? bindings.join('  ;\n') + ';\n' : '',
@@ -2792,8 +2830,6 @@ Moosky.compile = (function ()
   }
 
   function emitOr(sexp, ctx) {
-    var nonTailCtx = nonTailContext(ctx);
-
     sexp = cdr(sexp);
     var values = length(sexp);
     if (values == 0)
@@ -2810,7 +2846,7 @@ Moosky.compile = (function ()
       chunks.push('($Temp.');
       chunks.push($temp.emit());
       chunks.push(' = (');
-      chunks.push(emit(car(sexp), next == nil ? ctx : nonTailCtx));
+      chunks.push(next == nil ? emit(car(sexp), ctx) : emitEagerly(car(sexp), ctx));
       chunks.push(')) != false ? $Temp.');
       chunks.push($temp.emit());
       chunks.push(' : ');
@@ -2831,17 +2867,14 @@ Moosky.compile = (function ()
   }
 
   function emitPromise(expression) {
-    var temp = gensym();
-    return ['((', temp, ' = function () {\n',
-	    '    return ', expression, ';\n',
-	    '}), (', temp, '.$promise = true), ', temp, ')'].join('');
+    return ['$promise(function () {\n  return ', expression, ';\n})'].join('');
   }
 
   function emitQuasiQuote(sexp, ctx) {
     var quoteId = Moosky.Top.$quoted.length;
     Moosky.Top.$quoted.push(cadr(sexp));
 
-    var promises = [];
+    var lambdas = [];
 
     function emitQQ(sexp) {
       if (!isPair(sexp))
@@ -2850,14 +2883,14 @@ Moosky.compile = (function ()
       var A = car(sexp);
 
       if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote')
-	return promises.push(emitPromise(emit(cadr(sexp), nonTailContext(ctx))));
+	return lambdas.push(emitEagerly(list($lambda, nil, cdr(sexp)), ctx));
 
       return emitQQ(A), emitQQ(cdr(sexp));
     }
 
     emitQQ(cadr(sexp));
 
-    return ['$quasiUnquote($quoted[', quoteId, '], [', promises.join(', '), '])'].join('');
+    return ['$quasiUnquote($quoted[', quoteId, '], [', lambdas.join(', '), '])'].join('');
   }
 
   function emitQuote(sexp, ctx) {
@@ -2867,24 +2900,22 @@ Moosky.compile = (function ()
   }
 
   function emitSequence(sexp, ctx) {
-    var nonTailCtx = nonTailContext(ctx);
-
     var values = [];
     while (sexp != nil) {
       var next = cdr(sexp);
-      values.push(emit(car(sexp), next == nil ? ctx : nonTailCtx));
+      values.push(next == nil ? emit(car(sexp), ctx) : emitEagerly(car(sexp), ctx));
       sexp = next;
     }
     return values.join(', ');
   }
 
   function emitSet(sexp, ctx) {
-    return '(' + cadr(sexp).emit() + ' = ' + emit(caddr(sexp), nonTailContext(ctx)) + ')';
+    return '(' + cadr(sexp).emit() + ' = ' + emitEagerly(caddr(sexp), ctx) + ')';
   }
 
   return function compile(sexp, env) {
     var env = env || makeFrame(Moosky.Top);
-    var ctx = list({ tailCall: true });
+    var ctx = new Context(null, { tail: true });
     var result = emitForceTop(emit(parseSexp(cons($begin, sexp), env), ctx));
 //    console.log(result);
     return result;
@@ -2949,6 +2980,7 @@ Moosky.HTML = (function ()
       for (var j = 0, length = texts.length; j < length; j++)
 	// parentNode becomes null after the script has been processed
 	if (texts[j] != undefined && texts[j].script.parentNode) {
+//	  console.log('compiling ' + texts[j].script.src + '...');
 	  var js = Moosky.compile(Moosky.Core.read(texts[j].text), Moosky.Top);
 	  var replacement = makeScriptElement(js);
 	  texts[j].script.parentNode.replaceChild(replacement, texts[j].script);
