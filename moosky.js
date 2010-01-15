@@ -232,6 +232,19 @@ Moosky.Values = (function ()
   }
 
   // --------------------------------------------------------------------------
+
+  function Keyword($sym) {
+    this.$sym = $sym;
+  }
+
+  Keyword.prototype = new Value();
+  Keyword.prototype.emit = function() {
+    return ['stringToSymbol("', this.$sym, '")'].join('');
+  }
+
+  Keyword.prototype.toString = Symbol.prototype.toString;
+
+  // --------------------------------------------------------------------------
   function MooskyRegExp(regexp) {
     this.$regexp = regexp;
   }
@@ -367,6 +380,14 @@ Moosky.Values = (function ()
     return p;
   }
 
+
+  // --------------------------------------------------------------------------
+
+  function Exception() {
+    Error.apply(this, arguments);
+  }
+
+  Exception.prototype = new Error();
 
   // --------------------------------------------------------------------------
   function Cons(a, d) {
@@ -505,10 +526,10 @@ Moosky.Values = (function ()
   Cons.prototype.toString = function() { return Cons.printSexp(this); };
 
   return { Value: Value, Character: Character, String: MooskyString,
-	   Symbol: Symbol, RegExp: MooskyRegExp, Javascript:Javascript,
-	   Token: Token, Cite: Cite, Number: Number, Complex: Complex,
-	   Real: Real, Rational: Rational, Integer: Integer, Promise: Promise,
-	   Cons: Cons };
+	   Symbol: Symbol, Keyword: Keyword, RegExp: MooskyRegExp,
+	   Javascript:Javascript, Token: Token, Cite: Cite, Number: Number,
+	   Complex: Complex,  Real: Real, Rational: Rational, Integer: Integer,
+	   Promise: Promise, Exception: Exception, Cons: Cons };
 })();
 
 //=============================================================================
@@ -525,6 +546,7 @@ Moosky.Core.Primitives = (function ()
 {
   var Values = Moosky.Values;
   var Symbol = Values.Symbol;
+  var Keyword = Values.Keyword;
   var Cons = Values.Cons;
   var nil = Cons.nil;
 
@@ -542,6 +564,10 @@ Moosky.Core.Primitives = (function ()
 
   function isSymbol(sexp) {
     return sexp instanceof Values.Symbol;
+  }
+
+  function isKeyword(sexp) {
+    return sexp instanceof Values.Keyword;
   }
 
   function isList(sexp) {
@@ -577,6 +603,11 @@ Moosky.Core.Primitives = (function ()
   function assertIsSymbol(name, sym) {
     if (!isSymbol(sym))
       throw new SyntaxError(name + ': symbol expected: ' + sym);
+  }
+
+  function assertIsKeyword(name, sym) {
+    if (!isKeyword(sym))
+      throw new SyntaxError(name + ': keyword expected: ' + sym);
   }
 
   function assertIsProcedure(name, fn) {
@@ -851,12 +882,14 @@ Moosky.Core.Primitives = (function ()
     isNumber: isNumber,
     isInteger: isInteger,
     isSymbol: isSymbol,
+    isKeyword: isKeyword,
     isList: isList,
     assertMinArgs: assertMinArgs,
     assertArgCount: assertArgCount,
     assertArgRange: assertArgRange,
     assertIsList: assertIsList,
     assertIsSymbol: assertIsSymbol,
+    assertIsKeyword: assertIsKeyword,
     assertIsProcedure: assertIsProcedure,
     assertIsCharacter: assertIsCharacter,
     assertIsString: assertIsString,
@@ -981,6 +1014,9 @@ Moosky.Top = (function ()
     eval(['var ', p, ' = Moosky.Core.Primitives.exports.', p, ';'].join(''));
 
   var Values = Moosky.Values;
+  var Symbol = Values.Symbol;
+  var Keyword = Values.Keyword;
+  var Exception = Values.Exception;
 
   function numericComparator(symbol, relation) {
     return function(___) {
@@ -1235,6 +1271,70 @@ Moosky.Top = (function ()
     }
   }
 
+  function alistKeyToString(key) {
+    if (isKeyword(key))
+      return Symbol.munge(key.$sym.slice(0, -1));
+
+    if (isSymbol(key))
+      return Symbol.munge('S$' + key.$sym);
+
+    if (isNumber(key))
+      return Symbol.munge('N$' + key);
+
+    if (isString(key))
+      return Symbol.munge(key);
+
+    return Symbol.munge('' + key);
+  }
+
+  function alistToObject(alist) {
+    var obj = {};
+    while (alist != nil) {
+      var pair = car(alist);
+      var key = alistKeyToString(car(pair));
+      if (!key)
+	throw new SyntaxError('bad alist key: ' + car(pair));
+
+      obj[key] = cdr(pair);
+      alist = cdr(alist);
+    }
+    return obj;
+  }
+
+  function keywordToString(key) {
+    if (isKeyword(key))
+      return Symbol.munge(key.$sym.slice(0, -1));
+    throw new Exception('keyword expected: ' + key);
+  }
+
+  function sexpToObject(sexp) {
+    var original = sexp;
+    var obj = {};
+    while (sexp != nil) {
+      var key = keywordToString(car(sexp));
+
+      sexp = cdr(sexp);
+      if (!isPair(sexp))
+	throw new Exception('unexpected end of list while constructing Object: ' + sexp);
+
+      obj[key] = car(sexp);
+      sexp = cdr(sexp);
+    }
+    return obj;
+  }
+
+  function argsToObject(args, first) {
+    var obj = {};
+    for (var i = first; i < args.length; i++) {
+      var key = keywordToString(args[i]);
+      i++;
+      if (i == args.length)
+	throw new Exception('unexpected end of list while constructing Object: ('
+			    + Array.apply(Array, args).join(' ') + ')');
+      obj[key] = args[i];
+    }
+    return obj;
+  }
 
   var UnmungedTop = {
     $makeBouncer: function(env, applicand) {
@@ -1699,6 +1799,11 @@ Moosky.Top = (function ()
       return s instanceof Values.Symbol;
     },
 
+    'keyword?': function(k) {
+      assertArgCount('keyword?', 1, arguments);
+      return k instanceof Values.Keyword;
+    },
+
     'symbol->string': function(sym) {
       assertIsSymbol('symbol->string', sym);
       assertArgCount('symbol->string', 1, arguments);
@@ -1708,7 +1813,7 @@ Moosky.Top = (function ()
     'string->symbol': function(s) {
       assertIsString('string->symbol', s);
       assertArgCount('string->symbol', 1, arguments);
-      return new Values.Symbol(s);
+      return s.match(/:$/) ? new Values.Keyword(s) : new Values.Symbol(s);
     },
 
     'procedure?': function(p) {
@@ -1745,6 +1850,23 @@ Moosky.Top = (function ()
       }
 
       return $force(proc.apply(null, args));
+    },
+
+    get: function(url, ___) {
+      var options = argsToObject(arguments, 1);
+      if (options.handlers)
+	options.handlers = sexpToObject(options.handlers);
+
+      var handlers = options.handlers;
+      if (handlers)
+	for (p in handlers)
+	  handlers[p] = (function(h) { return function(s) { return $force(h(s)); } })(handlers[p]);
+
+      return Moosky.HTML.get(url, nil, options);
+    },
+
+    compile: function(source) {
+      return Moosky.compile(Moosky.Core.read($force(source)), Moosky.Top);
     },
 
     greeting: function() {
@@ -1791,6 +1913,7 @@ Moosky.Core.read = (function ()
 {
   var Values = Moosky.Values;
   var Symbol = Values.Symbol;
+  var Keyword = Values.Keyword;
   var Token = Values.Token;
   var Cite = Values.Cite;
 
@@ -2063,8 +2186,12 @@ Moosky.Core.read = (function ()
   }
 
   function parseSymbol(token) {
+    // self-quoting symbols end with a colon, used as keywords
+    if (token.$lexeme.match(/:$/))
+      return new Keyword(token.$lexeme);
+
     // has a dot that is not the first character
-    var match = token.$lexeme.match(/^(.+)(\.[^.]+)$/);
+    match = token.$lexeme.match(/^(.+)(\.[^.]+)$/);
 
     if (!match || !match[2] || match[2].length == 0)
       return new Symbol(token.$lexeme);
@@ -2096,6 +2223,7 @@ Moosky.compile = (function ()
   var Values = Moosky.Values;
   var Value = Values.Value;
   var Symbol = Values.Symbol;
+  var Keyword = Values.Keyword;
 
   var $and         = new Symbol('and');
   var $apply       = new Symbol('apply');
@@ -2124,6 +2252,10 @@ Moosky.compile = (function ()
 
   function isSymbol(sexp) {
     return sexp instanceof Symbol;
+  }
+
+  function isKeyword(sexp) {
+    return sexp instanceof Keyword;
   }
 
   function isJavascript(sexp) {
@@ -2173,7 +2305,7 @@ Moosky.compile = (function ()
       if (parser)
 	return parser(sexp, env);
 
-      if (key.toString().match(/^\./))
+      if (!(sexp instanceof Keyword) && key.toString().match(/^\./))
 	return parseDotSymbol(sexp, env);
     }
 
@@ -3080,6 +3212,52 @@ Moosky.HTML = (function ()
     };
   }
 
+  function loggingHandler(state) {
+    console.log('readyState: ' + state.currentTarget.readyState);
+    console.log(state);
+  }
+
+  var readyStateAliases = {
+    0: 'uninitialized',
+    1: 'initialized',
+    2: 'sent',
+    3: 'receiving',
+    4: 'complete'
+  };
+
+  var readyStateDispatchLoggingHandlers = {
+    'uninitialized': loggingHandler,
+    'initialized': loggingHandler,
+    'sent': loggingHandler,
+    'receiving': loggingHandler,
+    'complete': loggingHandler
+  };
+
+  var readyStateDispatchNullHandlers = {};
+
+  function makeReadyStateDispatcher(options) {
+    var aliases = options.aliases || readyStateAliases;
+    var handlers = options.log ? readyStateDispatchLoggingHandlers
+                               : options.handlers || readyStateDispatchNullHandlers;
+
+    return function(state) {
+      var response = state.currentTarget;
+      var key = aliases[response.readyState];
+      var handler = key && handlers[key];
+      return handler && handler(state);
+    }
+  }
+
+  function get(url, params, options) {
+    options = options || {};
+    var r = new XMLHttpRequest();
+    r.open('get', url, true);
+    r.onreadystatechange = options.dispatch || makeReadyStateDispatcher(options);
+    if (options.mimeType)
+      r.overrideMimeType(options.mimeType);
+    r.send();
+  }
+
   function observe(element, eventName, handler) {
     if (element.addEventListener) {
       element.addEventListener(eventName, handler, false);
@@ -3270,7 +3448,8 @@ Moosky.HTML = (function ()
     compileScripts();
   }
 
-  return { compileScripts: compileScripts,
+  return { get: get,
+	   compileScripts: compileScripts,
 	   REPL: REPL };
 })();
 
