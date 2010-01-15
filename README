@@ -151,6 +151,13 @@ Moosky loads.
 
 5.1 Misc
 
+investigate using iframes to install REPL in arbitrary web page
+  1. using bookmarklet insert iframe with href to moosky.org
+    and a parameter indicating the domain of the target page
+  2. load moosky source from moosky.org, instantiate moosky.
+  3. change document domain to hosting page
+  4. create repl
+
 (compile "file://home/pat/src/moosky/r6rs-list.ss")
   produces a new div with text of the result, suitable for uploading
   without full Moosky.
@@ -178,57 +185,14 @@ Create moosky-runtime.js.
   and/or ... reduce to if
 
 
-Better error handling, source citation.
+Better error handling
 error
 assertion-violation
 assert
 moosky.org
 basic website
-Add debug info to compiled code.
-  $I inspector 
-    function Inspector(inspector, citation, evaluator) {
-      evaluator.children = []
-      evaluator.citation = citation;
-      evaluator.inspector = inspector;
-      inspector.children.push(evaluator);
-      evaluator.c = [citation];
-      return evaluator;
-    } 
 
 
-   function Citant(text) {
-     return function(sexp, start, end) {
-       return new Cite(text, start, end, sexp);
-     }    
-   }  
-
-   in emitTop
-    var $I = Moosky.Inspector;
-    var $i = $I(null, function(x) { return eval(x); }, $C(<<stx>>, <<cite>>);
-    var $C = Moosky.Inspector.Citant(sourceId);
-    var $R = Moosky.Inspector.REPL[id];
-    var $A = Moosky.Inspector.Abort(
-    add to lambda:
-
-    while (true) {
-    try {
-    ($i = $I($i, function(x) { return eval(x); }, $C(<<stx>>, <<cite>>)))
-    where <<stx>> points to the ast for application
-          <<cite>> points to the source for application
-
-    } catch e {
-      if ($R(e, $i))
-       continue;
-      throw $A();
-    } finally {
-      return result;
-    }
-    add to application:
-    ($i.c.push($C(<<stx>>, <<cite>>)))
-
-    on debug
-
-    applications
 5.2 Libraries
 
 R6RS Records
