@@ -165,6 +165,10 @@ investigate using iframes to install REPL in arbitrary web page
 Create moosky-runtime.js.
   1. strip out lexer, parser, emitter, html.
   2. reduce remainder to what is actually used by compile code
+  3. offer runtime w/ error checking and w/o
+  ==> 3 versions runtime-debug (included with lexer, parser, etc)
+                 runtime-checked (with asserts and errors)
+                 runtime-bare (all limits checking removed)
 
 (let loop ...) --> (function () { while () { ... } })()
   where all (loop ...) are in tail position
@@ -185,7 +189,6 @@ Create moosky-runtime.js.
   and/or ... reduce to if
 
 
-Better error handling
 error
 assertion-violation
 assert
