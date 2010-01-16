@@ -164,18 +164,6 @@ investigate using iframes to install REPL in arbitrary web page
 
 provide quasiquote facility that respects syntax
 
-Connect exception handlers to REPL
-Add REPL based commands
-  _ --> most recent value
-  ? --> most recent inspector
-  ! --> most recent exception
-
-  inspector commands
-    member access
-      parent
-      evaluation list
-      children
-
 History
   commands
   results

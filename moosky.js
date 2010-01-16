@@ -2389,7 +2389,7 @@ Moosky.Inspector = (function ()
     return evaluator;
   }
 
-  Inspector.Debug = true;
+  Inspector.Debug = false;
   Inspector.Citant = function(text) {
     return function(start, end, sexpId) {
       return new Cite(text, start, end, Moosky.Inspector.Sexps[sexpId]);
@@ -3533,7 +3533,7 @@ Moosky.compile = (function ()
     var ctx = new Context(null, { tail: true });
     var parsed = parseSexp(syntaxStar($begin, sexp), env);
     var result = emitTop(emit(parsed, ctx), sexp, options);
-//    console.log(result);
+    console.log(result);
     return result;
   }
 
@@ -3776,11 +3776,13 @@ Moosky.HTML = (function ()
     var env = Moosky.Core.Primitives.exports.makeFrame(Moosky.Top);
     textArea.focus();
     setTemporaries();
-    observe(textArea, 'keyup',
+    observe(textArea, 'keydown',
 	    function(event) {
 	      var printSexp = Moosky.Values.Cons.printSexp;
 	      var map = Moosky.Core.Primitives.exports.map;
 	      if (event.keyCode == 13) { // RETURN
+		event.preventDefault();
+		textArea.value += '\n';
 		var sexp;
 		var source;
 		var result;
@@ -3796,11 +3798,13 @@ Moosky.HTML = (function ()
 		      textArea.value += printSexp(result) + '\n';
 		  }
 		  textArea.value += prompt;
+		  textArea.scrollTop = textArea.scrollHeight;
 		  last = textArea.value.length;
 		} catch(e) {
 		  if (!(e instanceof Moosky.Core.read.IncompleteInputError)) {
 		    setTemporaries(undefined, e.exception, e.inspector);
-		    textArea.value += [e.toString(), '\n', prompt].join('');//[e.name, ': ', e.message, '\n', prompt].join('');
+		    textArea.value += [e.toString(), '\n', prompt].join('');
+		    textArea.scrollTop = textArea.scrollHeight;
 		    last = textArea.value.length;
 		  }
 		}
