@@ -289,8 +289,10 @@ Moosky.Values = (function ()
 
   Cite.prototype.merge = function(cite) {
     if (cite instanceof Cite) {
-      if (this.$text && this.$text != cite.$text)
+      if (this.$text && this.$text != cite.$text) {
+	debugger;
 	throw new Error('cannot merge citations on different texts.');
+      }
       this.$text = cite.$text;
       this.$start = Math.min(this.$start, cite.$start);
       this.$end = Math.max(this.$end, cite.$end);
@@ -336,13 +338,17 @@ Moosky.Values = (function ()
   }
 
   // --------------------------------------------------------------------------
-  function Number(n) {
+  function MooskyNumber(n) {
     this.$n = n;
   }
 
-  Number.prototype = new Number();
-  Number.prototype.valueOf = function() {
+  MooskyNumber.prototype = new Number();
+  MooskyNumber.prototype.valueOf = function() {
     return this.$n;
+  }
+
+  MooskyNumber.prototype.toString = function() {
+    return this.valueOf().toString();
   }
 
   // --------------------------------------------------------------------------
@@ -350,7 +356,7 @@ Moosky.Values = (function ()
     this.$z = z;
   }
 
-  Complex.prototype = new Number();
+  Complex.prototype = new MooskyNumber();
   Complex.prototype.valueOf = function() {
     return this.$z;
   }
@@ -365,7 +371,6 @@ Moosky.Values = (function ()
   Real.prototype.valueOf = function() {
     return this.$s;
   }
-
 
   // --------------------------------------------------------------------------
   function Rational(n, d) {
@@ -578,7 +583,7 @@ Moosky.Values = (function ()
 
   return { Value: Value, Character: Character, String: MooskyString,
 	   Symbol: Symbol, Keyword: Keyword, RegExp: MooskyRegExp,
-	   Javascript:Javascript, Token: Token, Cite: Cite, Number: Number,
+	   Javascript:Javascript, Token: Token, Cite: Cite, Number: MooskyNumber,
 	   Complex: Complex,  Real: Real, Rational: Rational, Integer: Integer,
 	   Promise: Promise, Exception: Exception, Cons: Cons };
 })();
@@ -1451,21 +1456,6 @@ Moosky.Top = (function ()
   }
 
   var UnmungedTop = {
-    $makeBouncer: function(env, applicand) {
-      if (!applicand.$bounce)
-	return applicand;
-
-      return function(___) {
-	  return applicand.apply(env, arguments);
-      }
-    },
-
-    $makeBounce: function(env, p) {
-      var bounce = function () { return p.call(env); };
-      bounce.$bounce = true;
-      return bounce;
-    },
-
     $argumentsList: function(args, n) {
       var list = nil;
       for (var i = args.length-1; i >= n; i--)
@@ -1983,6 +1973,40 @@ Moosky.Top = (function ()
       return Moosky.compile(Moosky.Core.read($force(source)), Moosky.Top);
     },
 
+    '?>>': function() {
+      var insp = Moosky.Top.$lastInspector;
+      if (insp && insp.children.length > 0)
+	Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
+    },
+
+    '<<?': function() {
+      var insp = Moosky.Top.$lastInspector;
+      if (insp && insp.inspector)
+	Moosky.Top.$lastInspector = insp.inspector;
+    },
+
+    ':?': function() {
+      var insp = Moosky.Top.$lastInspector;
+      return insp && insp.citation.content();
+    },
+
+    '?frames': function() {
+      var topInsp = Moosky.Top.$lastInspector;
+
+      if (!topInsp)
+	return nil;
+      while (topInsp.inspector != null)
+	topInsp = topInsp.inspector;
+
+      var insp = topInsp;
+      var inspectors = nil;
+      while (insp.children.length > 0) {
+	inspectors = cons(insp, inspectors);
+	insp = insp.children[insp.children.length-1];
+      }
+      return inspectors;
+    },
+
     greeting: function() {
       return "Welcome to Moosky v0.1, Copyright 2010 Pat M. Lasswell.";
     },
@@ -2249,22 +2273,25 @@ Moosky.Core.read = (function ()
   }
 
   function parseJavascript(token) {
-    var block = token.$lexeme[0] == '#';
-    var text = token.$lexeme.slice(1, -1);
-
-    if (block)
-      text = ['(function () { return ', text.slice(1, -1), ' })()'].join('');
-    else
-      text = ' ' + text;
-
+    var text = token.$cite.$text;
     var tokens = new MooskyTokenStream(text);
 
-    var components = nil;
-    var last = 1;
+    var block = token.$lexeme[0] == '#';
+    var components = block ? cons('(function () { return ', nil) : nil;
+
+    var start = token.$cite.$start + (block ? 2 : 1);
+    var end = token.$cite.$end - (block ? 2 : 1);
+
+    var interpolateRE = /[^\\](\\\\)*(@\^?)\(/mg;
+
+    interpolateRE.lastIndex = start;
+    var last = start;
 
     var match;
-    var interpolateRE = /[^\\](\\\\)*(@\^?)\(/mg;
     while ((match = interpolateRE.exec(text))) {
+      if (match.index > token.$cite.$end)
+	break;
+
       tokens.setIndex(match.index + match[0].length);
 
       components = syntaxStar(text.substring(last, match.index+1), components);
@@ -2286,11 +2313,16 @@ Moosky.Core.read = (function ()
 
       last = tokens.getIndex();
     }
-    if (last < text.length)
-      components = syntaxStar(text.substring(last), components);
+
+    if (last < end)
+      components = syntaxStar(text.substring(last, end), components);
+
+    if (block)
+      components = syntaxStar(' })()', components);
 
     return syntaxStar(new Symbol('javascript'), reverseSyntax(components));
   }
+
 
   function parseLiteral(token) {
     return { '#f': false,
@@ -2340,7 +2372,13 @@ Moosky.Core.read = (function ()
 
 Moosky.Inspector = (function ()
 {
-  var Cite = Moosky.Values.Cite;
+  var Values = Moosky.Values;
+  var Symbol = Values.Symbol;
+  var Cite = Values.Cite;
+
+  // this is overkill...
+  for (var p in Moosky.Core.Primitives.exports)
+    eval(['var ', p, ' = Moosky.Core.Primitives.exports.', p, ';'].join(''));
 
   function Inspector(inspector, evaluator, citation) {
     evaluator.children = []
@@ -2360,13 +2398,31 @@ Moosky.Inspector = (function ()
 
   Inspector.Sexps = [];
   Inspector.Sources = [];
-  Inspector.REPL = [];
-  Inspector.Abort = function(e) {
-    this.message = e.toString();
+  Inspector.Abort = function(inspector, exception) {
+    this.inspector = inspector;
+    this.exception = exception;
   }
 
   Inspector.Abort.prototype = new Error();
   Inspector.Abort.prototype.name = 'Abort';
+
+  Inspector.Abort.prototype.toString = function() {
+    var insp = this.inspector, e = this.exception;
+    if (insp) {
+      var citation;
+      if (insp.c.length > 0)
+	citation = insp.c[insp.c.length-1];
+      else
+	citation  = insp.citation;
+
+      return [citation.context(3, 3),
+	      e.name, ': while evaluating |', citation.content(), '|: ', e.message].join('');
+    }
+  }
+
+  Inspector.Abort.Compiler = function(sexp) {
+    return Moosky.compile(sexp, null, { namespace: '{}' });
+  }
 
   Inspector.registerSexp = function(sexp) {
     var id = Inspector.Sexps.length;
@@ -2378,19 +2434,6 @@ Moosky.Inspector = (function ()
     var id = Inspector.Sources.length;
     Inspector.Sources.push(text);
     return id;
-  }
-
-  Inspector.dump = function(insp, e) {
-    if (insp) {
-      var citation;
-      if (insp.c.length > 0)
-	citation = insp.c[insp.c.length-1];
-      else
-	citation  = insp.citation;
-
-      console.log(citation.context(3, 3));
-      console.log(e.name + ': while evaluating |' + citation.content() + '|: ' + e.message);
-    }
   }
 
   return Inspector;
@@ -2414,7 +2457,7 @@ Moosky.Code = (function ()
 
     Top:
       ['(function () {\n  ',
-       '  with (Moosky.Top) {\n',
+       '  with (<<namespace>>) {\n',
        '<<bindings>>',
        '    var $Temp = {};\n',
        '    return <<body>>;\n',
@@ -2425,12 +2468,12 @@ Moosky.Code = (function ()
   Code.debug = {
     application: '($i.c.push($C(<<start>>, <<end>>, <<sexpId>>)), <<body>>)',
     lambda:
-      ['(function (<<formals>>) {\n',
-       '  var result;\n',
+      ['(function(<<formals>>) {\n',
        '<<bindings>>',
-       '  return (($i = $I($i, function(x) { return eval(x); },\n',
-       '                   $C(<<start>>, <<end>>, <<sexpId>>))),\n',
-       '          <<body>>);\n',
+       '  return (function ($i) {\n',
+       '    return <<body>>;\n',
+       '  })($I($i, function(x) { return eval($T(x)); },\n',
+       '        $C(<<start>>, <<end>>, <<sexpId>>)));\n',
        '})\n'].join(''),
 
 
@@ -2439,7 +2482,6 @@ Moosky.Code = (function ()
 	      '    return <<expression>>;\n',
 	      '  } catch (e) {\n',
 	      '    if (e.$i) throw e;\n',
-	      '    console.log(e);\n',
 	      '    throw new $E(e.message, $i);\n',
 	      '  }\n',
 	      '})\n'].join(''),
@@ -2448,17 +2490,17 @@ Moosky.Code = (function ()
       ['(function () {\n  ',
        '  var $I = Moosky.Inspector;\n',
        '  var $C = $I.Citant($I.Sources[<<sourceId>>]);\n',
-       '  var $i = $I(null, function(x) { return eval(x); }, $C(<<start>>, <<end>>, <<sexpId>>));\n',
-       '  var $R = $I.REPL[<<replId>>];\n',
+       '  var $i = $I(null, function(x) { return eval($T(x)); }, $C(<<start>>, <<end>>, <<sexpId>>));\n',
        '  var $E = Moosky.Values.Exception;\n',
        '  var $A = $I.Abort;\n',
-       '  with (Moosky.Top) {\n',
+       '  var $T = $A.Compiler;\n',
+       '  with (<<namespace>>) {\n',
        '<<bindings>>',
        '    var $Temp = {};\n',
        '    try {\n',
        '      return <<body>>;\n',
        '    } catch (e) {\n',
-       '      $I.dump(e.$i || $i, e);',
+       '      throw new $A(e.$i || $i, e);',
        '    }\n',
        '  }\n',
        '})()'].join('')
@@ -3460,7 +3502,7 @@ Moosky.compile = (function ()
     return '(' + emit(cadr(sexp), ctx) + ' = ' + emitEagerly(caddr(sexp), ctx) + ')';
   }
 
-  function emitTop(body, sexp) {
+  function emitTop(body, sexp, options) {
     var bindings = [];
     var quotes = getQuotes();
     for (var i = 0; i < quotes.length; i++) {
@@ -3469,27 +3511,42 @@ Moosky.compile = (function ()
     }
 
     var source = sexp.$source;
-    return Code('Top').fill(
+
+    var params =
       { bindings: (bindings.length > 0) ? '    ' + bindings.join('    ;\n') + ';\n' : '',
 	body: emitForce(body),
+	namespace: 'Moosky.Top',
 	replId: 0,
-	sourceId: Inspector.registerSource(source.$text),
-        start: source.$start,
-	end: source.$end,
-        sexpId: Inspector.registerSexp(sexp) });
+	sourceId: source && Inspector.registerSource(source.$text),
+        start: source && source.$start,
+	end: source && source.$end,
+        sexpId: Inspector.registerSexp(sexp) };
+
+    for (var p in options)
+      params[p] = options[p];
+
+    return Code('Top').fill(params);
   }
 
-  return function compile(sexp, env) {
+   function compile(sexp, env, options) {
     var env = env || makeFrame(Moosky.Top);
     var ctx = new Context(null, { tail: true });
-    var result = emitTop(emit(parseSexp(syntaxStar($begin, sexp), env), ctx), sexp);
+    var parsed = parseSexp(syntaxStar($begin, sexp), env);
+    var result = emitTop(emit(parsed, ctx), sexp, options);
 //    console.log(result);
     return result;
   }
+
+  compile.Context = Context;
+  compile.emit = emit;
+  compile.parseSexp = parseSexp;
+  return compile;
 })();
 
 Moosky.HTML = (function ()
 {
+  var Symbol = Moosky.Values.Symbol;
+
   if (typeof(XMLHttpRequest)  === "undefined") {
     XMLHttpRequest = function() {
       try { return new ActiveXObject("Msxml2.XMLHTTP.6.0"); }
@@ -3661,6 +3718,24 @@ Moosky.HTML = (function ()
     stopObserving(document, 'mouseup', div.endHandler);
   }
 
+  function setLastResult(v) {
+    Moosky.Top[Symbol.munge('_')] = v;
+  }
+
+  function setLastException(e) {
+    Moosky.Top[Symbol.munge('!')] = e;
+  }
+
+  function setLastInspector(i) {
+    Moosky.Top.$lastInspector = i;
+  }
+
+  function setTemporaries(v, e, i) {
+    v != undefined && setLastResult(v);
+    e != undefined && setLastException(e);
+    i != undefined && setLastInspector(i);
+  }
+
   function REPL() {
     function Div() { return document.createElement('div'); };
     function TextArea() { return document.createElement('textarea'); };
@@ -3700,6 +3775,7 @@ Moosky.HTML = (function ()
     var last = textArea.value.length;
     var env = Moosky.Core.Primitives.exports.makeFrame(Moosky.Top);
     textArea.focus();
+    setTemporaries();
     observe(textArea, 'keyup',
 	    function(event) {
 	      var printSexp = Moosky.Values.Cons.printSexp;
@@ -3712,6 +3788,7 @@ Moosky.HTML = (function ()
 		  sexp = Moosky.Core.read(textArea.value.substring(last));
 		  source = Moosky.compile(sexp, env);
 		  result = eval(source);
+		  setTemporaries(result);
 		  if (result !== undefined) {
 		    if (result && result.$values)
 		      textArea.value += map(printSexp, result.$values).concat('').join('\n');
@@ -3722,7 +3799,8 @@ Moosky.HTML = (function ()
 		  last = textArea.value.length;
 		} catch(e) {
 		  if (!(e instanceof Moosky.Core.read.IncompleteInputError)) {
-		    textArea.value += [e.name, ': ', e.message, '\n', prompt].join('');
+		    setTemporaries(undefined, e.exception, e.inspector);
+		    textArea.value += [e.toString(), '\n', prompt].join('');//[e.name, ': ', e.message, '\n', prompt].join('');
 		    last = textArea.value.length;
 		  }
 		}

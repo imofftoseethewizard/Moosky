@@ -162,6 +162,39 @@ investigate using iframes to install REPL in arbitrary web page
   produces a new div with text of the result, suitable for uploading
   without full Moosky.
 
+provide quasiquote facility that respects syntax
+
+Connect exception handlers to REPL
+Add REPL based commands
+  _ --> most recent value
+  ? --> most recent inspector
+  ! --> most recent exception
+
+  inspector commands
+    member access
+      parent
+      evaluation list
+      children
+
+History
+  commands
+  results
+
+Keymap
+  key --> fn
+
+Console
+  keymap
+  history
+  prompt
+
+Display
+  element
+  commands
+  caret control
+  add text
+  insert/delete
+
 Create moosky-runtime.js.
   1. strip out lexer, parser, emitter, html.
   2. reduce remainder to what is actually used by compile code

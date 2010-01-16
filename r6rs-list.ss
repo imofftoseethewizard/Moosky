@@ -111,7 +111,7 @@
           (let loop ([lists lists]
                      [args '()]
                      [remainders '()])
-            (if (nul? lists)
+            (if (null? lists)
                 (apply combine (reverse (cons (apply fold-right combine nil (reverse remainders))
                                               args)))
                 (let ([lst (car lists)])

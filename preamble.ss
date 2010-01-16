@@ -16,3 +16,5 @@
 ;;;  along with Moosky.  If not, see <http://www.gnu.org/licenses/>.
 ;;;
 ;;;____________________________________________________________________________
+
+(define-macro (? stx) `({$lastInspector} (quote ,(cdr stx)))))
