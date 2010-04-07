@@ -101,11 +101,11 @@ Moosky.Values = (function ()
       }
     }
     return '#\\' + name;
-  }
+  };
 
   Character.prototype.emit = function() {
     return '"' + escapeString(this.$ch) + '"';
-  }
+  };
 
   // --------------------------------------------------------------------------
   function MooskyString(str) {
@@ -116,11 +116,11 @@ Moosky.Values = (function ()
 
   MooskyString.prototype.toString = function () {
     return '"' + this.$str + '"';
-  }
+  };
 
   MooskyString.prototype.emit = function() {
     return '"' + escapeString(this.$str) + '"';
-  }
+  };
 
   // --------------------------------------------------------------------------
   function Symbol(sym) {
@@ -131,7 +131,7 @@ Moosky.Values = (function ()
   Symbol.prototype.constructor = Symbol;
   Symbol.prototype.toString = function () {
     return this.$sym;
-  }
+  };
 
   var jsIdentifierRE = /^[$\w_][\w\d_]*$/;
 
@@ -154,7 +154,7 @@ Moosky.Values = (function ()
   Symbol.prototype.requiresQuotes = function() {
     var value = this.toString();
     return !value.match(jsIdentifierRE) || value.match(jsReservedRE);
-  }
+  };
 
   Symbol.translationResults = {};
   Symbol.translationOrigins = {};
@@ -165,7 +165,7 @@ Moosky.Values = (function ()
       Symbol.translationResults[s] = dict[s];
       Symbol.translationOrigins[dict[s]] = s;
     }
-  }
+  };
 
   Symbol.camelize = function(str) {
     var parts = str.split('-'), len = parts.length;
@@ -179,14 +179,14 @@ Moosky.Values = (function ()
       camelized += parts[i].charAt(0).toUpperCase() + parts[i].substring(1);
 
     return camelized;
-  }
+  };
 
   Symbol.prototype.emit = function() {
     if (this.$sym.match(/\./))
       return this.$sym;
 
     return Symbol.munge(this.$sym);
-  }
+  };
 
   Symbol.munge = function(sym) {
     var cached = Symbol.translationResults[sym];
@@ -219,7 +219,7 @@ Moosky.Values = (function ()
     Symbol.translationOrigins[value] = sym;
 
     return value;
-  }
+  };
 
   Symbol.prototype.toString = function() {
     if (this.$sym.length == 0)
@@ -229,7 +229,7 @@ Moosky.Values = (function ()
       return '|' + this.$sym + '|';
 
     return this.$sym.replace(/\|/g, '\\|');
-  }
+  };
 
   // --------------------------------------------------------------------------
 
@@ -240,7 +240,7 @@ Moosky.Values = (function ()
   Keyword.prototype = new Value();
   Keyword.prototype.emit = function() {
     return ['stringToSymbol("', this.$sym, '")'].join('');
-  }
+  };
 
   Keyword.prototype.toString = Symbol.prototype.toString;
 
@@ -252,11 +252,11 @@ Moosky.Values = (function ()
   MooskyRegExp.prototype = new Value();
   MooskyRegExp.prototype.emit = function() {
     return this.$regexp.toString();
-  }
+  };
 
   MooskyRegExp.prototype.toString = function () {
     return '#' + this.$regexp.toString();
-  }
+  };
 
   // --------------------------------------------------------------------------
   function Javascript(js) {
@@ -297,7 +297,7 @@ Moosky.Values = (function ()
       this.$start = Math.min(this.$start, cite.$start);
       this.$end = Math.max(this.$end, cite.$end);
     }
-  }
+  };
 
   Cite.prototype.content = function (pre, post) {
     return this.$text.substring(this.$start, this.$end);
@@ -560,7 +560,7 @@ Moosky.Values = (function ()
     var result = [];
     while (sexp != Cons.nil) {
       var A = sexp.$a;
-      var D = sexp.$d
+      var D = sexp.$d;
 
       if (!(D instanceof Cons)) {
 	result.push(Cons.printSexp(A));
@@ -1069,7 +1069,7 @@ Moosky.Core.Primitives = (function ()
     $promise: $promise,
     $force: $force,
     values: values,
-    callWithValues: callWithValues,
+    callWithValues: callWithValues
   };
 
   Primitives.mooskyExports = {
@@ -1157,7 +1157,7 @@ Moosky.Top = (function ()
       }
 
       return true;
-    }
+    };
   }
 
   function numericFold(symbol, binop, zero) {
@@ -1189,7 +1189,7 @@ Moosky.Top = (function ()
       }
 
       return result;
-    }
+    };
   }
 
   function divisiveBinop(symbol, binop) {
@@ -1210,7 +1210,7 @@ Moosky.Top = (function ()
 	throw SyntaxError(symbol + ': division by zero');
 
       return binop(a, b);
-    }
+    };
   }
 
   function numericUnop(symbol, unop) {
@@ -1222,7 +1222,7 @@ Moosky.Top = (function ()
 	  throw SyntaxError(symbol + ': number expected: not ' + a);
 
       return unop(a.valueOf());
-    }
+    };
   }
 
   function numericBinop(symbol, binop) {
@@ -1237,7 +1237,7 @@ Moosky.Top = (function ()
 	  throw SyntaxError(symbol + ': number expected: not ' + b);
 
       return binop(a.valueOf(), b.valueOf());
-    }
+    };
   }
 
   function truncate(a) {
@@ -1261,7 +1261,7 @@ Moosky.Top = (function ()
 	  return false;
       }
       return true;
-    }
+    };
   }
 
   function characterComparatorCI(name, kernel) {
@@ -1273,7 +1273,7 @@ Moosky.Top = (function ()
       assertArgCount(name, 1, arguments);
       assertIsCharacter(name, a);
       return kernel(a);
-    }
+    };
   }
 
   var characterOperator = characterPredicate;
@@ -1292,7 +1292,7 @@ Moosky.Top = (function ()
 	  return false;
       }
       return true;
-    }
+    };
   }
 
   function stringComparatorCI(name, kernel) {
@@ -1304,7 +1304,7 @@ Moosky.Top = (function ()
       assertArgCount(name, 1, arguments);
       assertIsString(name, a);
       return kernel(a);
-    }
+    };
   }
 
   var stringOperator = stringPredicate;
@@ -1315,7 +1315,7 @@ Moosky.Top = (function ()
       assertArgCount(name, 1, arguments);
       assertIsInteger(name, i);
       return kernel(i);
-    }
+    };
   }
 
   var integerOperator = integerPredicate;
@@ -1354,7 +1354,7 @@ Moosky.Top = (function ()
       }
 
       return result;
-    }
+    };
   }
 
   function vectorIterator(name, collect) {
@@ -1387,7 +1387,7 @@ Moosky.Top = (function ()
       }
 
       return result;
-    }
+    };
   }
 
   function alistKeyToString(key) {
@@ -1890,12 +1890,12 @@ Moosky.Top = (function ()
 
     'vector-for-each': (function () {
 			  var iter = vectorIterator('vector-for-each');
-			  return function(___) { iter.apply(null, arguments); }
+			  return function(___) { iter.apply(null, arguments); };
 			})(),
 
     'vector-map': (function () {
 		     var iter = vectorIterator('vector-map', cons);
-		     return function(___) { return reverse(iter.apply(null, arguments)); }
+		     return function(___) { return reverse(iter.apply(null, arguments)); };
 		   })(),
 
     'symbol?': function(s) {
@@ -1928,12 +1928,12 @@ Moosky.Top = (function ()
 
     'for-each': (function () {
 		   var iter = iterator('for-each');
-		   return function(___) { iter.apply(null, arguments); }
+		   return function(___) { iter.apply(null, arguments); };
 		 })(),
 
     'map': (function () {
 	      var iter = iterator('map', cons);
-	      return function(___) { return reverse(iter.apply(null, arguments)); }
+	      return function(___) { return reverse(iter.apply(null, arguments)); };
 	    })(),
 
     'apply': function(proc, ___, lst) {
@@ -2069,14 +2069,14 @@ Moosky.Core.read = (function ()
     this.index = 0;
     this.length = str.length;
     this.text = str;
-    this.predicate = predicate || function() { return true; }
+    this.predicate = predicate || function() { return true; };
   }
 
   TokenStream.prototype.constructor = TokenStream;
 
   TokenStream.prototype.makeCite = function(lexeme) {
     return new Cite(this.text, this.index, this.index+lexeme.length);
-  }
+  };
 
   TokenStream.prototype.getIndex = function() { return this.index; };
   TokenStream.prototype.setIndex = function(i) { return this.index = Math.max(0, Math.min(i, this.length)); };
@@ -2131,7 +2131,7 @@ Moosky.Core.read = (function ()
 	return token;
     }
     return null;
-  }
+  };
 
   function MooskyTokenStream(str) {
     TokenStream.call(this, Moosky.LexemeClasses, str,
@@ -2381,7 +2381,7 @@ Moosky.Inspector = (function ()
     eval(['var ', p, ' = Moosky.Core.Primitives.exports.', p, ';'].join(''));
 
   function Inspector(inspector, evaluator, citation) {
-    evaluator.children = []
+    evaluator.children = [];
     evaluator.citation = citation;
     evaluator.inspector = inspector;
     inspector && inspector.children.push(evaluator);
@@ -2393,15 +2393,15 @@ Moosky.Inspector = (function ()
   Inspector.Citant = function(text) {
     return function(start, end, sexpId) {
       return new Cite(text, start, end, Moosky.Inspector.Sexps[sexpId]);
-    }
-  }
+    };
+  };
 
   Inspector.Sexps = [];
   Inspector.Sources = [];
   Inspector.Abort = function(inspector, exception) {
     this.inspector = inspector;
     this.exception = exception;
-  }
+  };
 
   Inspector.Abort.prototype = new Error();
   Inspector.Abort.prototype.name = 'Abort';
@@ -2418,23 +2418,24 @@ Moosky.Inspector = (function ()
       return [citation.context(3, 3),
 	      e.name, ': while evaluating |', citation.content(), '|: ', e.message].join('');
     }
-  }
+    return undefined;
+  };
 
   Inspector.Abort.Compiler = function(sexp) {
     return Moosky.compile(sexp, null, { namespace: '{}' });
-  }
+  };
 
   Inspector.registerSexp = function(sexp) {
     var id = Inspector.Sexps.length;
     Inspector.Sexps.push(sexp);
     return id;
-  }
+  };
 
   Inspector.registerSource = function(text) {
     var id = Inspector.Sources.length;
     Inspector.Sources.push(text);
     return id;
-  }
+  };
 
   return Inspector;
 
@@ -2504,7 +2505,7 @@ Moosky.Code = (function ()
        '    }\n',
        '  }\n',
        '})()'].join('')
-  }
+  };
 
   function Template(templ) {
     this.$templ = templ;
@@ -2522,7 +2523,7 @@ Moosky.Code = (function ()
       text = text.replace(this.$regexps[p], params[p]);
 
     return text;
-  }
+  };
 
   for (var p in Code.bare)
     Code.bare[p] = new Template(Code.bare[p]);
@@ -3781,7 +3782,10 @@ Moosky.HTML = (function ()
 	      var printSexp = Moosky.Values.Cons.printSexp;
 	      var map = Moosky.Core.Primitives.exports.map;
 	      if (event.keyCode == 13) { // RETURN
-		event.preventDefault();
+		if (event.preventDefault)
+		  event.preventDefault();
+		else
+		  event.returnValue = false;
 		textArea.value += '\n';
 		var sexp;
 		var source;
@@ -3906,7 +3910,7 @@ Moosky.LexemeClasses = [ { tag: 'comment',
 			  regexp: /[^#$\d\n\s\(\)\[\],@'"`][^$\n\s\(\)"'`\[\]]*/ },
 
 			{ tag: 'punctuation',
-			  regexp: /[\.\(\)\[\]'`]|,@?|#\(/ }, //'
+			  regexp: /[\.\(\)\[\]'`]|,@?|#\(/ } //'
 		      ];
 
 Moosky.HTML.compileScripts();

@@ -224,3 +224,8 @@ DOM
 CSS
 XHR
 
+6 Architecture and Design
+
+6.1 Bare and Safe
+
+Basic functionality is implemented with two safety levels.  Bare provides no error checking and throws no exceptions other than those provided by the browser's script engine.  Safe wraps the bare code with error checking and exception handling.  It is intended that safe be used for development and testing, and once the code has been thoroughly checked, that bare be used for deployment.  Safe and bare have identical api and identical semantics, save for the exceptions thrown by safe.  Therefore, code intended for bare deployment should not rely on exceptions thrown by safe.  

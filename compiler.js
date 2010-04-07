@@ -1,0 +1,1312 @@
+//=============================================================================
+//
+//
+// This file is part of Moosky.
+//
+// Moosky is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moosky is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moosky.  If not, see <http://www.gnu.org/licenses/>.
+//
+//
+//=============================================================================
+
+//=============================================================================
+// 
+// Recursion and Tail Call Optimization
+//
+// Mutable Symbols
+//   A symbol is mutable if two conditions hold:
+//     (i) if it is the target of a set! form, and
+//     (ii) a. if it is the target of more than one set! form, or
+//          b. if the set! form is preceded by anything but other set! forms in the
+//            defining lambda, or
+//          c. if the set! form occurs in an interior lambda.
+// 
+//   In particular symbols which are immediately set! within the defining
+//   lambda -- and nowhere else -- are not considered mutable.
+// 
+// Definitely recursive applications:
+//   Within the value of a set! statement
+//     and the applicand is not mutable and is the target of a containing set!
+//
+// Possibly recursive applications:
+//   application is definitely recursive or
+//   applicand is an application or
+//   applicand is a mutable symbol
+//
+// Definitively not recursive applications:
+//   primitives (except call-with-values)
+//   special forms
+//
+// Promise-making Lambdas
+//   A lambda is promise-making if it has a potentially recursive application 
+//   in tail position.
+//
+// Examples:
+//   A simple letrec-style case:
+//     ((lambda (x)
+//         (set! x (lambda (y) (if y (x #f) 'bar)))
+//         (x #t))
+//      #u)
+//
+//   x is not a mutable symbol, but application (x #f) is definitely recursive
+//   and in tail position, the form (lambda (y) ...) must make a promise.
+//   Beause (lambda (x) ...) contains no potentially recursive applications,
+//   the application (x #t) of the promise-making form (lambda (y) ...) must be
+//   forced.  Hence (lambda (x) ...) is not promise-making form.
+// 
+//   Variation of the simple case:
+//     ((lambda (x)
+//         (set! x (lambda (y) (if y (cons 'foo (x #f)) 'bar)))
+//         (x #t))
+//      #u)
+//
+//   Many of the same observations apply, except that in this case the
+//   application (x #f) is not in tail position. Hence (lambda (y) ...) need
+//   not make a promise, and the application (x #t) is not forced.
+// 
+//   Free-variable case:
+//     (lambda (x)
+//        (x x))
+//   
+//   in this case, x is a free variable and may take arbitrary values.  x may
+//   in fact take a reference to the form (lambda (x) ...). Since (x x) is
+//   potentially recursive, the form (lambda (x) ...) must return a promise.
+// 
+//   Application as applicand case:
+//     (lambda (x)
+//       ((foo) x))
+//
+//   Like the example above, (foo) may result in a reference to the enclosing
+//   form (lambda (x) ...), and similarly, this form must return a promise.
+//
+//   Simple recursive definition:
+//     (define foo)
+//     (set! foo 
+//       (lambda (x)
+//         (if (< 0 x)
+//             (foo (- x 1))
+//             'done)))
+//
+//   This is the expansion of
+//     (define (foo x)
+//       (if (< 0 x)
+//           (foo (- x 1))
+//           'done)))
+//     
+//   (foo (- x 1)) is an explicitly recursive application because it is
+//   within the content of a set! with foo as its target.  Hence the 
+//   form (lambda (x) ...) must promise.  No forcing appears in this case.
+// 
+//   Closure with simple recursion:
+//     (define foo)
+//     (set! foo
+//       ((lambda (counter)
+//           (lambda (x)
+//             (if (< 0 x)
+//                 (begin
+//                   (set! counter (+ 1 counter))
+//                   (foo (- x 1)))
+//                 'done)))
+//        0))
+// 
+//   This is the expansion of
+//     (define foo
+//       (let ([counter 0])
+//         (lambda (x)
+//           (if (< 0 x)
+//               (begin
+//                 (set! counter (+ 1 counter))
+//                 (foo (- x 1)))
+//               'done))))
+//   
+//   In this case (foo (- x 1)) is still an explicitly recursive application,
+//   and therefore (lambda (x) ...) must promise.  But the form (lambda (x) ...)
+//   itself is not recursive, so the form (lambda (counter) ...) need not
+//   promise.  Again, no forces appear here.
+//
+
+Moosky.Compiler = (function ()
+{ 
+  eval(Moosky.Runtime.importExpression);
+
+  var Values = Moosky.Values;
+  var Value = Values.Value;
+  var Symbol = Values.Symbol;
+  var Keyword = Values.Keyword;
+  var Exception = Values.Exception;
+  var Inspector = Moosky.Inspector;
+  var Code = Moosky.Code;
+
+  var APPLY       = new Symbol('apply');
+  var BEGIN       = new Symbol('begin');
+  var FORCE       = new Symbol('force');
+  var INLINE      = new Symbol('inline');
+  var JAVASCRIPT  = new Symbol('javascript');
+  var LAMBDA      = new Symbol('lambda');
+  var PROMISE     = new Symbol('promise');
+  var PROMISING   = new Symbol('promising');
+  var QUOTE       = new Symbol('quote');
+
+  function isMacro(v) {
+    return v !== undefined && typeof v == 'function' && v.tag == 'macro';
+  }
+
+  function isPromisingFunction(v) {
+    return v !== undefined && typeof v == 'function' && v.promising;
+  }
+
+  function isSymbol(sexp) {
+    return sexp instanceof Symbol;
+  }
+
+  function isKeyword(sexp) {
+    return sexp instanceof Keyword;
+  }
+
+  function isJavascript(sexp) {
+    var key;
+    return isPair(sexp) && isSymbol(key = car(sexp)) && key == 'javascript';
+  }
+  
+  function isLambdaForm(sexp) {
+    var key;
+    return isPair(sexp) && isSymbol(key = car(sexp)) && key == 'lambda';
+  }
+  
+  function isPromisingLambdaForm(sexp) {
+    var key;
+    return isPair(sexp) && isSymbol(key = car(sexp)) && key == 'promising'
+	&& isLambdaForm(cdr(sexp));
+  }
+
+  //===========================================================================
+  //
+  // Exceptions
+  //
+
+  function AssertFailure(message, inspector) {
+    Exception.apply(this, arguments);
+  }
+  
+  AssertFailure.prototype = new Exception();
+  AssertFailure.prototype.name = 'AssertFailure';
+  
+  //===========================================================================
+  //
+  // Context Support
+  //
+
+  function Context(ctx, options) {
+    if (ctx)
+      this.parent = ctx;
+
+    options = options || {};
+    this.type = options.type;
+    this.tail = options.tail;
+    this.target = options.target;
+    
+    this.symbols = [];
+    this.promising = false;
+    this.id = Context.count++;
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Lambda Contexts
+  //
+
+  function lambdaContext(ctx) {
+    return new Context(ctx, { type: 'lambda', tail: true });
+  }
+
+  Context.prototype.containsContext = function(ctx) {
+    var parent;
+    return ctx && (ctx == this || (parent = ctx.parent) && this.containsContext(parent));
+  };
+
+  Context.prototype.innerLambda = function() {
+    var ctx = this;
+    while (ctx && ctx.type != 'lambda')
+      ctx = ctx.parent;
+
+    return ctx;
+  };
+
+  function findInnerLambdaContext(ctx) {
+    return ctx && ctx.innerLambda();
+  }
+  
+  //---------------------------------------------------------------------------
+  //
+  // Top
+  //
+
+  function topContext() {
+    return new Context();
+  }
+  
+  function findTopContext(ctx) {
+    while (ctx.parent)
+      ctx = ctx.parent;
+    return ctx;
+  }
+  
+  //---------------------------------------------------------------------------
+  //
+  // Context Guardians
+  //
+
+  Context.Guardian = function() {
+    this.items = [];
+  };
+  
+  Context.Guardian.prototype.add = function(ctx, value) {
+    var lambdaCtx = ctx.innerLambda() || findTopContext(ctx);
+    this.items.push({ ctx: lambdaCtx, value: value });
+  };
+
+  Context.Guardian.prototype.get = function(ctx) {
+    var items = this.items;
+    var length = items.length;
+    
+    var result = [];
+    var remainder = [];
+    
+    for (var i = 0; i < length; i++) {
+      var item = items[i];
+      if (!ctx || ctx.containsContext(item.ctx))
+	result.push(item.value);
+      else
+	remainder.push(item);
+    }
+
+    this.items = remainder;
+    return result;
+  };
+  
+  //---------------------------------------------------------------------------
+  //
+  // Quoted Expressions
+  //
+
+  Context.quotes = new Context.Guardian();
+  
+  function addQuote(ctx, symbol, value) {
+    Context.quotes.add(ctx, { symbol: symbol, value: value });
+  }
+
+  function getQuotes(ctx) {
+    return Context.quotes.get(ctx);
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Defined Names
+  //
+
+  Context.definedNames = new Context.Guardian();
+
+  function addDefinedName(ctx, symbol) {
+    Context.definedNames.add(ctx, symbol);
+  }
+
+  function getDefinedNames(ctx) {
+    var result = Context.definedNames.get(ctx);
+    return result;
+  }
+
+  function getContextBindings(ctx) {
+    var bindings = [];
+    var quotes = getQuotes(ctx);
+    var length = quotes.length;
+    
+    for (var i = 0; i < length; i++) {
+      var quote = quotes[i];
+      bindings.push(quote);
+    }
+
+    var names = getDefinedNames(ctx);
+    for (i = 0, length = names.length; i < length; i++)
+      bindings.push({ symbol: names[i], value: undefined });
+    
+    return bindings;
+  }
+    
+  Context.count = 0;
+  
+  //---------------------------------------------------------------------------
+  //
+  // Symbol Tracking
+  //
+
+  Context.noValue = {};
+  
+  function addSymbol(ctx, sym) {
+    bindSymbol(ctx, sym, Context.noValue);
+  }
+  
+  function bindSymbol(ctx, sym, value) {
+    ctx = findInnerLambdaContext(ctx) || findTopContext(ctx);
+    ctx.symbols[sym] = { value: value, 
+			 mutable: false, 
+			 free: value === Context.noValue, 
+			 setCount: 0,
+			 ctx: ctx };
+  }
+  
+  function findSymbolDescriptor(sym, ctx) {
+    while (ctx !== undefined) {
+      var desc = ctx.symbols[sym];
+      if (desc !== undefined)
+	return desc;
+      
+      ctx = ctx.parent;
+    }
+   
+    return undefined;
+  }
+  
+  function updateSymbolBinding(ctx, sym, value) {
+    var desc = findSymbolDescriptor(sym, ctx);
+    if (desc !== undefined)
+      desc.value = value;
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Tail-call Optimization Support
+  //
+
+  function tailContext(ctx) {
+    return new Context(ctx, { tail: true });
+  }
+
+  function nonTailContext(ctx) {
+    return new Context(ctx, { tail: false });
+  }
+
+  function isTailContext(ctx) {
+    return ctx.tail;
+  }
+
+  function possiblyRecursive(applicand, ctx) {
+    var desc;
+    return isList(applicand)
+	|| isSymbol(applicand)
+	    && (beingDefined(applicand, ctx)
+		|| (desc = findSymbolDescriptor(applicand, ctx))
+		    && (desc.mutable || desc.free));
+  }
+  
+  function markLambdaAsPromising(ctx) {
+    ctx = findInnerLambdaContext(ctx);
+    if (ctx !== undefined)
+      ctx.promising = true;
+  }
+  
+  function isPromisingLambda(ctx) {
+    return ctx !== undefined && ctx.promising;
+  }
+  
+  function isApplicandPromising(applicand, env, ctx) {
+    var desc, value;
+    return possiblyRecursive(applicand, ctx)
+	|| isPromisingLambdaForm(applicand)
+	|| isSymbol(applicand)
+	    && ((desc = findSymbolDescriptor(applicand, ctx))
+		&& (value = desc.value)
+		&& isPromisingLambdaForm(value)
+		|| (value = env[applicand.emit()])
+		    && isPromisingFunction(value));
+  }
+  
+  function isInline(applicand, env, ctx) {
+    var value;
+    return isSymbol(applicand)
+	&& !findSymbolDescriptor(applicand, ctx)
+	&& (value = env[applicand.emit()])
+	&& value.inline;
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Set Value Contexts
+  //
+
+  function setValueContext(ctx, target, value) {
+    var desc = findSymbolDescriptor(target, ctx);
+    
+    if (desc) {
+      desc.free = false;
+      desc.setCount++;
+      desc.mutable = desc.setCount > 1
+		       || findInnerLambdaContext(ctx) !== desc.ctx;
+      desc.value = value;
+    }
+
+    return new Context(ctx, { type: 'set', tail: false, target: target });
+  }
+
+  function findSetValueContext(sym, ctx) {
+    while (ctx !== undefined) {
+      if (ctx.type == 'set' && sym.$sym == ctx.target.$sym)
+	return ctx;
+      
+      ctx = ctx.parent;
+    }
+    
+    return false;
+  }
+  
+  function beingDefined(sym, ctx) {
+    return findSetValueContext(sym, ctx) !== false;
+  }
+  
+  //===========================================================================
+  //
+  // Parsing
+  //
+
+  function parseSexp(sexp, env, ctx) {
+    if (env === undefined || ctx === undefined) {
+      debugger;
+    }
+    
+    if (!isList(sexp)) {
+      if (sexp instanceof Array)
+	return parseVector(sexp, env, ctx);
+      
+      return sexp;
+    }
+
+    var key = car(sexp);
+
+    if (isSymbol(key)) {
+      var applicand = env[key.emit()]; 
+      if (isMacro(applicand)) {
+	// force may not be necessary here....
+	var result = $force(applicand.call(applicand.env, sexp));
+/*	if (Moosky.Top.foo) {
+	  console.log('MACRO============================================');
+	  console.log(''+sexp);
+	  console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>');
+	  console.log(''+result);
+	  console.log('-------------------------------------------------');
+	}*/
+	return parseSexp(result, env, ctx);
+      }
+
+      var parsers = { 'and': parseAnd,
+		      'begin': parseBegin,
+		      '$define': parseDefine,
+		      'define-macro': parseDefineMacro,
+		      'if': parseIf,
+		      'javascript': parseJavascript,
+		      'lambda': parseLambda,
+		      'or': parseOr,
+		      'quote': parseQuote,
+		      'quasiquote': parseQuasiQuote,
+		      'set!': parseSet };
+
+      var parser = parsers[key];
+      if (parser)
+	return parser(sexp, env, ctx);
+    }
+
+    return parseApplication(sexp, env, ctx);
+  }
+  
+  //---------------------------------------------------------------------------
+  //
+  // Auxiliary Parsing Functions
+  //
+
+  function parseNonTailedSequence(sexp, env, ctx) {
+    var forms = nil;
+    var nonTailCtx = nonTailContext(ctx);
+    while (sexp != nil) {
+      forms = syntaxStar(parseSexp(car(sexp), env, nonTailCtx), forms);
+      sexp = cdr(sexp);
+    }
+
+    return reverseSyntax(forms);
+  }
+  
+  function parseTailedSequence(sexp, env, ctx) {
+    var forms = nil;
+    var next;
+    
+    var parentCtx = ctx;
+    var nonTailCtx = nonTailContext(ctx);
+    
+    ctx = nonTailCtx;
+    while (sexp != nil) {
+      next = cdr(sexp);
+      
+      if (next == nil)
+	ctx = parentCtx;
+      
+      forms = syntaxStar(parseSexp(car(sexp), env, ctx), forms);
+      
+      sexp = next;
+    }
+
+    return reverseSyntax(forms);
+  }
+  
+  function parseVector(sexp, env, ctx) {
+    var result = [];
+    var i;
+    for (i = 0; i < sexp.length; i++)
+      result[i] = parseSexp(sexp[i], env, ctx);
+    
+    return result;
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Basic Assertions
+  //
+  
+  function assertIsProperList(sexp) {
+    var runner = sexp;
+    while (runner != nil) {
+      if (!isList(runner))
+	throw new AssertFailure('proper list expected, not ' + sexp);
+      runner = cdr(runner);
+    }
+  }
+  
+  function assertIsSymbol(sexp) {
+    if (!isSymbol(sexp))
+      throw new AssertFailure('symbol expected, not ' + sexp);
+  }
+  
+  function assertListLength(sexp, n) {
+    if (length(sexp) != n)
+      throw new AssertFailure('wrong number of parts: ' + n + ' expected, not ' + sexp);
+  }
+
+  function assertMinListLength(sexp, n) {
+    if (length(sexp) < n)
+      throw new AssertFailure('wrong number of parts: at least ' + n + ' expected, not ' + sexp);
+  }
+  
+  function assertSymbolValue(sexp, s) {
+    assertIsSymbol(sexp);
+    if (sexp.toString() != s)
+      throw new AssertFailure(s + ' expected, not ' + sexp.toString());
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Syntax Validation
+  //
+  
+  function assertApplicationWellFormed(sexp) {
+    assertIsProperList(sexp);
+  }
+  
+  function assertAndWellFormed(sexp) {
+    assertIsProperList(sexp);
+  }
+  
+  function assertBeginWellFormed(sexp) {
+    assertIsProperList(sexp);
+  }
+  
+  function assertDefineWellFormed(sexp) {
+    assertIsProperList(sexp);
+    assertListLength(sexp, 2);
+  }
+  
+  function assertDefineMacroTargetWellFormed(sexp) {
+    try {
+      if (!isList(sexp))
+	assertIsSymbol(sexp);
+
+      else {
+	assertIsProperList(sexp);
+	assertListLength(sexp, 2);
+	assertIsSymbol(car(sexp));
+	assertIsSymbol(cadr(sexp));
+      }
+    } catch (e) {
+      throw new AssertFailure('a symbol, or a list of two symbols was expected, not ' + sexp);
+    }
+  }
+  
+  function assertDefineMacroWellFormed(sexp) {
+    assertIsProperList(sexp);
+    assertMinListLength(sexp, 3);
+    assertDefineMacroTargetWellFormed(cadr(sexp));
+  }
+  
+  function assertIfWellFormed(sexp) {
+    assertIsProperList(sexp);
+    assertListLength(sexp, 4);
+  }
+  
+  function assertIsJavascript(sexp) {
+    assertJavascriptWellFormed(sexp);
+    assertSymbolValue(car(sexp), 'javascript');
+  }
+  
+  function assertJavascriptWellFormed(sexp) {
+    assertIsProperList(sexp);
+  }
+  
+  function assertLambdaWellFormed(sexp) {
+    assertIsProperList(sexp);
+    assertMinListLength(sexp, 2);
+    assertLambdaFormalParametersWellFormed(cadr(sexp));
+  }
+  
+  function assertLambdaFormalParametersWellFormed(sexp) {
+    try {
+      while (isPair(sexp)) {
+	assertIsSymbol(car(sexp));
+	sexp = cdr(sexp);
+      }
+
+      if (!isList(sexp))
+	assertIsSymbol(sexp);
+    } catch (e) {
+      throw new AssertFailure('a symbol, a list of symbols, or a dotted list of symbols was expected, not ' + sexp);
+    }
+  }
+  
+  function assertOrWellFormed(sexp) {
+    assertIsProperList(sexp);
+  }
+  
+  function assertQuasiQuoteWellFormed(sexp) {
+    assertIsProperList(sexp);
+    assertListLength(sexp, 2);
+  }
+  
+  function assertQuoteWellFormed(sexp) {
+    assertIsProperList(sexp);
+    assertListLength(sexp, 2);
+  }
+  
+  function assertSetWellFormed(sexp) {
+    assertIsProperList(sexp);
+    assertMinListLength(sexp, 3);
+    assertIsSymbol(cadr(sexp));
+  }
+  
+  //---------------------------------------------------------------------------
+  //
+  // Application Parsers
+  //
+
+  function parseApplication(sexp, env, ctx) {
+    assertApplicationWellFormed(sexp);
+    
+    if (isLambdaForm(car(sexp)))
+      return parseAppliedLambda(sexp, env, ctx);
+    
+    var forms = parseNonTailedSequence(sexp, env, nonTailContext(ctx));
+    var applicand = car(forms);
+    var args = cdr(forms);
+    
+    if (isInline(applicand, env, ctx))
+      return syntaxStar(INLINE, env[applicand.emit()], args);
+
+    var isTail = isTailContext(ctx);
+    var recursive = possiblyRecursive(applicand, ctx);
+    var promising = isApplicandPromising(applicand, env, ctx);
+    var application = syntaxStar(APPLY, applicand, args);
+    
+    if (isTail && recursive)
+      application = syntaxStar(PROMISE, application);
+    
+    else if (!isTail && promising)
+      application = syntaxStar(FORCE, application);
+    
+    if (isTail && (recursive || promising))
+      markLambdaAsPromising(ctx);
+    
+    return application;
+  }
+  
+  function parseAppliedLambda(sexp, env, ctx) {
+    var lambdaExp = car(sexp);
+    assertLambdaWellFormed(lambdaExp);
+    
+    var values = parseNonTailedSequence(cdr(sexp), env, ctx);
+    var args = values;
+
+    var lambdaCtx = lambdaContext(ctx);
+
+    var formals = cadr(lambdaExp);
+       if (!isList(formals))
+      bindSymbol(lambdaCtx, formals, values);
+    
+    else {
+      while (formals != nil) {
+	bindSymbol(lambdaCtx, car(formals), car(args));
+	formals = cdr(formals);
+	args = cdr(args);
+	
+	if (!isList(formals))
+	  // break for dotted list (rest argument)
+	  break;
+      }
+      formals = cadr(lambdaExp);
+    }
+
+    var body = parseTailedSequence(cddr(lambdaExp), makeFrame(env), lambdaCtx);
+    
+    var lambda = syntaxStar(car(lambdaExp), formals, body);
+    if (isPromisingLambda(lambdaCtx))
+      markLambdaAsPromising(ctx);
+    
+    var application = syntaxStar(APPLY, lambda, values);
+    if (!isTailContext(ctx) && isPromisingLambda(lambdaCtx))
+      application = syntaxStar(FORCE, application);
+    
+    return application;
+    
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Special Form Parsers
+  //
+
+  function parseAnd(sexp, env, ctx) {
+    assertAndWellFormed(sexp);
+    return syntaxStar(car(sexp), parseTailedSequence(cdr(sexp), env, ctx));
+  }
+
+  function parseBegin(sexp, env, ctx) {
+    assertBeginWellFormed(sexp);
+    return syntaxStar(car(sexp), parseTailedSequence(cdr(sexp), env, ctx));
+  }
+  
+  function parseDefine(sexp, env, ctx) {
+    assertDefineWellFormed(sexp);
+    addSymbol(ctx, cadr(sexp));
+    return sexp;
+  }
+
+  function parseDefineMacro(sexp, env, ctx) {
+    assertDefineMacroWellFormed(sexp);
+    
+    var name;
+    var nameClause = cadr(sexp);
+    var body = cddr(sexp);
+
+    if (!isList(nameClause)) {
+      name = nameClause;
+      body = car(body);
+      
+    } else {
+      name = car(nameClause);
+      body = syntaxStar(LAMBDA, cdr(nameClause), body);
+    }
+
+    var emittedName = name.emit();
+    env[emittedName] = eval(emitTop(emit(parseSexp(body, env, ctx),
+					 new Context(null, { tail: false })), sexp));
+    env[emittedName].env = env;
+    env[emittedName].tag = 'macro';
+    return undefined;
+  }
+
+  function parseIf(sexp, env, ctx) {
+    assertIfWellFormed(sexp);
+    
+    return syntax(car(sexp),
+		  parseSexp(cadr(sexp), env, nonTailContext(ctx)),
+		  parseSexp(caddr(sexp), env, ctx),
+		  parseSexp(cadddr(sexp), env, ctx));
+  }
+
+  function parseJavascript(sexp, env, ctx) {
+    assertJavascriptWellFormed(sexp);
+    
+    return syntaxStar(car(sexp), parseNonTailedSequence(cdr(sexp), env, ctx));
+  }
+
+  function parseLambda(sexp, env, ctx) {
+    assertLambdaWellFormed(sexp);
+    
+    ctx = lambdaContext(ctx);
+
+    var formals = cadr(sexp);
+    if (!isList(formals))
+      addSymbol(ctx, formals);
+
+    else {
+      while (formals != nil) {
+	addSymbol(ctx, car(formals));
+	formals = cdr(formals);
+	
+	if (!isList(formals))
+	  // break for dotted list (rest argument)
+	  break;
+      }
+      formals = cadr(sexp);
+    }
+
+    var body = parseTailedSequence(cddr(sexp), makeFrame(env), ctx);
+    var result = syntaxStar(car(sexp), formals, body);
+    if (isPromisingLambda(ctx))
+      result = syntaxStar(PROMISING, result);
+    return result;
+  }
+
+  function parseOr(sexp, env, ctx) {
+    assertOrWellFormed(sexp);
+    return syntaxStar(car(sexp), parseTailedSequence(cdr(sexp), env, ctx));
+  }
+
+  function parseQuasiQuote(sexp, env, ctx) {
+    assertQuasiQuoteWellFormed(sexp);
+    
+    ctx = nonTailContext(ctx);
+
+    var quoted = cadr(sexp);
+    if (!isPair(quoted))
+      return syntax(QUOTE, quoted);
+
+    function parseQQ(sexp) {
+      if (!isPair(sexp))
+	return sexp;
+
+      var A = car(sexp);
+
+      if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote')
+	return syntax(A, parseSexp(cadr(sexp), env, ctx));
+
+      return syntaxStar(parseQQ(A), parseQQ(cdr(sexp)));
+    }
+
+    return syntax(car(sexp), parseQQ(quoted));
+  }
+
+  function parseQuote(sexp, env, ctx) {
+    assertQuoteWellFormed(sexp);
+    return sexp;
+  }
+
+  function parseSet(sexp, env, ctx) {
+    assertSetWellFormed(sexp);
+    
+    var target = cadr(sexp);
+    var value = parseSexp(caddr(sexp), env, setValueContext(ctx, target));
+    
+    updateSymbolBinding(ctx, target, value);
+    return syntax(car(sexp), target, value);
+  }
+
+  //===========================================================================
+  //
+  // Code Generation
+  //
+
+  function emit(sexp, ctx) {
+    if (ctx === undefined)
+      debugger;
+
+//    console.log('emit' + ': ' + sexp);
+    if (!isList(sexp)) {
+      return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, ctx);
+    }
+
+    var op = car(sexp);
+
+    return ({'and': emitAnd,
+	     'apply': emitApply,
+	     'begin': emitBegin,
+	     '$define': emitDefine,
+	     'force': emitForce,
+	     'if': emitIf,
+	     'inline': emitInline,
+	     'javascript': emitJavascript,
+	     'lambda': emitLambda,
+	     'or': emitOr,
+	     'promise': emitPromise,
+	     'promising': emitPromising,
+	     'quasiquote': emitQuasiQuote,
+	     'quote': emitQuote,
+	     'set!': emitSet}[car(sexp).toString()])(sexp, ctx);
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Miscellaneous Auxiliary Functions
+  //
+
+  function emitArray(sexp, ctx) {
+    var chunks = ['['];
+    var i;
+    var items = [];
+    for (i = 0; i < sexp.length; i++)
+      items.push(emit(sexp[i], ctx));
+    
+    chunks.push(items.join(', '));
+    chunks.push(']');
+    return chunks.join('');
+  }
+  
+  function emitBinding(symbol, value) {
+    return Code('binding').fill({ symbol: symbol.emit(),
+				  value: value });
+  }
+
+  function emitBindings(bindings) {
+    var emitted = [];
+    var length = bindings.length;
+    
+    for (var i = 0; i < length; i++) {
+      var binding = bindings[i];
+      emitted.push(emitBinding(binding.symbol, binding.value));
+    }
+    
+    return (emitted.length > 0) ? emitted.join('  ;\n') + ';\n' : '';
+  }
+  
+  function emitInline(sexp, ctx) {
+    var applicand = cadr(sexp);
+    var parameters = cddr(sexp);
+
+    var values = [];
+    while (parameters != nil) {
+      values.push(emit(car(parameters), ctx));
+      parameters = cdr(parameters);
+    }
+
+    return applicand.inline.fill(values);
+  }
+    
+  function emitObject(sexp, ctx) {
+    if (sexp instanceof Array)
+      return emitArray(sexp, ctx);
+
+    return sexp && sexp.toString && sexp.toString() || sexp;
+  }
+
+  function emitPrimitive(sexp, ctx) {
+    return { 'undefined': function(u) { return 'undefined'; },
+	     'boolean':   function(b) { return b ? 'true' : 'false'; },
+	     'number' :   function(n) { return n.toString(); },
+	     'string':    function(s) { return new Values.String(s).emit(); },
+	     'function':  function(f) { throw new SyntaxError('cannot emit function literal.'); },
+	     'object':    function(o, ctx) { return emitObject(sexp, ctx); }
+	   }[typeof(sexp)](sexp, ctx);
+  }
+
+  function emitSequence(sexp, ctx) {
+    var values = [];
+    while (sexp != nil) {
+      values.push(emit(car(sexp), ctx));
+      sexp = cdr(sexp);
+    }
+    return ['(', values.join(', '), ')'].join('');
+  }
+
+  function emitTop(body, sexp, options) {
+    var source = sexp.$source;
+    var params =
+      { bindings: emitBindings(getContextBindings()),
+	body: body,
+	namespace: 'Moosky.Top',
+	replId: 0,
+	sourceId: source && Inspector.registerSource(source.$text),
+        start: source && source.$start,
+	end: source && source.$end,
+        sexpId: Inspector.registerSexp(sexp) };
+
+    for (var p in options)
+      params[p] = options[p];
+
+    return Code('Top').fill(params);
+  }
+
+  //---------------------------------------------------------------------------
+  //
+  // Special Forms
+  //
+
+  function emitAnd(sexp, ctx) {
+    sexp = cdr(sexp);
+
+    var values = length(sexp);
+    if (values == 0)
+      return 'true';
+
+    if (values == 1)
+      return emit(car(sexp), ctx);
+
+    var chunks = ['('];
+    while (sexp != nil) {
+      var next = cdr(sexp);
+      
+      if (next == nil) {
+	chunks.push('(');
+	chunks.push(emit(car(sexp), ctx));
+	chunks.push(')');
+	
+      } else {
+	chunks.push('(');
+	chunks.push(emit(car(sexp), ctx));
+	chunks.push(') == false ? false : ');
+      }
+
+      sexp = next;
+    }
+    chunks.push(')');
+    return chunks.join('');
+  }
+
+  function emitApply(sexp, ctx) {
+    var applicand = cadr(sexp);
+    var parameters = cddr(sexp);
+
+    var values = [];
+    while (parameters != nil) {
+      values.push(emit(car(parameters), ctx));
+      parameters = cdr(parameters);
+    }
+
+    var source = sexp.$source || {};
+    return Code('application').fill({ body: [emit(applicand, ctx), '(', values.join(', '), ')'].join(''),
+				      start: source.$start,
+				      end: source.$end,
+				      sexpId: Inspector.registerSexp(sexp) });
+  }
+
+  function emitBegin(sexp, ctx) {
+    var body = cdr(sexp);
+    if (body == nil)
+      return emit(undefined, ctx);
+    else
+      return emitSequence(cdr(sexp), ctx);
+  }
+
+  function emitDefine(sexp, ctx) {
+    var name = cadr(sexp);
+    
+    if (!findInnerLambdaContext(ctx))
+      // TRICKY: This allocates a member of Moosky.Top with value undefined.
+      // The 'with (Moosky.Top)' generated by emitTop will put this value in
+      // the undecorated namespace, so that a subsequent 'name = ...' will
+      // deposit the rhs into Moosky.Top, rather than creating a new global.
+      return Code('top-level-define').fill({ name: name.emit() });
+    
+    // emitLambda will put 'var <name> = undefined;' statements in the function
+    // preamble.
+    addDefinedName(ctx, cadr(sexp));
+    return 'undefined';
+  }
+
+  function emitForce(sexp, ctx) {
+//    console.log('emitForce', ''+cdr(sexp));
+    return Code('force').fill({ expression: emitApply(cdr(sexp), ctx) });
+  }
+  
+  function emitIf(sexp, ctx) {
+    return Code('if').fill({ test: emit(car(sexp = cdr(sexp)), ctx),
+			     consequent: emit(car(sexp = cdr(sexp)), ctx),
+			     alternate: emit(car(sexp = cdr(sexp)), ctx) });
+  }
+
+  function emitJavascript(sexp, ctx) {
+    sexp = cdr(sexp);
+    var chunks = [];
+    while (sexp != nil) {
+      var chunk = car(sexp);
+
+      if (typeof(chunk) == 'string')
+	chunks.push(chunk);
+      else
+	chunks.push(emit(chunk, ctx));
+
+      sexp = cdr(sexp);
+    }
+    return chunks.join('');
+  }
+
+  function emitLambda(sexp, ctx) {
+    var bodyCtx = lambdaContext(ctx);
+    var body = emitSequence(cddr(sexp), bodyCtx);
+
+    var formals = cadr(sexp);
+    var emittedFormals = [];
+    var bindings = getContextBindings(bodyCtx);
+    
+    if (isSymbol(formals)) {
+      bindings.push({ symbol: formals, 
+		      value: '$argumentsList(arguments, 0)' });
+      emittedFormals.push('___');
+    }
+
+    else {
+      var i = 0;
+      while (formals != nil) {
+	if (!isList(formals)) {
+	  bindings.push({ symbol: formals, 
+			  value: '$argumentsList(arguments, ' + i + ')' });
+	  emittedFormals.push('___');
+	  break;
+	} else
+	  emittedFormals.push(car(formals).emit());
+
+	formals = cdr(formals);
+	i++;
+      }
+    }
+
+    var source = sexp.$source || {};
+
+    return Code('lambda').fill({ formals: emittedFormals.join(', '),
+				 bindings: emitBindings(bindings),
+				 body: body,
+				 start: source.$start,
+				 end: source.$end,
+				 sexpId: Inspector.registerSexp(sexp) });
+  }
+  
+  function emitOr(sexp, ctx) {
+    sexp = cdr(sexp);
+    var values = length(sexp);
+    if (values == 0)
+      return 'false';
+
+    if (values == 1)
+      return emit(car(sexp), ctx);
+
+    // ($or_45 = (expr)) != false ? $or_45 : ... : false)
+    var $temp = gensym('or');
+    addDefinedName(ctx, $temp);
+    
+    var chunks = ['('];
+    while (sexp != nil) {
+      var next = cdr(sexp);
+      
+      if (next == nil) {
+	chunks.push('(');
+	chunks.push(emit(car(sexp), ctx));
+	chunks.push(')');
+	
+      } else {
+	chunks.push('(');
+	chunks.push($temp.emit());
+	chunks.push(' = (');
+	chunks.push(emit(car(sexp), ctx));
+	chunks.push(')) != false ? ');
+	chunks.push($temp.emit());
+	chunks.push(' : ');
+      }
+      sexp = cdr(sexp);
+    }
+    chunks.push(')');
+    return chunks.join('');
+  }
+
+  function emitPromise(sexp, ctx) {
+    return Code('promise').fill({ expression: emitApply(cdr(sexp), ctx) });
+  }
+
+  function emitPromising(sexp, ctx) {
+    return Code('promising').fill({ lambda: emitLambda(cdr(sexp), ctx),
+				    temp: gensym('promising') });
+  }
+
+  function emitQuasiQuote(sexp, ctx) {
+    var lambdas = [];
+
+    function emitQQ(sexp) {
+      if (!isPair(sexp))
+	return sexp;
+
+      var A = car(sexp);
+
+      if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote') {
+	// this should be moved to the parse phase
+	lambdas.push(emit(syntaxStar(LAMBDA, nil, cdr(sexp)), ctx));
+	return syntax(A);
+      }
+
+      return syntaxStar(emitQQ(A), emitQQ(cdr(sexp)));
+    }
+
+    var quoted = syntax(QUOTE, emitQQ(cadr(sexp)));
+
+    return ['$quasiUnquote(', emitQuote(quoted, ctx), ', [', lambdas.join(', '), '])'].join('');
+  }
+
+  function emitQuote(sexp, ctx) {
+    var quoted = cadr(sexp);
+    if (quoted == nil)
+      return '$nil';
+
+    if (isSymbol(quoted))
+      return ['stringToSymbol(', (new Values.String(quoted.$sym)).emit(), ')'].join('');
+
+    if (!isList(quoted)) {
+      return (quoted instanceof Value) ? quoted.emit() : '' + emitPrimitive(quoted, ctx);
+    }
+
+    function emitQ(sexp, ctx) {
+      if (sexp == nil)
+	return '$nil';
+
+      if (isSymbol(sexp))
+	return ['stringToSymbol(', (new Values.String(sexp.$sym)).emit(), ')'].join('');
+
+      if (!isList(sexp)) {
+	return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, ctx);
+      }
+
+      return ['cons(', emitQ(car(sexp), ctx), ', ', emitQ(cdr(sexp), ctx), ')'].join('');
+    }
+    var $temp = gensym('quote');
+    addQuote(ctx, $temp, emitQ(quoted, ctx));
+
+    return $temp.emit();
+  }
+
+  function emitSet(sexp, ctx) {
+    return Code('set').fill({ target: emit(cadr(sexp), ctx),
+			      value: emit(caddr(sexp), ctx) });
+  }
+
+  function compile(sexp, env, options) {
+    env = env || makeFrame(Moosky.Top);
+    var ctx = new Context(null, { tail: true });
+    var parsed = parseSexp(syntaxStar(BEGIN, sexp), env, topContext());
+//    console.log('========================================================');
+//    console.log("" + parsed);
+    var result = emitTop(emit(parsed, ctx), sexp, options);
+/*    if (Moosky.Top.foo) {
+      console.log('--------------------------------------------------------');
+      console.log(result);
+    }*/
+    return result;
+  }
+
+  var Compiler = {};
+  
+  Compiler.Context = Context;
+  Compiler.emit = emit;
+  Compiler.parseSexp = parseSexp;
+  Compiler.compile = compile;
+  
+  return Compiler;
+})();
+
