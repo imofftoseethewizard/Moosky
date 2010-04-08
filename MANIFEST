@@ -1,0 +1,34 @@
+MANIFEST
+
+This is the top-level MANIFEST for Moosky.  This directory contains
+the following files and directories:
+
+  bin/
+  build/
+  doc/
+  LICENSE
+  MANIFEST
+  README
+  src/
+  test/
+
+bin/ holds scripts for assembling various Moosky runtimes from source,
+  for setting up testing environments, and other miscellaneous tasks
+  that may arise.
+
+build/ holds intermediate and completed targets created by the
+  assembly scripts in bin/.
+
+doc/ holds documents describing the implementation and use of Moosky.
+
+LICENSE describes the terms and conditions under which Moosky may be
+  obtained, used, or modified.
+
+MANIFEST is this file.  See the MANIFEST file in each subdirectory for
+  more detailed information.
+
+README provides a basic introduction to Moosky.
+
+src/ holds all of the source code for Moosky.
+
+test/ holds the test scripts and test pages for Moosky.
