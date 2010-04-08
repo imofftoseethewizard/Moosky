@@ -1,0 +1,20 @@
+MANIFEST
+
+This is the MANIFEST for Moosky/bin.  This directory contains the
+following files:
+
+  clean-build.sh
+  compressor.sh
+  MANIFEST
+  yuic
+
+clean-build.sh is a script to clean the build directory.  It deletes
+the directory and creates a new, empty directory in its place.
+
+compressor.sh is a script that reads javascript from standard input
+and produces unmunged, compressed javascript on standard output.
+
+MANIFEST is this file.
+
+yuic is a script making it easier to use the Yahoo User Interface
+Library's Javascript Compresser.
