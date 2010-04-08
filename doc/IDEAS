@@ -1,0 +1,519 @@
+5. TODO
+
+5.1 Misc
+Using try/catch to implement CPS scheme:
+  1. rewrite to CPS during parse
+    force projections, promise injections
+  2. before each continuation is entered,
+    set a global or globals that have the function
+    arguments, and (perhaps) this object for the continuation
+  3. at top level, catch 'too much recursion' errors and restart
+    at saved continuation from 2.
+  4. for code that is side-effectful, throw an exception to ensure top-of-stack
+    prior to call
+    (define (foo bar)
+      <stuff that has side-effects>
+   --> function($c, bar) {
+         $C = function () {
+                 $c(<stuff that has side-effects>)
+              };
+         throw new Moosky.ClearStack();
+
+    at top level:
+    <<set up $C>>
+     while (true) {
+       try {
+         return $C();
+        } catch (e) {
+          if << e is 'too much recursion' or Moosky.ClearStack>>
+            continue;
+
+          throw (e)
+      }	
+    
+Use Keywords to decorate functions:
+
+(define (foo bar)
+  documentation: "Bla bla bla.."
+  imperative: #t
+  test: (forms describing unit tests for this function)
+  (body of foo))
+  
+
+investigate using iframes to install REPL in arbitrary web page
+  1. using bookmarklet insert iframe with href to moosky.org
+    and a parameter indicating the domain of the target page
+  2. load moosky source from moosky.org, instantiate moosky.
+  3. change document domain to hosting page
+  4. create repl
+
+(compile "file://home/pat/src/moosky/r6rs-list.ss")
+  produces a new div with text of the result, suitable for uploading
+  without full Moosky.
+
+provide quasiquote facility that respects syntax
+
+History
+  commands
+7  results
+
+Keymap
+  key --> fn
+
+Console
+  keymap
+  history
+  prompt
+
+Display
+  element
+  commands
+  caret control
+  add text
+  insert/delete
+
+# Files
+
+- COPYRIGHT
+    Copyright 2010 by Pat M. Lasswell, all rights reserved.
+  
+- LICENSE
+    Describes the software license agreement that covers Moosky.  In
+    short, Gnu Public License version 3, or a later version of the same.
+
+- README
+    This file.
+
+- moosky-runtime-debug.js
+- moosky-runtime-checked.js
+- moosky-runtime-raw.js
+    These files provide runtime support for compiled moosky source.
+    (If you have moosky.js, then you don't need any of these, as
+    moosky.js contains all three runtimes.)  Raw provides the basics
+    for running compiled source.  It comes with absolutely no bounds
+    checking or error checking of any kind.  It is appropriate for use
+    on well-tested and stable code.  Checked provides the same
+    capabilities as raw, but contains asserts on argument count, type,
+    and value.  Use this runtime for stable portions of a development
+    project.  Debug provides all of the capabilities of raw and
+    checked, but adds additional information to help diagnose failures
+    and inspect state during exceptions.
+
+- moosky.js
+    Provides the reader, compiler, runtime, debugger, and REPL.
+
+- preamble.ss 
+    Provides macros to handle some of the basic syntax
+    transformations, e.g. let, let*, letrec, begin, etc.
+
+- r6rs-XXX.ss
+    A library file for the R6RS standard.  Currently only the list
+    library is supported.
+
+- test.html
+- test.js
+    A simple webpage to test and demo Moosky.
+
+### Preamble Macros
+(define-macro (let stx)
+  (let* ([bindings (cadr stx)])
+        [formals (map car bindings)]
+        [values (map cadr bindings)]
+        [body
+(define-macro (let stx) 
+  (apply (lambda (formals body values)
+           `(apply (lambda ,formals ,body) ,values))
+         (apply (lambda
+(define-macro (begin stx)
+  (let ([
+  `(apply (lambda ,formals ,last-formal)
+          ,(forms))
+
+### Internal Representation
+
+- and
+(and form ...)
+
+- apply
+(apply applicand arg1 arg2 ... argn args)
+
+- begin
+(begin form ...)
+
+- define
+(define name value)
+
+- force
+(force form)
+
+- if
+(if test consequent alternate)
+
+- javascript
+(javascript form ...)
+
+- lambda
+(lambda formals body)
+
+- or
+(or form ...)
+
+- quasiquote
+(quasiquote form)
+
+- quote
+(quote form)
+
+- promise
+(promise form)
+
+- set!
+(set! <symbol|javascript> form)
+
+
+### Optimizations
+
+Constant folding
+Move force/promise to parsing phase
+Explicit tail recursion --> while
+  conditions:
+    tail call of application name that is being defined
+      interpret nested defines as set! in scope
+      check for set! or define
+
+  (define (A)
+    (let B ()
+      (if p
+          (A)
+          (B))))
+
+  -->
+  function A() {
+    while (true) {
+      if (p)
+         return promise(A())
+      else 
+         continue;
+
+
+  (define (foo)
+   (let A ()
+     (let B ()
+       (if p
+           (A)
+           (B)))))
+
+  -->
+  function (foo) {
+    var $continue_A = false;
+    while (true) {
+      while (true) {
+        if (p) {
+           $continue_A = true;
+           break;         
+        } else
+          continue;
+      }
+      if ($continue_A) {
+        $continue_A = false
+        continue;
+      }	
+    }
+  }
+
+  (define (foo)
+    (let A ()
+      (let B ()
+        (let C ()
+          (cond [1 (A)]
+                [2 (B)]
+                [3 (C)])))))
+
+
+  -->
+
+  however, break and continue are statements, while if
+  is currently implemented as an expression using ?:
+
+  ==> either changing if to use temporary variables in a 
+    result = style, 
+  
+  function (foo) {
+    var $continue_A = false;
+    while (true) {
+      var $continue_B = false;
+      while (true) {
+        var $continue_C = false;
+        while (true) {
+        if (1) {
+          $continue_A = true;
+          break;
+        } else if (2) {
+          $continue_B = true;
+          break;
+        } else
+          continue;
+      }
+      if ($continue_B) {
+        $continue_B = false;
+        continue;
+      }	
+      if ($continue_A)
+        break;
+    }
+    if ($continue_A) {
+      $continue_A = false;
+      continue;
+    }
+
+
+    <initial-bindings>
+    var $continue_A = {};
+    var result = $continue_A;
+    while (result === $continue_A)
+      result = <expression>;
+    return expression;
+
+    applications of explicit recursion become
+     (<<parameter>> = <<value>>, ..., <<recurrence symbol>>)
+
+   problem: values in recursive applications must be evaluated at
+   the lowest scope, but the assignments at a possibly higher
+   scope....
+   ==> parameters to recursive functions have scope distinguishing
+    features in their symbols: 
+
+  (let loopA ([foo "a"])
+    (console.log foo)
+    (let loopB ([foo "b"])
+      (console.log foo)
+      (if condition)
+          (loopA "c")
+          (loopB "d")))
+
+  ((lambda (loopA)
+     (set! loopA
+       (lambda (foo)
+         (console.log foo)
+         ((lambda (loopB)
+	   (set! loopB
+	     (lambda (foo)
+	       (console.log foo)
+               (if condition
+                   (loopA "c")
+ 		   (loopB "d")))))
+	  "b"))))
+   "a")
+       
+  --> the applications (loopA "c") and (loopB "d") are recursive
+      ==> A, B are while-structured functions
+      ==> declare $rLoopA = {} and $rLoopB = {} in their respective
+         scopes
+   
+  (function (loopA) {
+    loopA = function ($loopA_foo) {
+              var $rLoopA = {};
+              while (result = (console.log($loopA_foo), // notice that foo --> $loopA_foo here, and $loopB_foo below
+	      	    	       (function(loopB) {
+              		      loopB = function($loopB_foo) {
+    	                        var $rLoopB = {};
+				console.log($loopB_foo); // notice that foo --> $loopB_foo here, and $loopA_foo above
+				while ((result = (condition
+   				                   ? ($loopA_foo = "c", $rLoopA)
+                				   : ($loopB_foo = "d", $rLoopB))),
+					result === $rLoopB)
+			          ;       
+				return result;
+			      };
+                              return loopB("b");
+			    })(undefined);
+                      result === $rLoopA)
+                ;
+              return result)
+            ;
+    return loopA("a");
+  })(undefined)
+
+  ==> detecting explicit recursion...
+    i. lambda is the value part of a set or define
+    ii. name of the set or define is used in an application
+       context within the lambda
+    ....
+
+    look for subtended bindings which have the same name as one
+    of the parameters.
+
+   ==> context dependent mapping of scheme symbols to javascript variables
+   ==> use env parameter and makeFrame to adjoin symbol information during parse
+    if a symbol is defined in env and is a primitive or an already defined lambda,
+    then nothing need be done.
+
+    If the symbol is new, then add a temporary record that gives its parameters
+    and their corresponding javascript variables.
+    
+  ==>
+   explicit recursion:
+     declare $rXxx in new scope below set! (or define) -- the same place
+       as quotes
+    
+
+function Stub(name, parameters, env) {
+  this.name = name;
+  this.parameters = {};
+  for (var i = 0; i < parameters.length-1; i++) {
+    var parameter = parameters[i];
+    this.parameters[parameter] = parameter;
+    this.env[parameter] = parameter;
+  } 
+  this.recursive = false;
+  
+}  
+
+Stub.prototype.makeRecursive = function() {
+  if (this.recursive)
+    return;
+
+  for (p in parameters) {
+    var sym = gensym(this.name + ':' + p);
+    this.parameters[p] = sym;
+    this.env[p] = sym;
+  } 
+
+  this.recursive = true;
+}			
+
+function Environment(parent) {
+  var Constructor = function() {};
+  Constructor.prototype = parent;
+  return new Constructor();
+}
+
+function Environment.prototype.makeStub = function(name, parameters) {
+  return new Stub(name, parameters, this);
+}
+
+env = new Environment(env);
+env.makeStub(name, parameters);
+
+  
+    var $rLoopA = {}
+    while (
+
+  (define (foo p)
+    (if (p)
+        0
+        (foo p)))
+
+  function foo(p) {
+    var $continue_foo = {};
+    var result = $continue_foo;
+    while ((result = (p() != false) ? 0 : (p = p, $continue_foo)), result === $continue_foo));
+      
+    return result;
+
+  ==> optimized for unchanged on loop restart       
+  what about co-routines?
+
+  (define (foo p q)
+    (letrec ([A (lambda ()
+                  (if (p)
+                      (A)
+                      (B)))]
+             [B (lambda ()
+                  (if (q)
+                      (B)
+                      (A)))]
+  -->
+
+  
+  while (result == $continue_A || result == $continue_B) {
+    if (result == $continue_A)
+      result = <A-expr>
+    else if (result == $continue_B)
+      result = <B-expr>
+      
+  ==> in each lexical scope, collect recursive references.
+   .. can use similar means as quote collection
+
+   generate a symbol 'r-' + 'name' --> e.g, $rLoop_36
+   for references n:
+   
+   var $recur1 = {};
+   var $recur2 = {};
+   ...
+   var $recurn = {};
+  
+   while ((result = result === $recur1 ? <<expr1>> 
+                  : result === $recur2 ? <<expr2>>
+                  : ...
+                  : <<exprn>>),
+	   result === $recur1
+	   || result === $recur2 ...
+           || result === $recurn)
+    ;
+
+    return result;
+
+
+Create moosky-runtime.js.
+  1. strip out lexer, parser, emitter, html.
+  2. reduce remainder to what is actually used by compile code
+  3. offer runtime w/ error checking and w/o
+  ==> 3 versions runtime-debug (included with lexer, parser, etc)
+                 runtime-checked (with asserts and errors)
+                 runtime-bare (all limits checking removed)
+
+  Moosky.Runtime.exports{}
+  Moosky.Runtime.rawExports{}
+  Moosky.Runtime.checkedExports{}
+  Moosky.Runtime.debugExports{}
+  Moosky.Runtime.selectExports(tag) :: tag in raw, checked, debug
+
+  files 
+    moosky-runtime-debug.js contains raw, checked, and debug runtimes
+    moosky-runtime-checked.js contains raw and checked runtimes
+    moosky-runtime-raw.js contains only raw runtime as exports and no selectExports
+    
+  runtime contains the primitives necessary for compiled code to run.
+
+  raw has no checking of any sort, either on argument types, count, or
+    appropriateness.
+
+  checked has asserts for argument count, type, and appropriate values
+ 
+  debug has all of checked plus inspectors which allow break-time investigation
+    of exceptions.
+
+(let loop ...) --> (function () { while () { ... } })()
+  where all (loop ...) are in tail position
+  (loop ...) --> set! ... {continue;}
+  (begin
+    (form) ...
+    (loop ...)
+  --> (emitted form), ...; 
+      set! ...
+      continue;
+
+  (if (test)
+    (form)
+    (loop ...)
+  --> (if (emitted test)
+          return (emitted form)
+
+  and/or ... reduce to if
+
+
+error
+assertion-violation
+assert
+moosky.org
+basic website
+
+
+5.2 Libraries
+
+R6RS Records
+DOM
+CSS
+XHR
+
