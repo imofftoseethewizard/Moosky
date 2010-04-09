@@ -24,6 +24,9 @@ doc/ holds documents describing the implementation and use of Moosky.
 LICENSE describes the terms and conditions under which Moosky may be
   obtained, used, or modified.
 
+Makefile describes how to make various flavors of Moosky from the
+  source.
+
 MANIFEST is this file.  See the MANIFEST file in each subdirectory for
   more detailed information.
 
