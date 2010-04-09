@@ -136,7 +136,7 @@ Moosky.HTML = (function ()
 
     for (var i = 0, length = scripts.length; i < length; i++) {
       var s = scripts[i];
-      if (s.type == 'text/moosky' || s.type == 'text/scheme') {
+      if (s.type == 'text/moosky' || s.type == 'text/x-script.scheme') {
 	if (s.text)
 	  texts[i] = { script: s, text: s.text };
 
@@ -149,10 +149,11 @@ Moosky.HTML = (function ()
 	    (function (script, index) {
 	       return function(state) {
 		 var response = state.currentTarget;
-
 		 if (response.readyState == 4) {
+
 		   texts[index] = { script: script,
 				    text: response.responseText };
+		   console.log('response text: ', response.responseText);
 		   if (--waitCount == 0 && loopFinished) {
 		     makeScriptElements();
 		   }

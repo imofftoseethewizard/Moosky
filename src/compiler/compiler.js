@@ -20,7 +20,7 @@
 //=============================================================================
 
 //=============================================================================
-// 
+//
 // Recursion and Tail Call Optimization
 //
 // Mutable Symbols
@@ -30,10 +30,10 @@
 //          b. if the set! form is preceded by anything but other set! forms in the
 //            defining lambda, or
 //          c. if the set! form occurs in an interior lambda.
-// 
+//
 //   In particular symbols which are immediately set! within the defining
 //   lambda -- and nowhere else -- are not considered mutable.
-// 
+//
 // Definitely recursive applications:
 //   Within the value of a set! statement
 //     and the applicand is not mutable and is the target of a containing set!
@@ -48,7 +48,7 @@
 //   special forms
 //
 // Promise-making Lambdas
-//   A lambda is promise-making if it has a potentially recursive application 
+//   A lambda is promise-making if it has a potentially recursive application
 //   in tail position.
 //
 // Examples:
@@ -63,7 +63,7 @@
 //   Beause (lambda (x) ...) contains no potentially recursive applications,
 //   the application (x #t) of the promise-making form (lambda (y) ...) must be
 //   forced.  Hence (lambda (x) ...) is not promise-making form.
-// 
+//
 //   Variation of the simple case:
 //     ((lambda (x)
 //         (set! x (lambda (y) (if y (cons 'foo (x #f)) 'bar)))
@@ -73,15 +73,15 @@
 //   Many of the same observations apply, except that in this case the
 //   application (x #f) is not in tail position. Hence (lambda (y) ...) need
 //   not make a promise, and the application (x #t) is not forced.
-// 
+//
 //   Free-variable case:
 //     (lambda (x)
 //        (x x))
-//   
+//
 //   in this case, x is a free variable and may take arbitrary values.  x may
 //   in fact take a reference to the form (lambda (x) ...). Since (x x) is
 //   potentially recursive, the form (lambda (x) ...) must return a promise.
-// 
+//
 //   Application as applicand case:
 //     (lambda (x)
 //       ((foo) x))
@@ -91,7 +91,7 @@
 //
 //   Simple recursive definition:
 //     (define foo)
-//     (set! foo 
+//     (set! foo
 //       (lambda (x)
 //         (if (< 0 x)
 //             (foo (- x 1))
@@ -102,11 +102,11 @@
 //       (if (< 0 x)
 //           (foo (- x 1))
 //           'done)))
-//     
+//
 //   (foo (- x 1)) is an explicitly recursive application because it is
-//   within the content of a set! with foo as its target.  Hence the 
+//   within the content of a set! with foo as its target.  Hence the
 //   form (lambda (x) ...) must promise.  No forcing appears in this case.
-// 
+//
 //   Closure with simple recursion:
 //     (define foo)
 //     (set! foo
@@ -118,7 +118,7 @@
 //                   (foo (- x 1)))
 //                 'done)))
 //        0))
-// 
+//
 //   This is the expansion of
 //     (define foo
 //       (let ([counter 0])
@@ -128,7 +128,7 @@
 //                 (set! counter (+ 1 counter))
 //                 (foo (- x 1)))
 //               'done))))
-//   
+//
 //   In this case (foo (- x 1)) is still an explicitly recursive application,
 //   and therefore (lambda (x) ...) must promise.  But the form (lambda (x) ...)
 //   itself is not recursive, so the form (lambda (counter) ...) need not
@@ -136,7 +136,7 @@
 //
 
 Moosky.Compiler = (function ()
-{ 
+{
   eval(Moosky.Runtime.importExpression);
 
   var Values = Moosky.Values;
@@ -177,12 +177,12 @@ Moosky.Compiler = (function ()
     var key;
     return isPair(sexp) && isSymbol(key = car(sexp)) && key == 'javascript';
   }
-  
+
   function isLambdaForm(sexp) {
     var key;
     return isPair(sexp) && isSymbol(key = car(sexp)) && key == 'lambda';
   }
-  
+
   function isPromisingLambdaForm(sexp) {
     var key;
     return isPair(sexp) && isSymbol(key = car(sexp)) && key == 'promising'
@@ -197,10 +197,10 @@ Moosky.Compiler = (function ()
   function AssertFailure(message, inspector) {
     Exception.apply(this, arguments);
   }
-  
+
   AssertFailure.prototype = new Exception();
   AssertFailure.prototype.name = 'AssertFailure';
-  
+
   //===========================================================================
   //
   // Context Support
@@ -214,7 +214,7 @@ Moosky.Compiler = (function ()
     this.type = options.type;
     this.tail = options.tail;
     this.target = options.target;
-    
+
     this.symbols = [];
     this.promising = false;
     this.id = Context.count++;
@@ -245,7 +245,7 @@ Moosky.Compiler = (function ()
   function findInnerLambdaContext(ctx) {
     return ctx && ctx.innerLambda();
   }
-  
+
   //---------------------------------------------------------------------------
   //
   // Top
@@ -254,13 +254,13 @@ Moosky.Compiler = (function ()
   function topContext() {
     return new Context();
   }
-  
+
   function findTopContext(ctx) {
     while (ctx.parent)
       ctx = ctx.parent;
     return ctx;
   }
-  
+
   //---------------------------------------------------------------------------
   //
   // Context Guardians
@@ -269,7 +269,7 @@ Moosky.Compiler = (function ()
   Context.Guardian = function() {
     this.items = [];
   };
-  
+
   Context.Guardian.prototype.add = function(ctx, value) {
     var lambdaCtx = ctx.innerLambda() || findTopContext(ctx);
     this.items.push({ ctx: lambdaCtx, value: value });
@@ -278,10 +278,10 @@ Moosky.Compiler = (function ()
   Context.Guardian.prototype.get = function(ctx) {
     var items = this.items;
     var length = items.length;
-    
+
     var result = [];
     var remainder = [];
-    
+
     for (var i = 0; i < length; i++) {
       var item = items[i];
       if (!ctx || ctx.containsContext(item.ctx))
@@ -293,14 +293,14 @@ Moosky.Compiler = (function ()
     this.items = remainder;
     return result;
   };
-  
+
   //---------------------------------------------------------------------------
   //
   // Quoted Expressions
   //
 
   Context.quotes = new Context.Guardian();
-  
+
   function addQuote(ctx, symbol, value) {
     Context.quotes.add(ctx, { symbol: symbol, value: value });
   }
@@ -329,7 +329,7 @@ Moosky.Compiler = (function ()
     var bindings = [];
     var quotes = getQuotes(ctx);
     var length = quotes.length;
-    
+
     for (var i = 0; i < length; i++) {
       var quote = quotes[i];
       bindings.push(quote);
@@ -338,44 +338,44 @@ Moosky.Compiler = (function ()
     var names = getDefinedNames(ctx);
     for (i = 0, length = names.length; i < length; i++)
       bindings.push({ symbol: names[i], value: undefined });
-    
+
     return bindings;
   }
-    
+
   Context.count = 0;
-  
+
   //---------------------------------------------------------------------------
   //
   // Symbol Tracking
   //
 
   Context.noValue = {};
-  
+
   function addSymbol(ctx, sym) {
     bindSymbol(ctx, sym, Context.noValue);
   }
-  
+
   function bindSymbol(ctx, sym, value) {
     ctx = findInnerLambdaContext(ctx) || findTopContext(ctx);
-    ctx.symbols[sym] = { value: value, 
-			 mutable: false, 
-			 free: value === Context.noValue, 
+    ctx.symbols[sym] = { value: value,
+			 mutable: false,
+			 free: value === Context.noValue,
 			 setCount: 0,
 			 ctx: ctx };
   }
-  
+
   function findSymbolDescriptor(sym, ctx) {
     while (ctx !== undefined) {
       var desc = ctx.symbols[sym];
       if (desc !== undefined)
 	return desc;
-      
+
       ctx = ctx.parent;
     }
-   
+
     return undefined;
   }
-  
+
   function updateSymbolBinding(ctx, sym, value) {
     var desc = findSymbolDescriptor(sym, ctx);
     if (desc !== undefined)
@@ -407,17 +407,17 @@ Moosky.Compiler = (function ()
 		|| (desc = findSymbolDescriptor(applicand, ctx))
 		    && (desc.mutable || desc.free));
   }
-  
+
   function markLambdaAsPromising(ctx) {
     ctx = findInnerLambdaContext(ctx);
     if (ctx !== undefined)
       ctx.promising = true;
   }
-  
+
   function isPromisingLambda(ctx) {
     return ctx !== undefined && ctx.promising;
   }
-  
+
   function isApplicandPromising(applicand, env, ctx) {
     var desc, value;
     return possiblyRecursive(applicand, ctx)
@@ -429,7 +429,7 @@ Moosky.Compiler = (function ()
 		|| (value = env[applicand.emit()])
 		    && isPromisingFunction(value));
   }
-  
+
   function isInline(applicand, env, ctx) {
     var value;
     return isSymbol(applicand)
@@ -445,7 +445,7 @@ Moosky.Compiler = (function ()
 
   function setValueContext(ctx, target, value) {
     var desc = findSymbolDescriptor(target, ctx);
-    
+
     if (desc) {
       desc.free = false;
       desc.setCount++;
@@ -461,17 +461,17 @@ Moosky.Compiler = (function ()
     while (ctx !== undefined) {
       if (ctx.type == 'set' && sym.$sym == ctx.target.$sym)
 	return ctx;
-      
+
       ctx = ctx.parent;
     }
-    
+
     return false;
   }
-  
+
   function beingDefined(sym, ctx) {
     return findSetValueContext(sym, ctx) !== false;
   }
-  
+
   //===========================================================================
   //
   // Parsing
@@ -481,18 +481,18 @@ Moosky.Compiler = (function ()
     if (env === undefined || ctx === undefined) {
       debugger;
     }
-    
+
     if (!isList(sexp)) {
       if (sexp instanceof Array)
 	return parseVector(sexp, env, ctx);
-      
+
       return sexp;
     }
 
     var key = car(sexp);
 
     if (isSymbol(key)) {
-      var applicand = env[key.emit()]; 
+      var applicand = env[key.emit()];
       if (isMacro(applicand)) {
 	// force may not be necessary here....
 	var result = $force(applicand.call(applicand.env, sexp));
@@ -525,7 +525,7 @@ Moosky.Compiler = (function ()
 
     return parseApplication(sexp, env, ctx);
   }
-  
+
   //---------------------------------------------------------------------------
   //
   // Auxiliary Parsing Functions
@@ -541,35 +541,35 @@ Moosky.Compiler = (function ()
 
     return reverseSyntax(forms);
   }
-  
+
   function parseTailedSequence(sexp, env, ctx) {
     var forms = nil;
     var next;
-    
+
     var parentCtx = ctx;
     var nonTailCtx = nonTailContext(ctx);
-    
+
     ctx = nonTailCtx;
     while (sexp != nil) {
       next = cdr(sexp);
-      
+
       if (next == nil)
 	ctx = parentCtx;
-      
+
       forms = syntaxStar(parseSexp(car(sexp), env, ctx), forms);
-      
+
       sexp = next;
     }
 
     return reverseSyntax(forms);
   }
-  
+
   function parseVector(sexp, env, ctx) {
     var result = [];
     var i;
     for (i = 0; i < sexp.length; i++)
       result[i] = parseSexp(sexp[i], env, ctx);
-    
+
     return result;
   }
 
@@ -577,7 +577,7 @@ Moosky.Compiler = (function ()
   //
   // Basic Assertions
   //
-  
+
   function assertIsProperList(sexp) {
     var runner = sexp;
     while (runner != nil) {
@@ -586,12 +586,12 @@ Moosky.Compiler = (function ()
       runner = cdr(runner);
     }
   }
-  
+
   function assertIsSymbol(sexp) {
     if (!isSymbol(sexp))
       throw new AssertFailure('symbol expected, not ' + sexp);
   }
-  
+
   function assertListLength(sexp, n) {
     if (length(sexp) != n)
       throw new AssertFailure('wrong number of parts: ' + n + ' expected, not ' + sexp);
@@ -601,7 +601,7 @@ Moosky.Compiler = (function ()
     if (length(sexp) < n)
       throw new AssertFailure('wrong number of parts: at least ' + n + ' expected, not ' + sexp);
   }
-  
+
   function assertSymbolValue(sexp, s) {
     assertIsSymbol(sexp);
     if (sexp.toString() != s)
@@ -612,24 +612,24 @@ Moosky.Compiler = (function ()
   //
   // Syntax Validation
   //
-  
+
   function assertApplicationWellFormed(sexp) {
     assertIsProperList(sexp);
   }
-  
+
   function assertAndWellFormed(sexp) {
     assertIsProperList(sexp);
   }
-  
+
   function assertBeginWellFormed(sexp) {
     assertIsProperList(sexp);
   }
-  
+
   function assertDefineWellFormed(sexp) {
     assertIsProperList(sexp);
     assertListLength(sexp, 2);
   }
-  
+
   function assertDefineMacroTargetWellFormed(sexp) {
     try {
       if (!isList(sexp))
@@ -645,33 +645,33 @@ Moosky.Compiler = (function ()
       throw new AssertFailure('a symbol, or a list of two symbols was expected, not ' + sexp);
     }
   }
-  
+
   function assertDefineMacroWellFormed(sexp) {
     assertIsProperList(sexp);
     assertMinListLength(sexp, 3);
     assertDefineMacroTargetWellFormed(cadr(sexp));
   }
-  
+
   function assertIfWellFormed(sexp) {
     assertIsProperList(sexp);
     assertListLength(sexp, 4);
   }
-  
+
   function assertIsJavascript(sexp) {
     assertJavascriptWellFormed(sexp);
     assertSymbolValue(car(sexp), 'javascript');
   }
-  
+
   function assertJavascriptWellFormed(sexp) {
     assertIsProperList(sexp);
   }
-  
+
   function assertLambdaWellFormed(sexp) {
     assertIsProperList(sexp);
     assertMinListLength(sexp, 2);
     assertLambdaFormalParametersWellFormed(cadr(sexp));
   }
-  
+
   function assertLambdaFormalParametersWellFormed(sexp) {
     try {
       while (isPair(sexp)) {
@@ -685,27 +685,27 @@ Moosky.Compiler = (function ()
       throw new AssertFailure('a symbol, a list of symbols, or a dotted list of symbols was expected, not ' + sexp);
     }
   }
-  
+
   function assertOrWellFormed(sexp) {
     assertIsProperList(sexp);
   }
-  
+
   function assertQuasiQuoteWellFormed(sexp) {
     assertIsProperList(sexp);
     assertListLength(sexp, 2);
   }
-  
+
   function assertQuoteWellFormed(sexp) {
     assertIsProperList(sexp);
     assertListLength(sexp, 2);
   }
-  
+
   function assertSetWellFormed(sexp) {
     assertIsProperList(sexp);
     assertMinListLength(sexp, 3);
     assertIsSymbol(cadr(sexp));
   }
-  
+
   //---------------------------------------------------------------------------
   //
   // Application Parsers
@@ -713,14 +713,14 @@ Moosky.Compiler = (function ()
 
   function parseApplication(sexp, env, ctx) {
     assertApplicationWellFormed(sexp);
-    
+
     if (isLambdaForm(car(sexp)))
       return parseAppliedLambda(sexp, env, ctx);
-    
+
     var forms = parseNonTailedSequence(sexp, env, nonTailContext(ctx));
     var applicand = car(forms);
     var args = cdr(forms);
-    
+
     if (isInline(applicand, env, ctx))
       return syntaxStar(INLINE, env[applicand.emit()], args);
 
@@ -728,23 +728,23 @@ Moosky.Compiler = (function ()
     var recursive = possiblyRecursive(applicand, ctx);
     var promising = isApplicandPromising(applicand, env, ctx);
     var application = syntaxStar(APPLY, applicand, args);
-    
+
     if (isTail && recursive)
       application = syntaxStar(PROMISE, application);
-    
+
     else if (!isTail && promising)
       application = syntaxStar(FORCE, application);
-    
+
     if (isTail && (recursive || promising))
       markLambdaAsPromising(ctx);
-    
+
     return application;
   }
-  
+
   function parseAppliedLambda(sexp, env, ctx) {
     var lambdaExp = car(sexp);
     assertLambdaWellFormed(lambdaExp);
-    
+
     var values = parseNonTailedSequence(cdr(sexp), env, ctx);
     var args = values;
 
@@ -753,13 +753,13 @@ Moosky.Compiler = (function ()
     var formals = cadr(lambdaExp);
        if (!isList(formals))
       bindSymbol(lambdaCtx, formals, values);
-    
+
     else {
       while (formals != nil) {
 	bindSymbol(lambdaCtx, car(formals), car(args));
 	formals = cdr(formals);
 	args = cdr(args);
-	
+
 	if (!isList(formals))
 	  // break for dotted list (rest argument)
 	  break;
@@ -768,17 +768,17 @@ Moosky.Compiler = (function ()
     }
 
     var body = parseTailedSequence(cddr(lambdaExp), makeFrame(env), lambdaCtx);
-    
+
     var lambda = syntaxStar(car(lambdaExp), formals, body);
     if (isPromisingLambda(lambdaCtx))
       markLambdaAsPromising(ctx);
-    
+
     var application = syntaxStar(APPLY, lambda, values);
     if (!isTailContext(ctx) && isPromisingLambda(lambdaCtx))
       application = syntaxStar(FORCE, application);
-    
+
     return application;
-    
+
   }
 
   //---------------------------------------------------------------------------
@@ -795,7 +795,7 @@ Moosky.Compiler = (function ()
     assertBeginWellFormed(sexp);
     return syntaxStar(car(sexp), parseTailedSequence(cdr(sexp), env, ctx));
   }
-  
+
   function parseDefine(sexp, env, ctx) {
     assertDefineWellFormed(sexp);
     addSymbol(ctx, cadr(sexp));
@@ -804,7 +804,7 @@ Moosky.Compiler = (function ()
 
   function parseDefineMacro(sexp, env, ctx) {
     assertDefineMacroWellFormed(sexp);
-    
+
     var name;
     var nameClause = cadr(sexp);
     var body = cddr(sexp);
@@ -812,7 +812,7 @@ Moosky.Compiler = (function ()
     if (!isList(nameClause)) {
       name = nameClause;
       body = car(body);
-      
+
     } else {
       name = car(nameClause);
       body = syntaxStar(LAMBDA, cdr(nameClause), body);
@@ -828,7 +828,7 @@ Moosky.Compiler = (function ()
 
   function parseIf(sexp, env, ctx) {
     assertIfWellFormed(sexp);
-    
+
     return syntax(car(sexp),
 		  parseSexp(cadr(sexp), env, nonTailContext(ctx)),
 		  parseSexp(caddr(sexp), env, ctx),
@@ -837,13 +837,13 @@ Moosky.Compiler = (function ()
 
   function parseJavascript(sexp, env, ctx) {
     assertJavascriptWellFormed(sexp);
-    
+
     return syntaxStar(car(sexp), parseNonTailedSequence(cdr(sexp), env, ctx));
   }
 
   function parseLambda(sexp, env, ctx) {
     assertLambdaWellFormed(sexp);
-    
+
     ctx = lambdaContext(ctx);
 
     var formals = cadr(sexp);
@@ -854,7 +854,7 @@ Moosky.Compiler = (function ()
       while (formals != nil) {
 	addSymbol(ctx, car(formals));
 	formals = cdr(formals);
-	
+
 	if (!isList(formals))
 	  // break for dotted list (rest argument)
 	  break;
@@ -876,7 +876,7 @@ Moosky.Compiler = (function ()
 
   function parseQuasiQuote(sexp, env, ctx) {
     assertQuasiQuoteWellFormed(sexp);
-    
+
     ctx = nonTailContext(ctx);
 
     var quoted = cadr(sexp);
@@ -905,10 +905,10 @@ Moosky.Compiler = (function ()
 
   function parseSet(sexp, env, ctx) {
     assertSetWellFormed(sexp);
-    
+
     var target = cadr(sexp);
     var value = parseSexp(caddr(sexp), env, setValueContext(ctx, target));
-    
+
     updateSymbolBinding(ctx, target, value);
     return syntax(car(sexp), target, value);
   }
@@ -919,8 +919,9 @@ Moosky.Compiler = (function ()
   //
 
   function emit(sexp, ctx) {
-    if (ctx === undefined)
+    if (ctx === undefined) {
       debugger;
+    }
 
 //    console.log('emit' + ': ' + sexp);
     if (!isList(sexp)) {
@@ -957,12 +958,12 @@ Moosky.Compiler = (function ()
     var items = [];
     for (i = 0; i < sexp.length; i++)
       items.push(emit(sexp[i], ctx));
-    
+
     chunks.push(items.join(', '));
     chunks.push(']');
     return chunks.join('');
   }
-  
+
   function emitBinding(symbol, value) {
     return Code('binding').fill({ symbol: symbol.emit(),
 				  value: value });
@@ -971,15 +972,15 @@ Moosky.Compiler = (function ()
   function emitBindings(bindings) {
     var emitted = [];
     var length = bindings.length;
-    
+
     for (var i = 0; i < length; i++) {
       var binding = bindings[i];
       emitted.push(emitBinding(binding.symbol, binding.value));
     }
-    
+
     return (emitted.length > 0) ? emitted.join('  ;\n') + ';\n' : '';
   }
-  
+
   function emitInline(sexp, ctx) {
     var applicand = cadr(sexp);
     var parameters = cddr(sexp);
@@ -992,7 +993,7 @@ Moosky.Compiler = (function ()
 
     return applicand.inline.fill(values);
   }
-    
+
   function emitObject(sexp, ctx) {
     if (sexp instanceof Array)
       return emitArray(sexp, ctx);
@@ -1055,12 +1056,12 @@ Moosky.Compiler = (function ()
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
-      
+
       if (next == nil) {
 	chunks.push('(');
 	chunks.push(emit(car(sexp), ctx));
 	chunks.push(')');
-	
+
       } else {
 	chunks.push('(');
 	chunks.push(emit(car(sexp), ctx));
@@ -1100,14 +1101,14 @@ Moosky.Compiler = (function ()
 
   function emitDefine(sexp, ctx) {
     var name = cadr(sexp);
-    
+
     if (!findInnerLambdaContext(ctx))
       // TRICKY: This allocates a member of Moosky.Top with value undefined.
       // The 'with (Moosky.Top)' generated by emitTop will put this value in
       // the undecorated namespace, so that a subsequent 'name = ...' will
       // deposit the rhs into Moosky.Top, rather than creating a new global.
       return Code('top-level-define').fill({ name: name.emit() });
-    
+
     // emitLambda will put 'var <name> = undefined;' statements in the function
     // preamble.
     addDefinedName(ctx, cadr(sexp));
@@ -1118,7 +1119,7 @@ Moosky.Compiler = (function ()
 //    console.log('emitForce', ''+cdr(sexp));
     return Code('force').fill({ expression: emitApply(cdr(sexp), ctx) });
   }
-  
+
   function emitIf(sexp, ctx) {
     return Code('if').fill({ test: emit(car(sexp = cdr(sexp)), ctx),
 			     consequent: emit(car(sexp = cdr(sexp)), ctx),
@@ -1148,9 +1149,9 @@ Moosky.Compiler = (function ()
     var formals = cadr(sexp);
     var emittedFormals = [];
     var bindings = getContextBindings(bodyCtx);
-    
+
     if (isSymbol(formals)) {
-      bindings.push({ symbol: formals, 
+      bindings.push({ symbol: formals,
 		      value: '$argumentsList(arguments, 0)' });
       emittedFormals.push('___');
     }
@@ -1159,7 +1160,7 @@ Moosky.Compiler = (function ()
       var i = 0;
       while (formals != nil) {
 	if (!isList(formals)) {
-	  bindings.push({ symbol: formals, 
+	  bindings.push({ symbol: formals,
 			  value: '$argumentsList(arguments, ' + i + ')' });
 	  emittedFormals.push('___');
 	  break;
@@ -1180,7 +1181,7 @@ Moosky.Compiler = (function ()
 				 end: source.$end,
 				 sexpId: Inspector.registerSexp(sexp) });
   }
-  
+
   function emitOr(sexp, ctx) {
     sexp = cdr(sexp);
     var values = length(sexp);
@@ -1193,16 +1194,16 @@ Moosky.Compiler = (function ()
     // ($or_45 = (expr)) != false ? $or_45 : ... : false)
     var $temp = gensym('or');
     addDefinedName(ctx, $temp);
-    
+
     var chunks = ['('];
     while (sexp != nil) {
       var next = cdr(sexp);
-      
+
       if (next == nil) {
 	chunks.push('(');
 	chunks.push(emit(car(sexp), ctx));
 	chunks.push(')');
-	
+
       } else {
 	chunks.push('(');
 	chunks.push($temp.emit());
@@ -1301,12 +1302,12 @@ Moosky.Compiler = (function ()
   }
 
   var Compiler = {};
-  
+
   Compiler.Context = Context;
   Compiler.emit = emit;
   Compiler.parseSexp = parseSexp;
   Compiler.compile = compile;
-  
+
   return Compiler;
 })();
 
