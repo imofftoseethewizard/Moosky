@@ -1,12 +1,29 @@
-all: \
+.PHONY: all
+all: runtimes compilers repls examples
+
+.PHONY: runtimes
+runtimes: \
 	build/runtime-bare.js \
-	build/runtime-safe.js \
+	build/runtime-safe.js
+
+.PHONY: compilers
+compilers: \
 	build/compiler.js \
-	build/compiler-inlining.js \
-	build/repl.js \
+	build/compiler-inlining.js
+
+.PHONY: repls
+repls: \
+	build/repl.js
+
+.PHONY: examples
+examples: \
 	build/examples/naive-repl.html \
 	build/examples/repl.html \
 	build/examples/debug-repl.html
+
+.PHONY: tests
+tests: \
+	build/tests/loadable.html
 
 build/runtime-bare.js: \
 	src/runtime/base.js \
@@ -95,6 +112,54 @@ build/examples/debug-repl.html : \
 
 	cp $^ build/examples/
 
+build/tests/loadable.html: \
+	src/runtime/base.js \
+	src/runtime/values-bare.js \
+	src/runtime/values-safe.js \
+	src/runtime/values.js \
+	src/runtime/core-bare.js \
+	src/runtime/core-safe.js \
+	src/runtime/core.js \
+	src/runtime/top-bare.js \
+	src/runtime/top-safe.js \
+	src/runtime/top.js \
+	src/compiler/reader.js \
+	src/compiler/inspector.js \
+	src/compiler/tools.js \
+	src/compiler/compiler-code.js \
+	src/compiler/compiler.js \
+	src/compiler/compiler-inlines.js \
+	src/compiler/html.js \
+	src/tests/loadable.js \
+	src/tests/loadable.html
+
+	cp $^ build/tests/
+
+.PHONY: install
+install: install-examples install-tests
+
+.PHONY: install-examples
+install-examples: \
+	build/examples/naive-repl.html \
+	build/examples/repl.html \
+	build/examples/debug-repl.html 
+
+	cp build/examples/* $(MOOSKY_INSTALL_TARGET)/examples/
+
+
+
+.PHONY: install-tests
+install-tests: \
+	build/tests/loadable.html
+
+	cp build/tests/* $(MOOSKY_INSTALL_TARGET)/tests/
+
+
+
 .PHONY: clean
 clean:
 	bin/clean-build.sh
+
+.PHONY: update
+update: all install
+

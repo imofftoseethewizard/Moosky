@@ -1,4 +1,4 @@
 #!/bin/sh
 
-sed '/debugger;/ d' #| bin/yuic --type js
+sed '/debugger;/ d' | bin/yuic --type js
 

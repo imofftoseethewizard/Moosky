@@ -517,3 +517,5 @@ DOM
 CSS
 XHR
 
+url test-loadable?file="filename"
+
