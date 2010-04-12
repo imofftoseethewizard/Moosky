@@ -58,24 +58,44 @@
 
      var i, length = files.length;
      var failures = 0;
+     var completions = 0;
+     var texts = {};
      for (i = 0; i < length; i++) {
        var file = files[i];
-       var src = get(file, {}, { mimeType: 'text/plain' });
-       if (tryEval(src)) 
-	 print(file + '\n');
-       else {
-	 print(file + ' failed to load.\n');
-	 failures++;
-       }
+       var onComplete = (function (file) {
+			   return function(state) {
+			     var response = state.currentTarget;
+			     texts[file] = response.responseText;
+			     completions++;
+			     if (completions == length) {
+			       var j;
+			       for (j = 0; j < length; j++) {
+				 var file = files[j];
+				 var text = texts[file];
+				 if (tryEval(text)) 
+				   print(file + '\n');
+				 else {
+				   print(file + ' failed to load.\n');
+				   failures++;
+				 }
+			       }
+			       if (failures == 0)
+				 print('\n\nall files loaded successfully.');
+			     }
+			   };
+			 })(file);
+
+       var src = get(file, {}, 
+		     { mimeType: 'text/plain',
+		       handlers: { complete: onComplete }
+		     });
      }
-     
-     if (failures == 0)
-       print('\n\nall files loaded successfully.');
    }
 
    function tryEval(src) {
      try {
        eval(src);
+       console.log(src);
      } catch (e) {
        return false;
      }
