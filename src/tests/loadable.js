@@ -95,7 +95,6 @@
    function tryEval(src) {
      try {
        eval(src);
-       console.log(src);
      } catch (e) {
        return false;
      }
