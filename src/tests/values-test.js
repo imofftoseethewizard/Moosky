@@ -29,6 +29,8 @@
 
 (function ()
 {
+  var print = $Tests.print;
+
   var Values = Moosky.Values;
   var Character = Values.Character;
   var Symbol = Values.Symbol;
@@ -40,7 +42,7 @@
 	debugger;      
       
       if (assert.log)
-	console.log(msg);
+	print('ASSERT FAILURE: ' + msg + '\n.'); 
       
       if (assert.error)
 	throw msg;
@@ -103,7 +105,7 @@
     var length = data.length;
     for (var i = 0; i < length; i++)
       Character.test.apply(null, data[i]);
-    console.log('Character tests completed.');
+    print('Character tests completed.\n');
   };
   
   Character.test = function(ch, str, code) {
@@ -158,7 +160,7 @@
     var length = data.length;
     for (var i = 0; i < length; i++)
       Character.test.apply(null, data[i]);
-    console.log('Character tests completed.');
+    print('Character tests completed.\n');
   };
   
   Values.String.test = function(s, str, code) {
@@ -185,7 +187,7 @@
     var length = data.length;
     for (var i = 0; i < length; i++)
       Values.String.test.apply(null, data[i]);
-    console.log('String tests completed.');
+    print('String tests completed.\n');
   };
   
   Symbol.test = function(s, str, code) {
@@ -233,7 +235,7 @@
     var length = data.length;
     for (var i = 0; i < length; i++)
       Symbol.test.apply(null, data[i]);
-    console.log('Symbol tests completed.');
+    print('Symbol tests completed.\n');
   };
   
   Keyword.test = function(k, str, code) {
@@ -287,12 +289,14 @@
     var length = data.length;
     for (var i = 0; i < length; i++)
       Keyword.test.apply(null, data[i]);
-    console.log('Keyword tests completed.');
+    print('Keyword tests completed.\n');
   };
 
-  Character.unit();
-  Values.String.unit();
-  Symbol.unit();
-  Keyword.unit();
+  $Tests.queue.push(function () {
+    Character.unit();
+    Values.String.unit();
+    Symbol.unit();
+    Keyword.unit();
+  });
 })();
 

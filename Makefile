@@ -23,7 +23,8 @@ examples: \
 
 .PHONY: tests
 tests: \
-	build/tests/loadable.html
+	build/tests/loadable.html \
+	build/tests/values-test.html
 
 build/runtime-bare.js: \
 	src/runtime/base.js \
@@ -130,8 +131,19 @@ build/tests/loadable.html: \
 	src/compiler/compiler.js \
 	src/compiler/compiler-inlines.js \
 	src/compiler/html.js \
+	src/tests/start-tests.js \
 	src/tests/loadable.js \
 	src/tests/loadable.html
+
+	cp $^ build/tests/
+
+build/tests/values-test.html: \
+	src/runtime/base.js \
+	src/runtime/values-bare.js \
+	src/runtime/values.js \
+	src/tests/start-tests.js \
+	src/tests/values-test.js \
+	src/tests/values-test.html
 
 	cp $^ build/tests/
 
@@ -150,7 +162,8 @@ install-examples: \
 
 .PHONY: install-tests
 install-tests: \
-	build/tests/loadable.html
+	build/tests/loadable.html \
+	build/tests/values-test.html
 
 	cp build/tests/* $(MOOSKY_INSTALL_TARGET)/tests/
 

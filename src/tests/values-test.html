@@ -29,12 +29,13 @@
     xml:lang="{% firstof LANGUAGE_CODE 'en' %}"
     lang="{% firstof LANGUAGE_CODE 'en' %}">
   <head>
-
-    <title>Moosky Bare Values Unit Test</title>
-      <script type="text/javascript" src="moosky-base.js"></script>
-      <script type="text/javascript" src="values-bare.js"></script>
-      <script type="text/javascript" src="values.js"></script>
-      <script type="text/javascript" src="values-test.js"></script>
+    <title>Moosky Test: JS Files Loadable</title>
+    <meta http-equiv="content-script-type" content="text/javascript">
+    <script type="text/javascript" src="base.js"></script>
+    <script type="text/javascript" src="values-bare.js"></script>
+    <script type="text/javascript" src="values.js"></script>
+    <script type="text/javascript" src="start-tests.js"></script>
+    <script type="text/javascript" src="values-test.js"></script>
   </head>
 
   <body>
