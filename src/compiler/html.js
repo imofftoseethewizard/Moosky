@@ -268,7 +268,7 @@ Moosky.HTML = (function ()
 		var sexp;
 		var source;
 		var result;
-//		try {
+		try {
 		  sexp = Moosky.Reader.read(textArea.value.substring(last));
 		  source = Moosky.Compiler.compile(sexp, env);
 		  console.log(source);
@@ -283,14 +283,14 @@ Moosky.HTML = (function ()
 		  textArea.value += prompt;
 		  textArea.scrollTop = textArea.scrollHeight;
 		  last = textArea.value.length;
-/*		} catch(e) {
+		} catch(e) {
 		  if (!(e instanceof Moosky.Reader.IncompleteInputError)) {
 		    setTemporaries(undefined, e.exception, e.inspector);
 		    textArea.value += [e.toString(), '\n', prompt].join('');
 		    textArea.scrollTop = textArea.scrollHeight;
 		    last = textArea.value.length;
 		  }
-		}*/
+		}
 	      }
 	    });
 

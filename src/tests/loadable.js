@@ -68,7 +68,9 @@
 				}
 			      }
 			      if (failures == 0)
-				print('\n\nall files loaded successfully.');
+				print('\n\nAll tests completed successfully.');
+
+			      window.mooskyTestFailures = failures;
 			    }
 			  };
 			})(file);

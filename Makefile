@@ -24,7 +24,12 @@ examples: \
 .PHONY: tests
 tests: \
 	build/tests/loadable.html \
-	build/tests/values-test.html
+	build/tests/values-test.html \
+	build/tests/runtime-bare-loadable.html \
+	build/tests/runtime-safe-loadable.html \
+	build/tests/compiler-loadable.html \
+	build/tests/repl-loadable.html \
+	build/tests/suite.html
 
 build/runtime-bare.js: \
 	src/runtime/base.js \
@@ -137,6 +142,30 @@ build/tests/loadable.html: \
 
 	cp $^ build/tests/
 
+build/tests/runtime-bare-loadable.html: \
+	build/runtime-bare.js \
+	src/tests/runtime-bare-loadable.html
+
+	cp $^ build/tests/
+
+build/tests/runtime-safe-loadable.html: \
+	build/runtime-safe.js \
+	src/tests/runtime-safe-loadable.html
+
+	cp $^ build/tests/
+
+build/tests/compiler-loadable.html: \
+	build/compiler.js \
+	src/tests/compiler-loadable.html
+
+	cp $^ build/tests/
+
+build/tests/repl-loadable.html: \
+	build/repl.js \
+	src/tests/repl-loadable.html
+
+	cp $^ build/tests/
+
 build/tests/values-test.html: \
 	src/runtime/base.js \
 	src/runtime/values-bare.js \
@@ -144,6 +173,12 @@ build/tests/values-test.html: \
 	src/tests/start-tests.js \
 	src/tests/values-test.js \
 	src/tests/values-test.html
+
+	cp $^ build/tests/
+
+build/tests/suite.html : \
+	src/tests/suite.js \
+	src/tests/suite.html
 
 	cp $^ build/tests/
 
@@ -163,7 +198,12 @@ install-examples: \
 .PHONY: install-tests
 install-tests: \
 	build/tests/loadable.html \
-	build/tests/values-test.html
+	build/tests/runtime-bare-loadable.html \
+	build/tests/runtime-safe-loadable.html \
+	build/tests/compiler-loadable.html \
+	build/tests/repl-loadable.html \
+	build/tests/values-test.html \
+	build/tests/suite.html
 
 	cp build/tests/* $(MOOSKY_INSTALL_TARGET)/tests/
 
