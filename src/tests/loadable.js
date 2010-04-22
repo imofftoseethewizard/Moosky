@@ -20,77 +20,68 @@
 //=============================================================================
 
 
-(function ()
-{
-  var get = $Tests.get;
-  var print = $Tests.print;
+(function () {
+  eval($Moosky.Util.importExpression);
+  eval($Moosky.Test.importExpression);
 
-  var files = ["base.js",
-	       "values-bare.js",
-	       "values-safe.js",
-	       "values.js",
-	       "core-bare.js",
-	       "core-safe.js",
-	       "core.js",
-	       "top-bare.js",
-	       "top-safe.js",
-	       "top.js",
-	       "reader.js",
-	       "inspector.js",
-	       "tools.js",
-	       "compiler-code.js",
-	       "compiler-inlines.js",
-	       "compiler.js",
-	       "html.js"];
+  var components = ["components/base.js",
+		    "components/values-bare.js",
+		    "components/values-safe.js",
+		    "components/values.js",
+		    "components/core-bare.js",
+		    "components/core-safe.js",
+		    "components/core.js",
+		    "components/top-bare.js",
+		    "components/top-safe.js",
+		    "components/top.js",
+		    "components/reader.js",
+		    "components/inspector.js",
+		    "components/tools.js",
+		    "components/compiler-code.js",
+		    "components/compiler-inlines.js",
+		    "components/compiler.js",
+		    "components/html.js"];
 
-  $Tests.queue.push(function () {
-    var i, length = files.length;
-    var failures = 0;
-    var completions = 0;
-    var texts = {};
-    for (i = 0; i < length; i++) {
-      var file = files[i];
-      var onComplete = (function (file) {
-			  return function(state) {
-			    var response = state.currentTarget;
-			    texts[file] = response.responseText;
-			    completions++;
-			    if (completions == length) {
-			      var j;
-			      for (j = 0; j < length; j++) {
-				var file = files[j];
-				var text = texts[file];
-				if (tryEval(text)) 
-				  print(file + '\n');
-				else {
-				  print(file + ' failed to load.\n');
-				  failures++;
-				}
-			      }
-			      if (failures == 0)
-				print('\n\nAll tests completed successfully.');
+  addTest(new CompositeTest({ name: 'Individual files load test',
+			      count: components.length,
+			      prereqs: [ new FilesPreReq({ files: components }) ],
+			      action: function() {
+				var test = this;
+				var evaluator = makeFramedEvaluator();
+				map(function(file) { 
+				  if (tryEval(evaluator, test.texts[file]))
+				    print(file + '\n');
+				  
+				  else {
+				    test.fail();
+				    print(file + ' failed to load.\n');
+				  }
+				  test.complete();
+				}, components);
 
-			      window.mooskyTestFailures = failures;
-			    }
-			  };
-			})(file);
+			      } }));
+  
 
-      var src = get(file, {}, 
-		    { mimeType: 'text/plain',
-		      handlers: { complete: onComplete }
-		    });
-    }
-  });
+  map(function(file)
+      { addTest(new TimedTest({ name: file + ' load test',
+				prereqs: [ new FilesPreReq({ files: [file] }) ],
+				action: function() {
+				  var evaluator = makeFramedEvaluator();
+				  
+				  if (tryEval(evaluator, this.texts[file]))
+				    print(file + '\n');
 
-  function tryEval(src) {
-    try {
-      eval(src);
-    } catch (e) {
-      return false;
-    }
-    return true;
-  }
-
+				  else {
+				    this.fail();
+				    print(file + ' failed to load.\n');
+				  }
+				  this.complete();
+				} }));
+      }, ['standalone/runtime-bare.js',
+	  'standalone/runtime-safe.js',
+	  'standalone/compiler.js',
+	  'standalone/compiler-inlining.js',
+	  'standalone/repl.js']);
 })();
 
 

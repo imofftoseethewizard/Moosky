@@ -42,7 +42,7 @@
 								     "")))
 						   trials))])
 				(and _log-trials
-				     (test-console (format "completed: %s: %s." _unit-label _test-label)))
+				     (test-console (format "completed: %s: %s.\n" _unit-label _test-label)))
 				(filter (lambda (result)
 					  (not (eq? result 'ok)))
 					_trial-results)))]
@@ -52,10 +52,10 @@
 			     `(let ([_trial-value ,form]
 				    [_comment ,comment])
 				(and _log-trials
-				     (test-console (format "attempting: %s: %s: %s" _unit-label _test-label (quote ,form))))
+				     (test-console (format "attempting: %s: %s: %s\n" _unit-label _test-label (quote ,form))))
 				(if (_comparator _trial-value ,value)
 				    'ok
-				    (format "%s: %s%s: FAILED on %s"
+				    (format "%s: %s%s: FAILED on %s\n"
 					    _unit-label _test-label
 					    (if (and (string? _comment)
 						     (not (string=? _comment "")))
@@ -70,7 +70,7 @@
 				   (make-test-item (car item) (cdr item)))
 				 items)))])
        (if (zero? (length _failed-trials))
-	   (test-console (format "%s: ok" _unit-label))
+	   (test-console (format "%s: ok\n" _unit-label))
 	   (for-all (lambda (result) (test-console result)) _failed-trials)))))
 
 (define-macro (test stx)
@@ -83,7 +83,7 @@
   `(test* eqv? ,@(cdr stx)))
 
 (define-macro (test-console stx)
-  `(console.log ,@(cdr stx)))
+  `(printd ,@(cdr stx)))
 
 ;(define foo #t)
 

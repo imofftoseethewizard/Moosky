@@ -94,7 +94,7 @@ Moosky.Runtime.Safe = (function ()
   }
 
   function assertIsVector(name, v) {
-    if (!(v instanceof Array))
+    if (!(v instanceof Array || typeof(v) == 'object' && v.length !== undefined))
       throw new SyntaxError(name + ': vector expected: ' + v);
   }
 

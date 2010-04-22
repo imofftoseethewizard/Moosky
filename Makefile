@@ -1,19 +1,26 @@
 .PHONY: all
-all: runtimes compilers repls examples
+all: lib runtimes compilers repls examples
+
+.PHONY: lib
+lib: \
+	src/lib/preamble.ss \
+	src/lib/r6rs-list.ss
+
+	cp $^ build/lib/
 
 .PHONY: runtimes
 runtimes: \
-	build/runtime-bare.js \
-	build/runtime-safe.js
+	build/standalone/runtime-bare.js \
+	build/standalone/runtime-safe.js
 
 .PHONY: compilers
 compilers: \
-	build/compiler.js \
-	build/compiler-inlining.js
+	build/standalone/compiler.js \
+	build/standalone/compiler-inlining.js
 
 .PHONY: repls
 repls: \
-	build/repl.js
+	build/standalone/repl.js
 
 .PHONY: examples
 examples: \
@@ -23,15 +30,9 @@ examples: \
 
 .PHONY: tests
 tests: \
-	build/tests/loadable.html \
-	build/tests/values-test.html \
-	build/tests/runtime-bare-loadable.html \
-	build/tests/runtime-safe-loadable.html \
-	build/tests/compiler-loadable.html \
-	build/tests/repl-loadable.html \
 	build/tests/suite.html
 
-build/runtime-bare.js: \
+build/standalone/runtime-bare.js: \
 	src/runtime/base.js \
 	src/runtime/values-bare.js \
 	src/runtime/values.js \
@@ -42,7 +43,7 @@ build/runtime-bare.js: \
 
 	cat $^ | bin/compressor.sh >$@
 
-build/runtime-safe.js: \
+build/standalone/runtime-safe.js: \
 	src/runtime/base.js \
 	src/runtime/values-bare.js \
 	src/runtime/values-safe.js \
@@ -56,8 +57,8 @@ build/runtime-safe.js: \
 
 	cat $^ | bin/compressor.sh >$@
 
-build/compiler.js: \
-	build/runtime-safe.js \
+build/standalone/compiler.js: \
+	build/standalone/runtime-safe.js \
 	src/compiler/reader.js \
 	src/compiler/inspector.js \
 	src/compiler/tools.js \
@@ -66,30 +67,30 @@ build/compiler.js: \
 
 	cat $^ | bin/compressor.sh >$@
 
-build/compiler-inlining.js: \
-	build/compiler.js \
+build/standalone/compiler-inlining.js: \
+	build/standalone/compiler.js \
 	src/compiler/compiler-inlines.js 
 
 	cat $^ | bin/compressor.sh >$@
 
-build/repl.js: \
-	build/compiler-inlining.js \
+build/standalone/repl.js: \
+	build/standalone/compiler-inlining.js \
 	src/compiler/html.js \
 	src/examples/start-repl.js
 
 	cat $^ | bin/compressor.sh >$@
 
 build/examples/naive-repl.html : \
-	build/repl.js \
+	build/standalone/repl.js \
 	src/examples/naive-repl.html
 
 	cp $^ build/examples/
 
 build/examples/repl.html : \
-	build/repl.js \
+	build/standalone/repl.js \
 	src/examples/repl.html \
-	src/scheme/preamble.ss \
-	src/scheme/r6rs-list.ss
+	src/lib/preamble.ss \
+	src/lib/r6rs-list.ss
 
 	cp $^ build/examples/
 
@@ -113,12 +114,55 @@ build/examples/debug-repl.html : \
 	src/compiler/html.js \
 	src/examples/start-repl.js \
 	src/examples/debug-repl.html \
-	src/scheme/preamble.ss \
-	src/scheme/r6rs-list.ss 
+	src/lib/preamble.ss \
+	src/lib/r6rs-list.ss 
 
 	cp $^ build/examples/
 
-build/tests/loadable.html: \
+build/tests/suite.html : \
+	src/tests/empty.html \
+	src/tests/util.js \
+	src/tests/platform.js \
+	src/tests/loadable.js \
+	src/tests/values.js \
+	src/tests/language.js \
+	src/tests/platform.ss \
+	src/tests/core.ss \
+	src/tests/lambda.ss \
+	src/tests/suite.html
+
+	cp $^ build/tests/
+
+.PHONY: install
+install: install-directories install-standalone install-examples install-tests
+
+.PHONY: install-directories
+install-directories:
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/{examples,lib,standalone,tests}
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests/{components,lib,standalone}
+
+.PHONY: install-standalone
+install-standalone: \
+	build/standalone/runtime-bare.js \
+	build/standalone/runtime-safe.js \
+	build/standalone/compiler.js \
+	build/standalone/compiler-inlining.js \
+	build/standalone/repl.js
+
+	cp build/standalone/* $(MOOSKY_INSTALL_TARGET)/standalone/
+
+
+.PHONY: install-examples
+install-examples: \
+	build/examples/naive-repl.html \
+	build/examples/repl.html \
+	build/examples/debug-repl.html 
+
+	cp build/examples/* $(MOOSKY_INSTALL_TARGET)/examples/
+
+
+.PHONY: install-test-components
+install-test-components: \
 	src/runtime/base.js \
 	src/runtime/values-bare.js \
 	src/runtime/values-safe.js \
@@ -135,82 +179,43 @@ build/tests/loadable.html: \
 	src/compiler/compiler-code.js \
 	src/compiler/compiler.js \
 	src/compiler/compiler-inlines.js \
-	src/compiler/html.js \
-	src/tests/start-tests.js \
-	src/tests/loadable.js \
-	src/tests/loadable.html
+	src/compiler/html.js
 
-	cp $^ build/tests/
+	cp $^ $(MOOSKY_INSTALL_TARGET)/tests/components/
 
-build/tests/runtime-bare-loadable.html: \
-	build/runtime-bare.js \
-	src/tests/runtime-bare-loadable.html
 
-	cp $^ build/tests/
+.PHONY: install-test-lib
+install-test-lib: \
+	build/lib/preamble.ss \
+	build/lib/r6rs-list.ss \
 
-build/tests/runtime-safe-loadable.html: \
-	build/runtime-safe.js \
-	src/tests/runtime-safe-loadable.html
+	cp $^ $(MOOSKY_INSTALL_TARGET)/tests/lib/
 
-	cp $^ build/tests/
 
-build/tests/compiler-loadable.html: \
-	build/compiler.js \
-	src/tests/compiler-loadable.html
+.PHONY: install-test-standalone
+install-test-standalone: \
+	build/standalone/runtime-bare.js \
+	build/standalone/runtime-safe.js \
+	build/standalone/compiler.js \
+	build/standalone/compiler-inlining.js \
+	build/standalone/repl.js
 
-	cp $^ build/tests/
-
-build/tests/repl-loadable.html: \
-	build/repl.js \
-	src/tests/repl-loadable.html
-
-	cp $^ build/tests/
-
-build/tests/values-test.html: \
-	src/runtime/base.js \
-	src/runtime/values-bare.js \
-	src/runtime/values.js \
-	src/tests/start-tests.js \
-	src/tests/values-test.js \
-	src/tests/values-test.html
-
-	cp $^ build/tests/
-
-build/tests/suite.html : \
-	src/tests/suite.js \
-	src/tests/suite.html
-
-	cp $^ build/tests/
-
-.PHONY: install
-install: install-examples install-tests
-
-.PHONY: install-examples
-install-examples: \
-	build/examples/naive-repl.html \
-	build/examples/repl.html \
-	build/examples/debug-repl.html 
-
-	cp build/examples/* $(MOOSKY_INSTALL_TARGET)/examples/
-
+	cp $^ $(MOOSKY_INSTALL_TARGET)/tests/standalone/
 
 
 .PHONY: install-tests
 install-tests: \
-	build/tests/loadable.html \
-	build/tests/runtime-bare-loadable.html \
-	build/tests/runtime-safe-loadable.html \
-	build/tests/compiler-loadable.html \
-	build/tests/repl-loadable.html \
-	build/tests/values-test.html \
+	install-test-components \
+	install-test-lib \
+	install-test-standalone \
 	build/tests/suite.html
 
-	cp build/tests/* $(MOOSKY_INSTALL_TARGET)/tests/
+	cp build/tests/*.* $(MOOSKY_INSTALL_TARGET)/tests/
 
 
 
 .PHONY: clean
-clean:
+clean: 
 	bin/clean-build.sh
 
 .PHONY: update
