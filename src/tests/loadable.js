@@ -47,18 +47,18 @@
 			      prereqs: [ new FilesPreReq({ files: components }) ],
 			      action: function() {
 				var test = this;
-				var evaluator = makeFramedEvaluator();
-				map(function(file) { 
-				  if (tryEval(evaluator, test.texts[file]))
-				    print(file + '\n');
-				  
-				  else {
-				    test.fail();
-				    print(file + ' failed to load.\n');
-				  }
-				  test.complete();
-				}, components);
-
+				(new FramedEvaluator()).onReady(function(evaluator) {
+				  map(function(file) { 
+				    if (tryEval(evaluator, test.texts[file]))
+				      print(file + '\n');
+				    
+				    else {
+				      test.fail();
+				      print(file + ' failed to load.\n');
+				    }
+				    test.complete();
+				  }, components);
+				});
 			      } }));
   
 
@@ -66,16 +66,17 @@
       { addTest(new TimedTest({ name: file + ' load test',
 				prereqs: [ new FilesPreReq({ files: [file] }) ],
 				action: function() {
-				  var evaluator = makeFramedEvaluator();
-				  
-				  if (tryEval(evaluator, this.texts[file]))
-				    print(file + '\n');
+				  var test = this;
+				  (new FramedEvaluator()).onReady(function(evaluator) {
+				    if (tryEval(evaluator, test.texts[file]))
+				      print(file + '\n');
 
-				  else {
-				    this.fail();
-				    print(file + ' failed to load.\n');
-				  }
-				  this.complete();
+				    else {
+				      test.fail();
+				      print(file + ' failed to load.\n');
+				    }
+				    test.complete();
+				  });
 				} }));
       }, ['standalone/runtime-bare.js',
 	  'standalone/runtime-safe.js',

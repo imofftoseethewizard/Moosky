@@ -40,7 +40,7 @@
 			  get: get,
 			  callWithText: callWithText,
 			  callWithTextSequentially: callWithTextSequentially,
-			  makeFramedEvaluator: makeFramedEvaluator,
+			  FramedEvaluator: FramedEvaluator,
 			  Module: Module } });
   
   //---------------------------------------------------------------------------
@@ -53,6 +53,8 @@
   Countdown.prototype.action = function() { };
   Countdown.prototype.down = function() { (this.count--, this.count == 0) && this.action(); };
 
+  //---------------------------------------------------------------------------
+  //
   function Timer(options) {
     this.timeout = options.timeout;
     options.expired && (this.expired = options.expired);
@@ -60,8 +62,6 @@
     this.timeoutID = 'waiting';
   }
 
-  //---------------------------------------------------------------------------
-  //
   Timer.prototype.expired = function() { };
   Timer.prototype.cancel = function() {
     if (!this.waiting() && !this.canceled() && !this.timedOut()) {
@@ -199,6 +199,7 @@
     try {
       fn.apply(obj, args);
     } catch (e) {
+      console.log(e, args);
       return false;
     }
 
@@ -446,15 +447,15 @@
 
   //---------------------------------------------------------------------------
   //
-  // makeFramedEvaluator()
+  // FramedEvaluator()
   //
   // Creates a hidden iframe and appends it to the document body.  Returns a
   // function that evaluates strings -- using 'eval' -- in the context of 
   // the document contained in the iframe.
   //
 
-  function makeFramedEvaluator() {
-    var frame = document.createElement('iframe');
+  function FramedEvaluator() {
+    var frame = this.frame = document.createElement('iframe');
     frame.src = 'empty.html';
     frame.style.display = 'none';
     document.body.appendChild(frame);
@@ -463,11 +464,18 @@
     script.type = 'text/javascript';
     script.text = 'function evaluate(s) { return eval(s); }';
 
-    frame.contentWindow.document.body.appendChild(script);
-
-    return frame.contentWindow.evaluate;
+    new Poll({ interval: 100,
+	       isReady: function() { return frame.contentWindow.document.body; },
+	       action: function() { frame.contentWindow.document.body.appendChild(script); } }).wait();
   }
- 
+
+  FramedEvaluator.prototype.onReady = function(fn) {
+    var contentWindow = this.frame.contentWindow;
+
+    new Poll({ interval: 100,
+	       isReady: function() { return contentWindow.evaluate; },
+	       action: function () { fn(contentWindow.evaluate); } }).wait();
+  };
 
  
   //---------------------------------------------------------------------------

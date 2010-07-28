@@ -156,40 +156,7 @@
 			': expected "' + code + '" not "' + kwd.emit() + '"');
 	  },
 	  data: [
-	    ['', '||', 'stringToSymbol("")'],
-	    ['a', 'a', 'stringToSymbol("a")'],
-	    ['foo.bar', 'foo.bar', 'stringToSymbol("foo.bar")'],
-	    ['foo-bar', 'foo-bar', 'stringToSymbol("foo-bar")'],
-	    ['[foo', '|[foo|', 'stringToSymbol("[foo")'],
-	    ['string?', 'string?', 'stringToSymbol("string?")'],
-	    ['map*', 'map*', 'stringToSymbol("map*")'],
-	    ['char->list', 'char->list', 'stringToSymbol("char->list")'],
-	    ['<=', '<=', 'stringToSymbol("<=")'],
-	    ['<', '<', 'stringToSymbol("<")'],
-	    ['>=', '>=', 'stringToSymbol(">=")'],
-	    ['>', '>', 'stringToSymbol(">")'],
-	    ['string=?', 'string=?', 'stringToSymbol("string=?")'],
-	    ['abcdefghijklmnopqrstuvwxyz', 'abcdefghijklmnopqrstuvwxyz', 'stringToSymbol("abcdefghijklmnopqrstuvwxyz")'],
-	    ['0123456789', '0123456789', 'stringToSymbol("0123456789")'],
-	    ['foo[', '|foo[|', 'stringToSymbol("foo[")'],
-	    ['"foo"', '|"foo"|', 'stringToSymbol("\\"foo\\"")'],
-	    ['\'foo\'', '|\'foo\'|', 'stringToSymbol("\'foo\'")'],
-	    ['(foo', '|(foo|', 'stringToSymbol("(foo")'],
-	    ['foo)', '|foo)|', 'stringToSymbol("foo)")'],
-	    [',foo', '|,foo|', 'stringToSymbol(",foo")'],
-	    [';foo', '|;foo|', 'stringToSymbol(";foo")'],
-	    ['foo@bar', '|foo@bar|', 'stringToSymbol("foo@bar")'],
-	    ['#foo', '|#foo|', 'stringToSymbol("#foo")'],
-	    ['`foo', '|`foo|', 'stringToSymbol("`foo")'],
-	    ['\\foo', '|\\foo|', 'stringToSymbol("\\foo")'],
-	    ['{foo', '|{foo|', 'stringToSymbol("{foo")'],
-	    ['}foo', '|}foo|', 'stringToSymbol("}foo")'],
-	    ['"', '|"|', 'stringToSymbol("\\"")'],
-	    ['\n', '|\n|', 'stringToSymbol("\\n")'],
-	    ['\r', '|\r|', 'stringToSymbol("\\r")'],
-	    ['Two\nLines.\n', '|Two\nLines.\n|', 'stringToSymbol("Two\\nLines.\\n")'],
-	    ['"Quoted String"', '|"Quoted String"|', 'stringToSymbol("\\"Quoted String\\"")'],
-	    ['\'Single Quoted\'', '|\'Single Quoted\'|', 'stringToSymbol("\'Single Quoted\'")']
+	    ['a:', 'a:', 'stringToSymbol("a:")']
 	  ] } ]);
  
   

@@ -75,6 +75,7 @@ build/standalone/compiler-inlining.js: \
 
 build/standalone/repl.js: \
 	build/standalone/compiler-inlining.js \
+	src/compiler/evaluator.js \
 	src/compiler/html.js \
 	src/examples/start-repl.js
 
@@ -111,6 +112,7 @@ build/examples/debug-repl.html : \
 	src/compiler/compiler-code.js \
 	src/compiler/compiler.js \
 	src/compiler/compiler-inlines.js \
+	src/compiler/evaluator.js \
 	src/compiler/html.js \
 	src/examples/start-repl.js \
 	src/examples/debug-repl.html \
@@ -138,8 +140,10 @@ install: install-directories install-standalone install-examples install-tests
 
 .PHONY: install-directories
 install-directories:
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/{examples,lib,standalone,tests}
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests/{components,lib,standalone}
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/examples
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/lib
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/standalone
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests
 
 .PHONY: install-standalone
 install-standalone: \
@@ -160,6 +164,11 @@ install-examples: \
 
 	cp build/examples/* $(MOOSKY_INSTALL_TARGET)/examples/
 
+.PHONY: install-test-directories
+install-test-directories:
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests/components
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests/lib
+	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests/standalone
 
 .PHONY: install-test-components
 install-test-components: \
@@ -179,6 +188,7 @@ install-test-components: \
 	src/compiler/compiler-code.js \
 	src/compiler/compiler.js \
 	src/compiler/compiler-inlines.js \
+	src/compiler/evaluator.js \
 	src/compiler/html.js
 
 	cp $^ $(MOOSKY_INSTALL_TARGET)/tests/components/
@@ -204,7 +214,7 @@ install-test-standalone: \
 
 
 .PHONY: install-tests
-install-tests: \
+install-tests: install-test-directories \
 	install-test-components \
 	install-test-lib \
 	install-test-standalone \

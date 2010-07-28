@@ -401,11 +401,13 @@ Moosky.Compiler = (function ()
 
   function possiblyRecursive(applicand, ctx) {
     var desc;
-    return isList(applicand)
-	|| isSymbol(applicand)
-	    && (beingDefined(applicand, ctx)
-		|| (desc = findSymbolDescriptor(applicand, ctx))
-		    && (desc.mutable || desc.free));
+    return (isList(applicand)
+	    || (isSymbol(applicand)
+		&& (console.log("possibly recursive--", ''+applicand, !applicand.toString().match(/\./)),
+		    !applicand.toString().match(/\./))
+		&& (beingDefined(applicand, ctx)
+		    || ((desc = findSymbolDescriptor(applicand, ctx))
+			&& (desc.mutable || desc.free)))));
   }
 
   function markLambdaAsPromising(ctx) {
@@ -478,6 +480,7 @@ Moosky.Compiler = (function ()
   //
 
   function parseSexp(sexp, env, ctx) {
+//    console.log('parse sexp--', sexp, ''+sexp);
     if (env === undefined || ctx === undefined) {
       debugger;
     }
@@ -819,8 +822,10 @@ Moosky.Compiler = (function ()
     }
 
     var emittedName = name.emit();
-    env[emittedName] = eval(emitTop(emit(parseSexp(body, env, ctx),
-					 new Context(null, { tail: false })), sexp));
+    var code = emitTop(emit(parseSexp(body, env, ctx),
+			    new Context(null, { tail: false })), sexp);
+//    console.log('macro --', code);
+    env[emittedName] = eval(code);
     env[emittedName].env = env;
     env[emittedName].tag = 'macro';
     return undefined;
@@ -1132,14 +1137,16 @@ Moosky.Compiler = (function ()
     while (sexp != nil) {
       var chunk = car(sexp);
 
-      if (typeof(chunk) == 'string')
-	chunks.push(chunk);
+//      console.log('javascript chunk', chunk, chunk.toString());
+      if (chunk instanceof Values.Javascript)
+	chunks.push(chunk.raw());
       else
 	chunks.push(emit(chunk, ctx));
 
       sexp = cdr(sexp);
     }
-    return chunks.join('');
+    var js = chunks.join('');
+    return js;
   }
 
   function emitLambda(sexp, ctx) {
@@ -1290,15 +1297,28 @@ Moosky.Compiler = (function ()
   function compile(sexp, env, options) {
     env = env || makeFrame(Moosky.Top);
     var ctx = new Context(null, { tail: true });
+    var parsed = parseSexp(sexp, env, topContext());
+//    console.log('========================================================');
+//    console.log("" + parsed);
+    var result = emitTop(emit(parsed, ctx), sexp, options);
+    if (false) {
+      console.log('--------------------------------------------------------');
+      console.log(result);
+    }
+    return result;
+/*
+    env = env || makeFrame(Moosky.Top);
+    var ctx = new Context(null, { tail: true });
     var parsed = parseSexp(syntaxStar(BEGIN, sexp), env, topContext());
 //    console.log('========================================================');
 //    console.log("" + parsed);
     var result = emitTop(emit(parsed, ctx), sexp, options);
-/*    if (Moosky.Top.foo) {
+    if (false) {
       console.log('--------------------------------------------------------');
       console.log(result);
-    }*/
+    }
     return result;
+*/
   }
 
   var Compiler = {};

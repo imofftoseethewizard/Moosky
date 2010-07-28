@@ -22,6 +22,8 @@
 
 Moosky.HTML = (function ()
 {
+  eval(Moosky.Runtime.importExpression);
+
   var Symbol = Moosky.Values.Symbol;
 
   if (typeof(XMLHttpRequest)  === "undefined") {
@@ -120,25 +122,38 @@ Moosky.HTML = (function ()
     var scripts = document.getElementsByTagName('script');
 
     var waitCount = 0, loopFinished = false;
-    var texts = [];
+    var sources = [];
 
     function makeScriptElements() {
-      for (var j = 0, length = texts.length; j < length; j++)
+      var read = Moosky.Reader.read;
+      var END = Moosky.Reader.END;
+      var compile = Moosky.Compiler.compile;
+      var evaluate = Moosky.Evaluator.evaluate;
+      var Top = Moosky.Top;
+      var compile = Top.compile;
+      var stringAppend = Top.stringAppend;
+
+      for (var j = 0, length = sources.length; j < length; j++) {
 	// parentNode becomes null after the script has been processed
-	if (texts[j] != undefined && texts[j].script.parentNode) {
-//	  console.log('compiling ' + texts[j].script.src + '...');
-	  var js = Moosky.Compiler.compile(Moosky.Reader.read(texts[j].text), Moosky.Top);
-//	  console.log(js);
-	  var replacement = makeScriptElement(js);
-	  texts[j].script.parentNode.replaceChild(replacement, texts[j].script);
-	}
+//	if (sources[j] != undefined && sources[j].script.parentNode) {
+//	  console.log('compiling ' + sources[j].script.src + '...');
+//	  var lst = compile(sources[j].text);
+//	  var replacement = makeScriptElement(stringAppend.apply(lst));
+//	  sources[j].script.parentNode.replaceChild(replacement, sources[j].script);
+//	}
+	var source = sources[j];
+	var script = source.script
+	// This ensures we won't process the script twice.
+	script.parentNode.removeChild(script);
+	Moosky(source.text);
+      }
     }
 
     for (var i = 0, length = scripts.length; i < length; i++) {
       var s = scripts[i];
       if (s.type == 'text/moosky' || s.type == 'text/x-script.scheme') {
 	if (s.text)
-	  texts[i] = { script: s, text: s.text };
+	  sources[i] = { script: s, text: s.text };
 
 	if (s.src) {
 	  waitCount++;
@@ -151,9 +166,9 @@ Moosky.HTML = (function ()
 		 var response = state.currentTarget;
 		 if (response.readyState == 4) {
 
-		   texts[index] = { script: script,
-				    text: response.responseText };
-		   console.log('response text: ', response.responseText);
+		   sources[index] = { script: script,
+				      text: response.responseText };
+//		   console.log('response text: ', response.responseText);
 		   if (--waitCount == 0 && loopFinished) {
 		     makeScriptElements();
 		   }
@@ -216,13 +231,20 @@ Moosky.HTML = (function ()
   }
 
   function REPL() {
-    function Div() { return document.createElement('div'); };
-    function TextArea() { return document.createElement('textarea'); };
-    function TextNode(text) { return document.createTextNode(text); };
+    function Div() { return document.createElement('div'); }
+    function Pre() { return document.createElement('pre'); }
+    function TextArea() { return document.createElement('textarea'); }
+    function TextNode(text) { return document.createTextNode(text); }
+    function Span(text) {
+      var span = document.createElement('span');
+      span.appendChild(new TextNode(text));
+      return span;
+    }
 
     var div = new Div();
     div.style.position = 'absolute';
-    div.style.width = '480px';
+    div.style.width = '896px';
+    console.log(document.innerWidth);
     div.style.background = '#202090';
 
     var titleBar = new Div();
@@ -234,63 +256,101 @@ Moosky.HTML = (function ()
     titleBar.style.cursor = 'move';
     observe(titleBar, 'mousedown', function() { dragStartREPL.apply(null, [].concat.apply([div], arguments)); });
 
+    var responseArea = new Div();
+    div.appendChild(responseArea);
+    responseArea.style.border = '2px solid #4040c2';
+    responseArea.style.margin = '0';
+    responseArea.style.padding = '0';
+
+    var responseHolder = new Pre();
+    responseArea.appendChild(responseHolder);
+    responseHolder.style.margin = '0';
+    responseHolder.style.padding = '0';
+    responseHolder.style.width = parseFloat(div.style.width) - 8 + 'px';
+    responseHolder.style.background = "white";
+    responseHolder.style.overflow = "scroll";
+    responseHolder.style.height = '40em';
+    responseHolder.style.border = '2px solid white';
+
     var divTextAreaCtnr = new Div();
     div.appendChild(divTextAreaCtnr);
     divTextAreaCtnr.style.border = '2px solid #4040c2';
     divTextAreaCtnr.style.margin = '0';
     divTextAreaCtnr.style.padding = '0';
 
-
     var textArea = new TextArea();
     divTextAreaCtnr.appendChild(textArea);
     textArea.style.margin = '0';
     textArea.style.padding = '0';
     textArea.style.width = parseFloat(div.style.width) - 8 + 'px';
-    textArea.style.height = '45em';
+    textArea.style.height = '5em';
     textArea.style.border = '2px solid white';
 
     var prompt = '> ';
-    textArea.value = Moosky.Top.greeting() + '\n' + prompt;
+    responseHolder.appendChild(new Span(Moosky.Top.greeting() + '\n'));
+
     var last = textArea.value.length;
-    var env = Moosky.Runtime.exports.makeFrame(Moosky.Top);
     textArea.focus();
     setTemporaries();
     observe(textArea, 'keydown',
 	    function(event) {
 	      var printSexp = Moosky.Values.Cons.printSexp;
-	      var map = Moosky.Runtime.exports.map;
+	      var TokenStream = Moosky.Reader.TokenStream;
+	      var read = Moosky.Reader.read;
+	      var END = Moosky.Reader.END;
+	      var compile = Moosky.Compiler.compile;
+	      var Top = Moosky.Top;
+	      var evaluate = Moosky.Evaluator.evaluate;
+
 	      if (event.keyCode == 13) { // RETURN
 		if (event.preventDefault)
 		  event.preventDefault();
 		else
 		  event.returnValue = false;
 		textArea.value += '\n';
-		var sexp;
-		var source;
-		var result;
-		try {
-		  sexp = Moosky.Reader.read(textArea.value.substring(last));
-		  source = Moosky.Compiler.compile(sexp, env);
-		  console.log(source);
-		  result = eval(source);
-		  setTemporaries(result);
-		  if (result !== undefined) {
-		    if (result && result.$values)
-		      textArea.value += map(printSexp, result.$values).concat('').join('\n');
-		    else
-		      textArea.value += printSexp(result) + '\n';
+		var sexp, code, result;
+
+		var requestSpan = new Span(prompt + textArea.value);
+		requestSpan.style.color = 'blue';
+		responseHolder.appendChild(requestSpan);
+
+/*		try*/ {
+		  var tokens = new TokenStream(textArea.value);
+                   while (!tokens.finished() && (sexp = read(tokens)) != END) {
+		    console.log('read --', sexp, sexp.toString());
+		    
+		    code = compile(sexp, Top);
+		    console.log('compile --', code);
+
+		    result = evaluate(code);
+		    console.log('evaluate --', result, ''+result);
+
+		    if (result !== undefined) {
+		      if (result && result.$values) {
+			var resultSpan = new Span(map(printSexp, result.$values).concat('').join('\n'));
+			responseHolder.appendChild(resultSpan);
+		      }
+		      else {
+			resultSpan = new Span(printSexp(result) + '\n');
+			responseHolder.appendChild(resultSpan);
+		      }
+		    }
+		    textArea.value = '';
+		    responseHolder.scrollTop = responseHolder.scrollHeight;
 		  }
-		  textArea.value += prompt;
-		  textArea.scrollTop = textArea.scrollHeight;
-		  last = textArea.value.length;
-		} catch(e) {
+		  
+		  setTemporaries(result);
+
+		} /*catch(e) {
 		  if (!(e instanceof Moosky.Reader.IncompleteInputError)) {
 		    setTemporaries(undefined, e.exception, e.inspector);
-		    textArea.value += [e.toString(), '\n', prompt].join('');
-		    textArea.scrollTop = textArea.scrollHeight;
-		    last = textArea.value.length;
+		    var errorSpan = new Span(e.toString() + '\n');
+		    errorSpan.style.color = 'red';
+		    responseHolder.appendChild(errorSpan);
+
+		    textArea.value = '';
 		  }
-		}
+		}*/
 	      }
 	    });
 

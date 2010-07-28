@@ -100,9 +100,11 @@
     var prereq = this;
 
     this.waitForTexts(function() {
-      var evaluator = test.evaluator = prereq.evaluator = makeFramedEvaluator();
-      map(function(file) { tryEval(evaluator, prereq.texts[file]); }, prereq.files);
-      test.reqFilled(prereq); 
+      (new FramedEvaluator()).onReady(function (evaluator) {
+	test.evaluator = prereq.evaluator = evaluator;
+	map(function(file) { tryEval(evaluator, prereq.texts[file]); }, prereq.files);
+	test.reqFilled(prereq); 
+      });
     });
   };
 
@@ -142,7 +144,7 @@
     this.prereqs.doAll();
   };
 
-  Test.prototype.reqFilled = function(test) { this.reqCount.down(); };
+  Test.prototype.reqFilled = function(prereq) { this.reqCount.down(); };
 
   Test.prototype.fail = function() { Test.failures++; this.failed++; };
   Test.prototype.complete = function () { Test.count.down(); this.completed = true; };
@@ -288,8 +290,8 @@
   // 
   function assert(cond, msg) {
     if (!cond) {
-      if (this.fail)
-	fail();
+//      if (this.fail)
+//	fail();
 
       if (assertDebug)
 	debugger;      

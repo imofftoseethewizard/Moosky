@@ -27,7 +27,24 @@
 Moosky = (function ()
 {
   return function (str, env) {
-    return eval(Moosky.Compiler.compile(Moosky.Reader.read(str), env));
+    var read = Moosky.Reader.read;
+    var END = Moosky.Reader.END;
+    var compile = Moosky.Compiler.compile;
+    var Top = Moosky.Top;
+    var evaluate = Moosky.Evaluator.evaluate;
+
+    var tokens = new Moosky.Reader.TokenStream(str);
+
+    var result;
+    while (!tokens.finished() && (sexp = read(tokens)) != END) {
+      var code = compile(sexp, Top);
+      console.log('evaluating---', code);
+      result = evaluate(code);
+      console.log('evaluated---', result, ''+result);
+    }
+
+    return result;
+//      return eval(Moosky.Compiler.compile(Moosky.Reader.read(str), env));
   };
 })();
 

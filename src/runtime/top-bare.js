@@ -126,6 +126,7 @@
       'eqv?': function(a, b) {
 	return a === b
 	  || isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
+	  || isKeyword(a) && isKeyword(b) && a.toString() == b.toString()
 	  || isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
 	  || isString(a) && isString(b) && a == b;
       },
@@ -133,6 +134,7 @@
       'eq?': function(a, b) {
 	return a === b
 	  || isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
+	  || isKeyword(a) && isKeyword(b) && a.toString() == b.toString()
 	  || isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
 	  || isString(a) && isString(b) && a == b
 	  || (a && a.$values ? a.$values[0] : a) == (b && b.$values ? b.$values[0] : b);
@@ -488,7 +490,34 @@
       },
 
       compile: function(source) {
-	return Moosky.Compiler.compile(Moosky.Reader.read($force(source)), Moosky.Top);
+	var read = Moosky.Reader.read;
+	var END = Moosky.Reader.END;
+	var compile = Moosky.Compiler.compile;
+	var Top = Moosky.Top;
+
+	var tokens = new Moosky.Reader.TokenStream(source);
+//	console.log('compile: tokens: ', tokens);
+
+	var result = nil;
+	while (!tokens.finished() && (sexp = read(tokens)) != END) {
+//	  console.log('compile: sexp: ', ''+sexp);
+
+	  /*try */{
+	    result = cons(compile(sexp, Top), result);
+
+	  } /*catch(e) {
+	    if (!(e instanceof Moosky.Reader.IncompleteInputError))
+	      throw e;
+	  }*/
+	}
+
+//	console.log('compile: result: ', ''+reverse(result));
+	return reverse(result);
+//	return Moosky.Compiler.compile(Moosky.Reader.read($force(source)), Moosky.Top);
+      },
+
+      'js-quote': function(str) {
+	return new Values.Javascript(str);
       },
 
       '?>>': function() {

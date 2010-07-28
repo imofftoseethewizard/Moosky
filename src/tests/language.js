@@ -39,15 +39,30 @@
 					 'core.ss',
 					 'lambda.ss'] }) ],
     action: function() {
+//      console.log('starting compiler test action --- \n\n\n\n\n\n\n\n\n\n\n.');
       var Moosky = this.Moosky;
-      var compile = this.Moosky.Top.compile;
+      var nil = Moosky.Values.Cons.nil;
+      var Top = Moosky.Top
+      var compile = Top.compile;
+      var car = Top.car;
+      var cdr = Top.cdr;
+
       var texts = this.texts;
       var files = this.files;
       var evaluator = this.evaluator;
 
       evaluator('Moosky.Top.printd = window.parent.$Moosky.Util.exports.print;');
 
-      map(function (file) { evaluator(compile(texts[file])); }, files);
+      map(function (file) {
+//	console.log('compiling---', file, '\n\n\n\n\n\n\n\n\n\n\n\n');
+	var sexp = compile(texts[file]);
+//	console.log("sexp in action: ", ''+sexp);
+	while (sexp != nil) {
+//	  console.log("evaluating ==", car(sexp));
+	  evaluator(car(sexp)); 
+	  sexp = cdr(sexp);
+	}
+      }, files);
 
       print('Language ok.');
       this.complete();

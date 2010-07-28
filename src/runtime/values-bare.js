@@ -92,6 +92,10 @@ Moosky.Values.Bare = (function ()
     return '"' + escapeString(this.$str) + '"';
   };
 
+  MooskyString.prototype.raw = function() {
+    return this.$str;
+  };
+
   // --------------------------------------------------------------------------
   function Symbol(sym) {
     this.$sym = sym;
@@ -136,6 +140,12 @@ Moosky.Values.Bare = (function ()
       Symbol.translationOrigins[dict[s]] = s;
     }
   };
+
+  Symbol.nomunge = function(s) {
+    var obj = {};
+    obj[s] = s;
+    Symbol.setTranslations(obj);
+  }
 
   Symbol.camelize = function(str) {
     var parts = str.split('-'), len = parts.length;
@@ -234,7 +244,14 @@ Moosky.Values.Bare = (function ()
   }
 
   Javascript.prototype = new Value();
+
+  Javascript.prototype.emit = function () {
+    return 'jsQuote("' + escapeString(this.$js) + '")';
+  };
+
   Javascript.prototype.toString = function () { return this.$js; };
+  Javascript.prototype.raw = function () { return this.$js; };
+
 
 
   // --------------------------------------------------------------------------

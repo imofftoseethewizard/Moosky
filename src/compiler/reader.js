@@ -27,6 +27,7 @@ Moosky.Reader = (function ()
   var Keyword = Values.Keyword;
   var Token = Values.Token;
   var Cite = Values.Cite;
+  var Javascript = Values.Javascript;
 
 //  with (Moosky.Runtime.exports) {
   {
@@ -54,9 +55,10 @@ Moosky.Reader = (function ()
 
     TokenStream.prototype.getIndex = function() { return this.index; };
     TokenStream.prototype.setIndex = function(i) { return this.index = Math.max(0, Math.min(i, this.length)); };
+    TokenStream.prototype.finished = function() { return this.index >= this.length };
 
     TokenStream.prototype.next = function() {
-      while (this.index < this.length) {
+      while (!this.finished()) {
 	var token =
 	  any.call(this,
 	    function (lexemeClass) {
@@ -86,6 +88,7 @@ Moosky.Reader = (function ()
 	    }, this.lexemeClasses);
 
 	if (!token) {
+	  debugger;
 	  var preview = this.text.slice(Math.max(0, this.index-30), this.index);
 	  var remainder = this.text.slice(this.index, Math.min(this.length, this.index+30));
 	  var caret_position = preview.slice(preview.lastIndexOf('\n')+1).length-1;
@@ -142,90 +145,95 @@ Moosky.Reader = (function ()
     }
     MismatchedDelimitersError.prototype = new ReaderError();
 
-    function parseTokens(tokens, openDelimiter) {
+    var END = {_: 'end of stream'};
+    END.toString = function () { return '<end of input stream>'; };
+
+    function parseAtom(tokens) {
+      var start = tokens.getIndex();
+      var token = tokens.next();
+
+      if (!token)
+	return END;
+
+      if (token.$lexeme.match(/^[\[\(]|#\(/)) {
+	var result = parseList(tokens, token);
+
+	if (token.$lexeme == '#(')
+	  return makeVector(result);
+
+	return result;
+      } 
+
+      if (token.$lexeme.match(/^[\]\)]/)) {
+	tokens.setIndex(start);
+	return END;
+      }
+
+      var atom = parseToken(token);
+
+      var implicitList = { "'":  'quote',
+			   '`':  'quasiquote',
+			   ',':  'unquote',
+			   ',@': 'unquote-splicing' }[atom && atom.$sym];
+
+      if (!implicitList)
+	return atom;
+
+      var result = syntaxStar(parseToken(new Token(implicitList, 'symbol', token.$cite, token.$norm)),
+			      syntaxStar(parseAtom(tokens), nil));
+
+      result.$source = new Cite(tokens.text, start, tokens.getIndex());
+
+      return result;
+    }
+
+
+    function parseList(tokens, openDelimiter) {
+      var start = tokens.index;
+      var delimiter = {'[': ']', '(': ')', '#(': ')'}[openDelimiter.$lexeme];
+
+      var token, next, last = nil;
+
       var sexp = nil;
-      var dotted = false;
-      var last;
+      while (true) {
+	next = parseAtom(tokens);
 
-      var delimiter = false;
-
-      if (openDelimiter)
-	delimiter = {'[': ']', '(': ')', '#(': ')'}[openDelimiter.$lexeme];
-
-      var token;
-      var start;
-      while ((start = tokens.index), (token = tokens.next())) {
-	var next;
-	if (token.$lexeme.match(/^[\[\(]|#\(/)) {
-	  var result = parseTokens(tokens, token);
-	  if (result != nil)
-	    result.$source = new Cite(tokens.text, start, tokens.index);
-
-	  if (token.$lexeme == '#(')
-	    next = makeVector(result);
-	  else
-	    next = result;
-
-	} else if (token.$lexeme == delimiter)
-	  break;
-
-	else if (token.$lexeme.match(/^[\]\)]/)) {
-	  if (openDelimiter)
+	if (next == END) {
+	  if (tokens.finished()) {
+	    debugger;
+	    throw new IncompleteInputError();
+	  }
+	  // parseAtom found a closing delimiter
+	  token = tokens.next();
+	  if (token.$lexeme != delimiter)
 	    throw 'Mismatched ' + openDelimiter.$lexeme + ': found ' + token.$lexeme;
-	  else
-	    break;
-
-	} else if (token.$lexeme == '.') {
-	  if (dotted)
-	    throw new SyntaxError('improper dotted list');
-	  dotted = true;
-	  continue;
-
-	} else
-	  next = parseToken(token);
-
-	if (dotted) {
-	  if (last !== undefined)
+	  
+	  break;
+	}
+	
+//	console.log("next --", next, ''+next);
+	if (isSymbol(next) && next == '.') {
+	  last = parseAtom(tokens);
+	  
+	  if (last == null || last.$lexeme == '.' || 
+	      !(token = tokens.next()) || token.$lexeme != delimiter)
 	    throw new SyntaxError('improper dotted list');
 
-	  last = next;
-	  continue;
+	  break;
 	}
 
-	if (sexp == nil || car(sexp) == nil)
-	  sexp = syntaxStar(next, sexp);
-
-	else {
-	  var translated = isList(sexp) && car(sexp) &&
-			     { "'":  'quote',
-			       '`':  'quasiquote',
-			       ',':  'unquote',
-			       ',@': 'unquote-splicing' }[car(sexp).$sym];
-
-	  if (!translated)
-	    sexp = syntaxStar(next, sexp);
-	  else
-	    sexp = syntaxStar(syntaxStar(parseToken(new Token(translated, 'symbol', token.$cite, token.$norm)),
-					 syntaxStar(next, nil)),
-			cdr(sexp));
-	}
+	sexp = syntaxStar(next, sexp);
       }
 
-      if (openDelimiter && delimiter && (token === null || token.$lexeme != delimiter))
-	throw new IncompleteInputError();
-
-      if (dotted && last === undefined) {
-	throw 'Dotted list ended abruptly.';
-      }
-
-      var result = last === undefined ? nil : last;
+      // reverse, using last (instead of nil) to handle dotted lists.
+      var result = last;
       while (sexp != nil) {
 	result = syntaxStar(car(sexp), result);
 	sexp = cdr(sexp);
       }
 
       if (result != nil)
-	result.$source = new Cite(tokens.text, start, tokens.index);
+	result.$source = new Cite(tokens.text, start, tokens.getIndex());
 
       return result;
     }
@@ -251,14 +259,31 @@ Moosky.Reader = (function ()
       var tokens = new MooskyTokenStream(text);
 
       var block = token.$lexeme[0] == '#';
-      var components = block ? cons('(function () { return ', nil) : nil;
+      var components = block ? cons(new Javascript('(function () { return '), nil) : nil;
 
       var start = token.$cite.$start + (block ? 2 : 1);
       var end = token.$cite.$end - (block ? 2 : 1);
 
       var interpolateRE = /[^\\](\\\\)*(@\^?)\(/mg;
 
-      interpolateRE.lastIndex = start;
+      // A little special handling for the initial segments of block quotes
+      // is needed.  Since the js is interpolated literally into the emitted code, 
+      // any CRs at the outset will trigger the automatic semicolon rule
+      // after the return in the initial segment '(function () { return '.
+      // To fix this, any initial whitespace is skipped.
+
+      if (block) {
+	var blockStartRE = /\s*/mg;
+	blockStartRE.lastIndex = start;
+	start += (blockStartRE.exec(text)[0] || '').length;
+      }
+
+      // Interpolate consumes an extra character at the beginning, [^\\], to
+      // ensure that the potential string of backslashes (\\\\)* is an even-
+      // numbered length.  In the case that the splice indicator is the first
+      // character, start one earlier.
+
+      interpolateRE.lastIndex = start-1;
       var last = start;
 
       var match;
@@ -266,12 +291,24 @@ Moosky.Reader = (function ()
 	if (match.index > token.$cite.$end)
 	  break;
 
-	tokens.setIndex(match.index + match[0].length);
+	// The -1 is necessary because parseAtom will return the list enclosed
+	// in parens after the interpolation marker, and it needs the open
+	// paren in the token stream.  The open paren was consumed by the 
+	// interpolateRE expression as its last atom.
 
-	components = syntaxStar(text.substring(last, match.index+1), components);
+	tokens.setIndex(match.index + match[0].length - 1);
+
+//	console.log('js interpolation--', tokens.text.substring(tokens.index, tokens.index+10));
+	// The +1 is a compensatory factor for the [^\\] element in the RE
+	// See the comment above at interpolateRE.lastIndex = start-1 for a
+	// discussion.
+
+	components = syntaxStar(new Javascript(text.substring(last, match.index+1)),
+				components);
 
 	var splice = match[2] == '@^';
-	var sexp = parseTokens(tokens, null);
+
+	var sexp = parseAtom(tokens);
 	if (!splice)
 	  components = syntaxStar(sexp, components);
 
@@ -279,7 +316,7 @@ Moosky.Reader = (function ()
 	  components = syntaxStar(car(sexp), components);
 	  sexp = cdr(sexp);
 	  while (sexp != nil) {
-	    components = syntaxStar(', ', components);
+	    components = syntaxStar(new Javascript(', '), components);
 	    components = syntaxStar(car(sexp), components);
 	    sexp = cdr(sexp);
 	  }
@@ -289,12 +326,14 @@ Moosky.Reader = (function ()
       }
 
       if (last < end)
-	components = syntaxStar(text.substring(last, end), components);
+	components = syntaxStar(new Javascript(text.substring(last, end)),
+				components);
 
       if (block)
-	components = syntaxStar(' })()', components);
+	components = syntaxStar(new Javascript(' })()'), components);
 
-      return syntaxStar(new Symbol('javascript'), reverseSyntax(components));
+      var js = syntaxStar(new Symbol('javascript'), reverseSyntax(components));
+      return js;
     }
 
 
@@ -318,11 +357,8 @@ Moosky.Reader = (function ()
       return new Values.Real(parseFloat(lexeme));
     }
 
-    function parseSymbol(token) {
-      // self-quoting symbols end with a colon, used as keywords
-      if (token.$lexeme.match(/:$/))
-	return new Keyword(token.$lexeme);
 
+    function parseDottedSymbol(token) {
       // TRICKY: This little transformation allows the use of scheme variables
       // to hold javascript objects, and to access the properties of those
       // objects via the usual dot notation.  Hence, if the symbol 'ok-button'
@@ -331,20 +367,51 @@ Moosky.Reader = (function ()
       // to a set! form, eg, '(set! ok-button.title "Send")'.
 
       // has a dot that is not the first character
-      match = token.$lexeme.match(/^([^.]+)(\..+)$/);
+      var components = token.$lexeme.split('.');
 
-      if (match && match[1] && match[1].length != 0)
-	token = new Token(Symbol.munge(match[1]) + match[2], token.$cite, token.$norm);
+      components[0] = Symbol.munge(components[0]);
       
+      for (var i = 1; i < components.length; i++) {
+	var c = components[i];
+	if (c.match(/[^\w$]/))
+	  components[i] = "['" + c + "']";
+	else
+	  components[i] = '.' + c;
+      }
+
+      var result = components.join('')
+      Symbol.nomunge(result);
+      return new Symbol(result, token.$cite, token.$norm);
+    }
+
+
+    function parseSymbol(token) {
+      // self-quoting symbols end with a colon, used as keywords
+      if (token.$lexeme.match(/:$/))
+	return new Keyword(token.$lexeme);
+
+      if (token.$lexeme.match(/\./))
+	return parseDottedSymbol(token)
+
       return new Symbol(token.$lexeme);
     }
 
-    function read(str) {
-      return parseTokens(new MooskyTokenStream(str), null);
+    function read(tokens) {
+      return parseAtom(tokens);
+/*
+      var tokens = new MooskyTokenStream(str);
+      var sexp = parseTokens(tokens, null);
+      if (tokens.finished())
+	return sexp;
+      else
+	throw 'Read finished before end of input: ' + str.substring(tokens.index, tokens.index+80);*/
     }
 
     var Reader = { read: read,
-		   IncompleteInputError: IncompleteInputError };
+		   END: END,
+		   IncompleteInputError: IncompleteInputError,
+		   TokenStream: MooskyTokenStream,
+		 };
 
     return Reader;
   }
@@ -406,8 +473,8 @@ Moosky.Reader.LexemeClasses =
     { tag: 'string',
       regexp: /"([^"\\]|\\(.|\n))*"/m, //"
       normalize: function(match) {
-	return eval(match[0].replace(/"^\s*\\\s*\n\s*/, '"') // '
-			    .replace(/\s*\\\s*\n\s*"$/, '"') // '
+	return eval(match[0].replace(/"^\s*\\\s*\n\s*/, '"')
+			    .replace(/\s*\\\s*\n\s*"$/, '"')
 			    .replace(/\n/, '\\n')
 			    .replace(/\r/, '\\r'));
       }

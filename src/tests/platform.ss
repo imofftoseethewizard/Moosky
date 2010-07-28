@@ -85,21 +85,21 @@
 (define-macro (test-console stx)
   `(printd ,@(cdr stx)))
 
-;(define foo #t)
-
-; ?? what to do about exceptions??
-; <value> :: a value or !, ! indicating that the form throws an exception
-; 
-; example:
-; (unit "math"
-;   (let ([PI 3.14])
-;     (test ('multiplication
-;            ((* 1 2) 2 "identity")
-;            ((* 2 1) 2 "commutativity")
-;            ((* 3 (* 1 2)) (* (* 3 1) 2) "associativity"))
-;           ('division
-;            ((/ 1 0) ! "divide by zero")))))
-
-
-
-   
+;;;(define foo #t)
+;;
+;;; ?? what to do about exceptions??
+;;; <value> :: a value or !, ! indicating that the form throws an exception
+;;; 
+;;; example:
+;;; (unit "math"
+;;;   (let ([PI 3.14])
+;;;     (test ('multiplication
+;;;            ((* 1 2) 2 "identity")
+;;;            ((* 2 1) 2 "commutativity")
+;;;            ((* 3 (* 1 2)) (* (* 3 1) 2) "associativity"))
+;;;           ('division
+;;;            ((/ 1 0) ! "divide by zero")))))
+;;
+;;
+;;
+;;   

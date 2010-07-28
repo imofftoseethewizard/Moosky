@@ -31,8 +31,8 @@
   {
     eval(Moosky.Runtime.importExpression);
     
-    function assertIsSymbol(name, sym) {
-      if (!isSymbol(sym))
+    function assertIsSymbolOrKeyword(name, sym) {
+      if (!isSymbol(sym) && !isKeyword(sym))
 	throw new SyntaxError(name + ': symbol expected: ' + sym);
     }
 
@@ -253,7 +253,7 @@
       },
 
       'symbol->string': function(sym) {
-	assertIsSymbol('symbol->string', sym);
+	assertIsSymbolOrKeyword('symbol->string', sym);
 	assertArgCount('symbol->string', 1, arguments);
 	return Bare['symbol->string'](sym);
       },
