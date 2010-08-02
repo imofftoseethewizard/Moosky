@@ -43,7 +43,9 @@ Moosky.Runtime.Bare = (function ()
   function makeFrame(env) {
     var Frame = function () { };
     Frame.prototype = env;
-    return new Frame();
+    var frame = new Frame();
+    frame.$frame = frame;
+    return frame;
   }
 
   function any(fn, ___) {
@@ -278,7 +280,7 @@ Moosky.Runtime.Bare = (function ()
   }
 
   function $force(result) {
-    return (result && result.$promise) ? result.force() : result;
+    return (result && result.$has_promise) ? result.force() : result;
   }
 
   function values(___) {

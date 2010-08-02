@@ -403,8 +403,7 @@ Moosky.Compiler = (function ()
     var desc;
     return (isList(applicand)
 	    || (isSymbol(applicand)
-		&& (console.log("possibly recursive--", ''+applicand, !applicand.toString().match(/\./)),
-		    !applicand.toString().match(/\./))
+		&& !applicand.toString().match(/\./)
 		&& (beingDefined(applicand, ctx)
 		    || ((desc = findSymbolDescriptor(applicand, ctx))
 			&& (desc.mutable || desc.free)))));
@@ -824,7 +823,7 @@ Moosky.Compiler = (function ()
     var emittedName = name.emit();
     var code = emitTop(emit(parseSexp(body, env, ctx),
 			    new Context(null, { tail: false })), sexp);
-//    console.log('macro --', code);
+    console.log('macro --', code);
     env[emittedName] = eval(code);
     env[emittedName].env = env;
     env[emittedName].tag = 'macro';
@@ -1296,6 +1295,7 @@ Moosky.Compiler = (function ()
 
   function compile(sexp, env, options) {
     env = env || makeFrame(Moosky.Top);
+    options = options || { namespace: env.$namespace };
     var ctx = new Context(null, { tail: true });
     var parsed = parseSexp(sexp, env, topContext());
 //    console.log('========================================================');

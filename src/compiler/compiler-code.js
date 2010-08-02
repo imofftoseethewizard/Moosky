@@ -42,7 +42,7 @@ Moosky.Code = (function ()
 
     set: '((<<target>> = <<value>>), undefined)',
 
-    'top-level-define': '(Moosky.Top.<<name>> = undefined)',
+    'top-level-define': '($frame.<<name>> = undefined)',
     
     Top:
       ['(function () {\n  ',
@@ -82,7 +82,7 @@ Moosky.Code = (function ()
 
     set: '((<<target>> = <<value>>), undefined)',
     
-    'top-level-define': '(Moosky.Top.<<name>> = undefined)',
+    'top-level-define': '($frame.<<name>> = undefined)',
     
     Top:
       ['(function () {\n  ',

@@ -18,10 +18,6 @@
 ;;;____________________________________________________________________________
 
 
-(define (find proc lst)
-  (let ([tail (memp proc lst)])
-    (and tail (car tail))))
-
 (define (for-all proc . lists)
   (or (null? lists)
       (if (null? (car lists))
@@ -149,7 +145,8 @@
           lst
           (memp proc (cdr lst)))))
 
-(define (member obj lst)
+(define (member
+         obj lst)
   (memp (lambda (a)
           (equal? a obj))
         lst))
@@ -184,11 +181,15 @@
           (eq? a obj))
         lst))
 
+(define (find proc lst)
+  (let ([tail (memp proc lst)])
+    (console.log (format "--find: tail: %s" tail) tail) 
+    (and tail (car tail))))
+
 (define (cons* . objs)
   (fold-right (lambda (lst nil)
                       (if (null? nil)
                           lst
                           (cons lst nil)))
               '() objs))
-
 

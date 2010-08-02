@@ -30,6 +30,7 @@
     eval(Moosky.Runtime.importExpression);
 
     Moosky.Runtime.Bare.Top = {
+      '$namespace': 'Moosky.Top',
       '$nil': nil,
       'null?': isNull,
       'list?': isList,
@@ -125,16 +126,18 @@
 
       'eqv?': function(a, b) {
 	return a === b
-	  || isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
-	  || isKeyword(a) && isKeyword(b) && a.toString() == b.toString()
+	  || ((isSymbol(a) || isKeyword(a))
+	      && (isSymbol(b) || isKeyword(b))) && a.toString() == b.toString()
 	  || isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
 	  || isString(a) && isString(b) && a == b;
       },
 
       'eq?': function(a, b) {
 	return a === b
-	  || isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
-	  || isKeyword(a) && isKeyword(b) && a.toString() == b.toString()
+	  || ((isSymbol(a) || isKeyword(a))
+	      && (isSymbol(b) || isKeyword(b))) && a.toString() == b.toString()
+//	  || isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
+//	  || isKeyword(a) && isKeyword(b) && a.toString() == b.toString()
 	  || isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
 	  || isString(a) && isString(b) && a == b
 	  || (a && a.$values ? a.$values[0] : a) == (b && b.$values ? b.$values[0] : b);
@@ -489,31 +492,8 @@
 	return Moosky.HTML.get(url, nil, options);
       },
 
-      compile: function(source) {
-	var read = Moosky.Reader.read;
-	var END = Moosky.Reader.END;
-	var compile = Moosky.Compiler.compile;
-	var Top = Moosky.Top;
-
-	var tokens = new Moosky.Reader.TokenStream(source);
-//	console.log('compile: tokens: ', tokens);
-
-	var result = nil;
-	while (!tokens.finished() && (sexp = read(tokens)) != END) {
-//	  console.log('compile: sexp: ', ''+sexp);
-
-	  /*try */{
-	    result = cons(compile(sexp, Top), result);
-
-	  } /*catch(e) {
-	    if (!(e instanceof Moosky.Reader.IncompleteInputError))
-	      throw e;
-	  }*/
-	}
-
-//	console.log('compile: result: ', ''+reverse(result));
-	return reverse(result);
-//	return Moosky.Compiler.compile(Moosky.Reader.read($force(source)), Moosky.Top);
+      compile: function(sexp, module) {
+	return Moosky.Compiler.compile(sexp, module || Moosky.Top);
       },
 
       'js-quote': function(str) {

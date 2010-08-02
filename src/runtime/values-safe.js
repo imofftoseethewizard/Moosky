@@ -129,9 +129,9 @@ Moosky.Values.Safe = (function ()
       }
 
       if (typeof(sexp) == 'string')
-	return '"' + sexp.replace(/"/g, '\\"') + '"'; //" )
+	return '"' + sexp.replace(/\"/g, '\\"') + '"'; 
 
-      if (sexp && sexp.$promise)
+      if (sexp && sexp.$has_promise)
 	return Cons.printSexp(sexp.force());
 
       return sexp.toString();

@@ -298,7 +298,6 @@ Moosky.Reader = (function ()
 
 	tokens.setIndex(match.index + match[0].length - 1);
 
-//	console.log('js interpolation--', tokens.text.substring(tokens.index, tokens.index+10));
 	// The +1 is a compensatory factor for the [^\\] element in the RE
 	// See the comment above at interpolateRE.lastIndex = start-1 for a
 	// discussion.
@@ -388,7 +387,7 @@ Moosky.Reader = (function ()
     function parseSymbol(token) {
       // self-quoting symbols end with a colon, used as keywords
       if (token.$lexeme.match(/:$/))
-	return new Keyword(token.$lexeme);
+	return new Keyword(token.$lexeme.slice(0, -1));
 
       if (token.$lexeme.match(/\./))
 	return parseDottedSymbol(token)

@@ -400,21 +400,21 @@ Moosky.Values.Bare = (function ()
   // --------------------------------------------------------------------------
 
   function Promise(p) {
-    if (p.$promise)
+    if (p.$has_promise)
       return p;
 
-    p.$promise = true;
-    p.$pending = true;
+    p.$has_promise = true;
+    p.$is_pending = true;
 
     p.$p = p;
     p.$v = undefined;
 
     p.force = function () {
-      if (!this.$pending) return this.$v;
+      if (!this.$is_pending) return this.$v;
       var result = this();
-      while (result && result.$promise)
+      while (result && result.$has_promise)
 	result = result();
-      this.$pending = false;
+      this.$is_pending = false;
       return this.$v = result;
     };
 
@@ -520,9 +520,9 @@ Moosky.Values.Bare = (function ()
       }
 
       if (typeof(sexp) == 'string')
-	return '"' + sexp.replace(/"/g, '\\"') + '"'; //" )
+	return '"' + sexp.replace(/\"/g, '\\"') + '"'; 
 
-      if (sexp && sexp.$promise)
+      if (sexp && sexp.$has_promise)
 	return Cons.printSexp(sexp.force());
 
       return sexp.toString();

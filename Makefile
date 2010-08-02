@@ -4,7 +4,9 @@ all: lib runtimes compilers repls examples
 .PHONY: lib
 lib: \
 	src/lib/preamble.ss \
-	src/lib/r6rs-list.ss
+	src/lib/r6rs-list.ss \
+	src/lib/object.ss \
+	src/lib/module.ss 
 
 	cp $^ build/lib/
 
@@ -91,7 +93,9 @@ build/examples/repl.html : \
 	build/standalone/repl.js \
 	src/examples/repl.html \
 	src/lib/preamble.ss \
-	src/lib/r6rs-list.ss
+	src/lib/r6rs-list.ss \
+	src/lib/object.ss \
+	src/lib/module.ss
 
 	cp $^ build/examples/
 
@@ -117,7 +121,9 @@ build/examples/debug-repl.html : \
 	src/examples/start-repl.js \
 	src/examples/debug-repl.html \
 	src/lib/preamble.ss \
-	src/lib/r6rs-list.ss 
+	src/lib/r6rs-list.ss \
+	src/lib/object.ss \
+	src/lib/module.ss
 
 	cp $^ build/examples/
 
@@ -136,7 +142,12 @@ build/tests/suite.html : \
 	cp $^ build/tests/
 
 .PHONY: install
-install: install-directories install-standalone install-examples install-tests
+install: \
+	install-directories \
+	install-lib \
+	install-standalone \
+	install-examples \
+	install-tests
 
 .PHONY: install-directories
 install-directories:
@@ -144,6 +155,17 @@ install-directories:
 	mkdir -p $(MOOSKY_INSTALL_TARGET)/lib
 	mkdir -p $(MOOSKY_INSTALL_TARGET)/standalone
 	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests
+
+
+.PHONY: install-lib
+install-lib: \
+	build/lib/preamble.ss \
+	build/lib/r6rs-list.ss \
+	build/lib/object.ss \
+	build/lib/module.ss
+
+	cp $^ $(MOOSKY_INSTALL_TARGET)/lib/
+
 
 .PHONY: install-standalone
 install-standalone: \
@@ -197,6 +219,7 @@ install-test-components: \
 .PHONY: install-test-lib
 install-test-lib: \
 	build/lib/preamble.ss \
+	build/lib/module.ss \
 	build/lib/r6rs-list.ss \
 
 	cp $^ $(MOOSKY_INSTALL_TARGET)/tests/lib/

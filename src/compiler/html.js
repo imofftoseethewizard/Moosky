@@ -230,25 +230,40 @@ Moosky.HTML = (function ()
     i != undefined && setLastInspector(i);
   }
 
+  function TextNode(text) { return document.createTextNode(text); }
+  function Span(text) {
+    var span = document.createElement('span');
+    span.appendChild(new TextNode(text));
+    return span;
+  }
+
+  var outputContainer;
+  function print(text, color) {
+    var span = new Span(text);
+    if (color)
+      span.style.color = color;
+    outputContainer.appendChild(span);
+  }
+
   function REPL() {
     function Div() { return document.createElement('div'); }
     function Pre() { return document.createElement('pre'); }
     function TextArea() { return document.createElement('textarea'); }
-    function TextNode(text) { return document.createTextNode(text); }
-    function Span(text) {
-      var span = document.createElement('span');
-      span.appendChild(new TextNode(text));
-      return span;
+    function Img(src) {
+      var img = document.createElement('img');
+      img.src = src;
+      return img;
     }
 
     var div = new Div();
+    div.id = 'REPL-div';
     div.style.position = 'absolute';
     div.style.width = '896px';
-    console.log(document.innerWidth);
     div.style.background = '#202090';
 
     var titleBar = new Div();
     div.appendChild(titleBar);
+    titleBar.id = 'title-bar';
     titleBar.appendChild(new TextNode('Moosky'));
     titleBar.style.width = '100%';
     titleBar.style.color = 'white';
@@ -258,36 +273,83 @@ Moosky.HTML = (function ()
 
     var responseArea = new Div();
     div.appendChild(responseArea);
-    responseArea.style.border = '2px solid #4040c2';
+    responseArea.style.borderTop = '2px solid #4040c2';
+    responseArea.style.borderLeft = '2px solid #4040c2';
+    responseArea.style.borderRight = '2px solid #4040c2';
+    responseArea.style.borderBottom = 'none';
     responseArea.style.margin = '0';
     responseArea.style.padding = '0';
 
     var responseHolder = new Pre();
     responseArea.appendChild(responseHolder);
+    responseHolder.id = 'response-holder';
     responseHolder.style.margin = '0';
     responseHolder.style.padding = '0';
-    responseHolder.style.width = parseFloat(div.style.width) - 8 + 'px';
+    responseHolder.widthOffset = 8;
+    responseHolder.style.width = parseFloat(div.style.width) - responseHolder.widthOffset + 'px';
     responseHolder.style.background = "white";
-    responseHolder.style.overflow = "scroll";
+    responseHolder.style.overflow = "auto";
     responseHolder.style.height = '40em';
     responseHolder.style.border = '2px solid white';
+    outputContainer = responseHolder;
+
+    var divPaneSplitter = new Div();
+    div.appendChild(divPaneSplitter);
+    divPaneSplitter.id = 'pane-splitter';
+    divPaneSplitter.style.border = 'none'
+    divPaneSplitter.style.borderLeft = '2px solid #4040c2';
+    divPaneSplitter.style.borderRight = '2px solid #4040c2';
+    divPaneSplitter.style.margin = '0';
+    divPaneSplitter.style.padding = '0';
+    divPaneSplitter.style.background = '#a0a0e3';
+    divPaneSplitter.style.color = '#202090';
+    divPaneSplitter.style.textAlign = 'center';
+    divPaneSplitter.style.cursor = 'move';
+
+    var gripper = new Img('gripper.png');
+    divPaneSplitter.appendChild(gripper);
+    gripper.style.border = 'none'
+    gripper.style.margin = '0';
+    gripper.style.padding = '0';
+    gripper.style.opacity = '0.4';
+    gripper.style.height = '7px';
 
     var divTextAreaCtnr = new Div();
     div.appendChild(divTextAreaCtnr);
-    divTextAreaCtnr.style.border = '2px solid #4040c2';
+    divTextAreaCtnr.style.borderTop = 'none';
+    divTextAreaCtnr.style.borderLeft = '2px solid #4040c2';
+    divTextAreaCtnr.style.borderRight = '2px solid #4040c2';
+    divTextAreaCtnr.style.borderBottom = '2px solid #4040c2';
     divTextAreaCtnr.style.margin = '0';
     divTextAreaCtnr.style.padding = '0';
 
     var textArea = new TextArea();
     divTextAreaCtnr.appendChild(textArea);
+    textArea.id = 'text-area';
     textArea.style.margin = '0';
     textArea.style.padding = '0';
-    textArea.style.width = parseFloat(div.style.width) - 8 + 'px';
+    textArea.widthOffset = 8;
+    textArea.style.width = parseFloat(div.style.width) - textArea.widthOffset + 'px';
     textArea.style.height = '5em';
     textArea.style.border = '2px solid white';
+    textArea.style.resize = 'none';
+
+    var cornerGrip = new Img('corner-grip.png');
+    divTextAreaCtnr.appendChild(cornerGrip);
+    cornerGrip.id = 'corner-grip';
+    cornerGrip.style.border = 'none'
+    cornerGrip.style.margin = '0';
+    cornerGrip.style.marginTop = '-16px';
+    cornerGrip.widthOffset = 20;
+    cornerGrip.style.marginLeft = parseFloat(div.style.width) - cornerGrip.widthOffset + 'px';
+    cornerGrip.style.padding = '0';
+    cornerGrip.style.opacity = '0.4';
+    cornerGrip.style.height = '14px';
+    cornerGrip.style.width = '14px';
+    cornerGrip.style.cursor = 'move';
 
     var prompt = '> ';
-    responseHolder.appendChild(new Span(Moosky.Top.greeting() + '\n'));
+    print(Moosky.Top.greeting() + '\n');
 
     var last = textArea.value.length;
     textArea.focus();
@@ -310,11 +372,9 @@ Moosky.HTML = (function ()
 		textArea.value += '\n';
 		var sexp, code, result;
 
-		var requestSpan = new Span(prompt + textArea.value);
-		requestSpan.style.color = 'blue';
-		responseHolder.appendChild(requestSpan);
+		print(prompt + textArea.value, 'blue');
 
-/*		try*/ {
+/*		try */{
 		  var tokens = new TokenStream(textArea.value);
                    while (!tokens.finished() && (sexp = read(tokens)) != END) {
 		    console.log('read --', sexp, sexp.toString());
@@ -326,14 +386,10 @@ Moosky.HTML = (function ()
 		    console.log('evaluate --', result, ''+result);
 
 		    if (result !== undefined) {
-		      if (result && result.$values) {
-			var resultSpan = new Span(map(printSexp, result.$values).concat('').join('\n'));
-			responseHolder.appendChild(resultSpan);
-		      }
-		      else {
-			resultSpan = new Span(printSexp(result) + '\n');
-			responseHolder.appendChild(resultSpan);
-		      }
+		      if (result && result.$values)
+			print(map(printSexp, result.$values).concat('').join('\n'));
+		      else
+			print(printSexp(result) + '\n')
 		    }
 		    textArea.value = '';
 		    responseHolder.scrollTop = responseHolder.scrollHeight;
@@ -344,9 +400,7 @@ Moosky.HTML = (function ()
 		} /*catch(e) {
 		  if (!(e instanceof Moosky.Reader.IncompleteInputError)) {
 		    setTemporaries(undefined, e.exception, e.inspector);
-		    var errorSpan = new Span(e.toString() + '\n');
-		    errorSpan.style.color = 'red';
-		    responseHolder.appendChild(errorSpan);
+		    print(e.toString() + '\n', 'red');
 
 		    textArea.value = '';
 		  }
@@ -367,7 +421,9 @@ Moosky.HTML = (function ()
 
   return { get: get,
 	   compileScripts: compileScripts,
-	   REPL: REPL };
+	   REPL: REPL,
+	   print: print
+	 };
 })();
 
 Moosky.HTML.compileScripts();

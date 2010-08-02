@@ -43,22 +43,35 @@
       var Moosky = this.Moosky;
       var nil = Moosky.Values.Cons.nil;
       var Top = Moosky.Top
-      var compile = Top.compile;
+
+      var cons = Top.cons;
       var car = Top.car;
       var cdr = Top.cdr;
+      var reverse = Top.reverse;
 
       var texts = this.texts;
       var files = this.files;
       var evaluator = this.evaluator;
 
+      function compile (source) {
+	var read = Moosky.Reader.read;
+	var END = Moosky.Reader.END;
+	var compile = Moosky.Compiler.compile;
+
+	var tokens = new Moosky.Reader.TokenStream(source);
+
+	var result = nil;
+	while (!tokens.finished() && (sexp = read(tokens)) != END)
+	    result = cons(compile(sexp, Top), result);
+
+	return reverse(result);
+      }
+
       evaluator('Moosky.Top.printd = window.parent.$Moosky.Util.exports.print;');
 
       map(function (file) {
-//	console.log('compiling---', file, '\n\n\n\n\n\n\n\n\n\n\n\n');
 	var sexp = compile(texts[file]);
-//	console.log("sexp in action: ", ''+sexp);
 	while (sexp != nil) {
-//	  console.log("evaluating ==", car(sexp));
 	  evaluator(car(sexp)); 
 	  sexp = cdr(sexp);
 	}

@@ -36,6 +36,8 @@ Moosky.Top = (function ()
 		     || Runtime.Bare && Runtime.Bare.Top;
 
   var Top = {};
+  Top.$frame = Top;
+
   var munge = Symbol.munge;
   
   for (var p in RuntimeTop) {
