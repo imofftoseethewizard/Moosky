@@ -131,7 +131,7 @@ Moosky.HTML = (function ()
       var evaluate = Moosky.Evaluator.evaluate;
       var Top = Moosky.Top;
       var compile = Top.compile;
-      var stringAppend = Top.stringAppend;
+      var stringAppend = Top['string-append'];
 
       for (var j = 0, length = sources.length; j < length; j++) {
 	// parentNode becomes null after the script has been processed
@@ -242,7 +242,10 @@ Moosky.HTML = (function ()
     var span = new Span(text);
     if (color)
       span.style.color = color;
-    outputContainer.appendChild(span);
+    if (outputContainer)
+      outputContainer.appendChild(span);
+    else
+      console.log("PRINT: " + text);
   }
 
   function REPL() {

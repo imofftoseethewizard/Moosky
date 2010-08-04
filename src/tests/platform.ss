@@ -25,7 +25,7 @@
   (let ([label (cadr stx)]
 	[forms (cddr stx)])
     `(let ([_unit-label (quote ,label)]
-	   [_log-trials #f])
+	   [_log-trials #t])
        ,@forms)))
  
 ; (test . <test-items>)

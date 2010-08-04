@@ -54,8 +54,19 @@ Moosky.Reader = (function ()
     };
 
     TokenStream.prototype.getIndex = function() { return this.index; };
-    TokenStream.prototype.setIndex = function(i) { return this.index = Math.max(0, Math.min(i, this.length)); };
+    TokenStream.prototype.setIndex = function(i) {
+      this.resetLexemesNextMatch();
+      return this.index = Math.max(0, Math.min(i, this.length));
+    };
     TokenStream.prototype.finished = function() { return this.index >= this.length };
+
+
+    TokenStream.prototype.resetLexemesNextMatch = function() {
+      map(function(lexemeClass) {
+	lexemeClass.nextMatch = { index: -1 };
+      }, this.lexemeClasses);
+    };
+
 
     TokenStream.prototype.next = function() {
       while (!this.finished()) {
@@ -389,21 +400,14 @@ Moosky.Reader = (function ()
       if (token.$lexeme.match(/:$/))
 	return new Keyword(token.$lexeme.slice(0, -1));
 
-      if (token.$lexeme.match(/\./))
-	return parseDottedSymbol(token)
+//      if (token.$lexeme.match(/\./))
+//	return parseDottedSymbol(token)
 
       return new Symbol(token.$lexeme);
     }
 
     function read(tokens) {
       return parseAtom(tokens);
-/*
-      var tokens = new MooskyTokenStream(str);
-      var sexp = parseTokens(tokens, null);
-      if (tokens.finished())
-	return sexp;
-      else
-	throw 'Read finished before end of input: ' + str.substring(tokens.index, tokens.index+80);*/
     }
 
     var Reader = { read: read,

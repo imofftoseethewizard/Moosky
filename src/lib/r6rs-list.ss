@@ -17,30 +17,31 @@
 ;;;
 ;;;____________________________________________________________________________
 
-
+{ (window.__counter = 0) }
 (define (for-all proc . lists)
   (or (null? lists)
       (if (null? (car lists))
-          ; all lists must be empty
+          ;; all lists must be empty
           (let loop ([lists (cdr lists)])
             (or (null? lists)
                 (if (not (null? (car lists)))
                     '&exception
                     (loop (cdr lists)))))
-          ; all lists must have at least one element
+          ;; all lists must have at least one element
           (let loop ([lists lists]
                      [args '()]
                      [remainders '()])
             (if (null? lists)
-                (and (apply proc args)
-                     (apply for-all proc remainders))
+                (and (apply proc (reverse args))
+                     (apply for-all proc (reverse remainders)))
                 (let ([lst (car lists)])
                   (if (null? lst)
-                      ; should be an exception
+                      ;; should be an exception
                       '&exception
                       (loop (cdr lists)
                             (cons (car lst) args)
                             (cons (cdr lst) remainders)))))))))
+
 
 (define (exists proc . lists)
   (not (apply for-all (lambda args
@@ -67,15 +68,15 @@
                     (cons head misses)))))))
 
 (define (fold-left combine nil . lists)
-  (or (and (null? lists)
-           nil)
+  (if (null? lists)
+      nil
       (if (null? (car lists))
           ; all lists must be empty
           (let loop ([lists (cdr lists)])
-            (or (and (null? lists)
-                     nil)
+            (if (null? lists)
+                nil
                 (if (not (null? (car lists)))
-                    '&exception
+                    '&exception1
                     (loop (cdr lists)))))
           ; all lists must have at least one element
           (let loop ([lists lists]
@@ -87,21 +88,21 @@
                 (let ([lst (car lists)])
                   (if (null? lst)
                       ; should be an exception
-                      '&exception
+                      '&exception2
                       (loop (cdr lists)
                             (cons (car lst) args)
                             (cons (cdr lst) remainders)))))))))
 
 (define (fold-right combine nil . lists)
-  (or (and (null? lists)
-           nil)
+  (if (null? lists)
+      nil
       (if (null? (car lists))
           ; all lists must be empty
           (let loop ([lists (cdr lists)])
-            (or (and (null? lists)
-                     nil)
+            (if (null? lists)
+                nil
                 (if (not (null? (car lists)))
-                    '&exception
+                    '&exception3
                     (loop (cdr lists)))))
           ; all lists must have at least one element
           (let loop ([lists lists]
@@ -183,7 +184,6 @@
 
 (define (find proc lst)
   (let ([tail (memp proc lst)])
-    (console.log (format "--find: tail: %s" tail) tail) 
     (and tail (car tail))))
 
 (define (cons* . objs)

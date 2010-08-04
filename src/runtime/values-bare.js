@@ -161,11 +161,24 @@ Moosky.Values.Bare = (function ()
     return camelized;
   };
 
-  Symbol.prototype.emit = function() {
-    if (this.$sym.match(/\./))
-      return this.$sym;
+  Symbol.prototype.raw = function () {
+    return this.$sym;
+  };
 
-    return Symbol.munge(this.$sym);
+  Symbol.prototype.munge = function (munged) {
+    if (!this.$munged)
+      this.$munged = munged || Symbol.munge(this.$sym);
+  };
+
+  Symbol.prototype.emit = function() {
+//    if (this.$sym.match(/\./))
+//      return this.$sym;
+
+    if (this.$munged)
+      return this.$munged;
+
+    return this.$sym;
+//    return Symbol.munge(this.$sym);
   };
 
   Symbol.munge = function(sym) {
@@ -219,7 +232,7 @@ Moosky.Values.Bare = (function ()
 
   Keyword.prototype = new Value();
   Keyword.prototype.emit = function() {
-    return ['stringToSymbol("', escapeString(this.$sym), '")'].join('');
+    return ['$keyword("', escapeString(this.$sym), '")'].join('');
   };
 
   Keyword.prototype.toString = Symbol.prototype.toString;
@@ -246,7 +259,7 @@ Moosky.Values.Bare = (function ()
   Javascript.prototype = new Value();
 
   Javascript.prototype.emit = function () {
-    return 'jsQuote("' + escapeString(this.$js) + '")';
+    return '$js("' + escapeString(this.$js) + '")';
   };
 
   Javascript.prototype.toString = function () { return this.$js; };
@@ -287,10 +300,16 @@ Moosky.Values.Bare = (function ()
   };
 
   Cite.prototype.content = function (pre, post) {
+    if (!this.$text)
+      return "No content available.";
+
     return this.$text.substring(this.$start, this.$end);
   };
 
   Cite.prototype.context = function (pre, post) {
+    if (!this.$text)
+      return "No context available.";
+
     pre =  pre  != undefined ? pre  : 1;
     post = post != undefined ? post : 1;
 

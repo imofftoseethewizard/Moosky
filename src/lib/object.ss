@@ -71,13 +71,10 @@
                ,(js-quote "}")))
                         
 (define (make-object L)
-;  (console.log (format "make-object-- %s" L) L)
   (let ([obj (Object)])
     (for-each (lambda (pair)
-;                (console.log (format "-- pair: %s" pair) pair)
                 (let ([k (car pair)]
                       [v (cdr pair)])
-;                  (console.log k v)
                   { @^(obj)[Moosky.Values.Symbol.munge(''+@^(k))] = @^(v) }))
               (if (or (null? L)
                       (list? (car L)))
@@ -101,9 +98,10 @@
 #{
  (function () {
    var sexp = $nil;
-   for (var p in @^(obj))
-     sexp = cons(stringToSymbol(p), sexp);
-
+   for (var p in @^(obj)) {
+     if (@^(obj).hasOwnProperty(p))
+       sexp = cons($symbol(p), sexp);
+   }
    return sexp;
  })()
 }#)
@@ -113,7 +111,7 @@
  (function () {
    var sexp = $nil;
    for (var p in @^(obj))
-     sexp = cons(cons(stringToSymbol(p), @^(obj)[p]), sexp);
+     sexp = cons(cons($symbol(p), @^(obj)[p]), sexp);
 
    return sexp;
  })()

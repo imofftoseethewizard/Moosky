@@ -94,21 +94,30 @@
 	  return sexp;
 
 	var A = car(sexp);
-	if (isPair(A) && isSymbol(car(A)) && car(A) == 'unquote-splicing') {
-	  var unquoted = $force(lambdas.shift()());
+	if (isPair(A) && isSymbol(car(A))) {
+	  if (car(A) == 'unquote-splicing') {
+	    var unquoted = $force(lambdas.shift()());
 
-	  if (isList(unquoted))
-	    return append(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+	    if (isList(unquoted))
+	      return append(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
 
-	  return cons(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+	    return cons(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+	  }
+
 	}
-
 	if (isSymbol(A)) {
 	  if (A == 'unquote')
 	    return $force(lambdas.shift()());
+
+	  if (A == 'quasiquote')
+	    return sexp;
 	}
 
 	return cons(Moosky.Top.$quasiUnquote(A, lambdas), Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+      },
+
+      $keyword: function(str) {
+	return new Keyword(str);
       },
 
       $makeFrame: makeFrame,
@@ -144,13 +153,13 @@
       },
 
       'equal?': function(a, b) {
-	if (Moosky.Top.isEq(a, b))
+	if (Moosky.Top['eq?'](a, b))
 	  return true;
 
 	if (!isList(a) || !isList(b))
 	  return false;
 
-	return Moosky.Top.isEqual(car(a), car(b)) && Moosky.Top.isEqual(cdr(a), cdr(b));
+	return Moosky.Top['equal?'](car(a), car(b)) && Moosky.Top['equal?'](cdr(a), cdr(b));
       },
 
       'number?': function(a) {
@@ -162,7 +171,7 @@
       },
 
       'real?': function(a) {
-	return Moosky.Top.isNumber(a);
+	return Moosky.Top['number?'](a);
       },
 
       'rational?': function(a) {
@@ -178,7 +187,7 @@
       },
 
       'inexact?': function(a) {
-	return Moosky.Top.isNumber(a);
+	return Moosky.Top['number?'](a);
       },
 
       '=': numericComparator('=', function(a, b) { return a == b; }),
@@ -376,7 +385,7 @@
       },
 
       'make-vector': function(k, obj) {
-	var v = [];
+	var v = new Array();
 	while (k-- > 0)
 	  v.push(obj);
 
@@ -384,7 +393,7 @@
       },
 
       'vector': function(___) {
-	var v = [];
+	var v = new Array;
 	for (var i = 0; i < arguments.length; i++)
 	  v.push(arguments[i]);
 
@@ -413,7 +422,7 @@
 
       'list->vector': function(lst) {
 	// use makeVector?
-	var v = [];
+	var v = new Array();
 	while (lst != nil) {
 	  v.push(car(lst));
 	  lst = cdr(lst);
@@ -462,6 +471,10 @@
 		var iter = iterator('map', cons);
 		return function(___) { return reverse(iter.apply(null, arguments)); };
 	      })(),
+
+      'range': function (n, m, step) {
+	return Moosky.Top['vector->list'](range(n, m, step));
+      },
 
       'apply': function(proc, ___, lst) {
 	var tailIndex = arguments.length-1;
@@ -546,6 +559,9 @@
 	return Moosky.Version;
       }
     };
+
+    Moosky.Runtime.Bare.Top.$symbol = Moosky.Runtime.Bare.Top['string->symbol'];
+    Moosky.Runtime.Bare.Top.$js = Moosky.Runtime.Bare.Top['js-quote'];
     
   }
 })();

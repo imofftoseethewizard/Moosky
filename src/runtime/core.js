@@ -20,16 +20,16 @@
 //=============================================================================
 
 (function () {
-   var Runtime = Moosky.Runtime;
-   var RuntimeVariant = Runtime.Safe || Runtime.Bare;
-   Runtime.exports = RuntimeVariant.exports;
+  var Runtime = Moosky.Runtime;
+  var RuntimeVariant = Runtime.Safe || Runtime.Bare;
+  Runtime.exports = RuntimeVariant.exports;
 
-   var imports = ['with (Moosky.Runtime) {'];
-   for (var p in Runtime.exports)
-     imports.push(['var ', p, ' = exports.', p, ';'].join(''));
+  var imports = ['with (Moosky.Runtime) {']; 
+  for (var p in Runtime.exports)
+    imports.push(['var ', p, ' = exports.', p, ';'].join(''));
    
-   imports.push('}');
+  imports.push('}');
    
-   Runtime.importExpression = imports.join('');
+  Runtime.importExpression = imports.join('');
 })();
 

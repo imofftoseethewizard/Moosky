@@ -21,31 +21,33 @@
 
 Moosky.Top = (function ()
 {
-  var Bare = {};
+//  var Bare = {};
 
-  var Values = Moosky.Values;
-  var Symbol = Values.Symbol;
-  
-  Symbol.setTranslations({ '+': '$plus',
-			   '-': '$minus',
-			   '*': '$times',
-			   '/': '$divides' });
+//  var Values = Moosky.Values;
+//  var Symbol = Values.Symbol;
+
+  // DEMUNGE remove
+//  Symbol.setTranslations({ '+': '$plus',
+//			   '-': '$minus',
+//			   '*': '$times',
+//			   '/': '$divides' });
 
   var Runtime = Moosky.Runtime;
   var RuntimeTop = Runtime.Safe && Runtime.Safe.Top 
 		     || Runtime.Bare && Runtime.Bare.Top;
 
   var Top = {};
-  Top.$frame = Top;
+  Top.$ = Top;
 
-  var munge = Symbol.munge;
-  
+  // DEMUNGE remove
+//  var munge = Symbol.munge;
+
   for (var p in RuntimeTop) {
-    var munged = munge(p);
+    // DEMUNGE remove
+//    var munged = munge(p);
     var target = RuntimeTop[p];
-    Top[munged] = target;
-    if (typeof(target) == "function")
-      target.$primitive = true; 
+//    Top[munged] = target;
+    Top[p] = target;
   }
 
   return Top;

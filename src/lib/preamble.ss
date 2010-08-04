@@ -165,7 +165,7 @@
 (define (call-with-guard try-thunk final-thunk)
   #{
     (function () {
-      var result;
+      var result = undefined;
       try {
         result = @(try-thunk);
       } finally {
@@ -184,7 +184,7 @@
 (define (call-with-exception-handler try-thunk handler)
   #{
     (function () {
-      var result;
+      var result = undefined;
       try {
         result = @(try-thunk);
       } catch(e) {

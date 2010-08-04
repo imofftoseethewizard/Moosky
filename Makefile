@@ -22,7 +22,8 @@ compilers: \
 
 .PHONY: repls
 repls: \
-	build/standalone/repl.js
+	build/standalone/repl.js \
+	build/standalone/repl-inlining.js
 
 .PHONY: examples
 examples: \
@@ -75,8 +76,16 @@ build/standalone/compiler-inlining.js: \
 
 	cat $^ | bin/compressor.sh >$@
 
-build/standalone/repl.js: \
+build/standalone/repl-inlining.js: \
 	build/standalone/compiler-inlining.js \
+	src/compiler/evaluator.js \
+	src/compiler/html.js \
+	src/examples/start-repl.js
+
+	cat $^ | bin/compressor.sh >$@
+
+build/standalone/repl.js: \
+	build/standalone/compiler.js \
 	src/compiler/evaluator.js \
 	src/compiler/html.js \
 	src/examples/start-repl.js

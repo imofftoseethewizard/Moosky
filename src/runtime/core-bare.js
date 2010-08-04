@@ -44,7 +44,7 @@ Moosky.Runtime.Bare = (function ()
     var Frame = function () { };
     Frame.prototype = env;
     var frame = new Frame();
-    frame.$frame = frame;
+    frame.$ = frame;
     return frame;
   }
 
@@ -104,7 +104,7 @@ Moosky.Runtime.Bare = (function ()
       start = n, end = m;
 
     var result = [];
-    for (i = start; i <= end; i += step)
+    for (i = start; i < end; i += step)
       result.push(i);
 
     return result;

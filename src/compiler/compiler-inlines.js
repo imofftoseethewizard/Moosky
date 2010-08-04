@@ -24,15 +24,15 @@
   var InlineTemplate = Moosky.Tools.InlineTemplate;
   
   with (Moosky.Top) {
-    isSymbol.inline = new InlineTemplate({ 1: "(<<0>>) instanceof Moosky.Values.Symbol" });
-    isKeyword.inline = new InlineTemplate({ 1: "(<<0>>) instanceof Moosky.Values.Keyword" });
-    isList.inline = new InlineTemplate({ 1: "Moosky.Values.Cons.isCons(<<0>>)" });
-    isNull.inline = new InlineTemplate({ 1: "(<<0>>) === Moosky.Values.Cons.nil" });
+    $['symbol?'].inline = new InlineTemplate({ 1: "(<<0>>) instanceof Moosky.Values.Symbol" });
+    $['keyword?'].inline = new InlineTemplate({ 1: "(<<0>>) instanceof Moosky.Values.Keyword" });
+    $['list?'].inline = new InlineTemplate({ 1: "Moosky.Values.Cons.isCons(<<0>>)" });
+    $['null?'].inline = new InlineTemplate({ 1: "(<<0>>) === Moosky.Values.Cons.nil" });
     cons.inline = new InlineTemplate({ 2: "new Moosky.Values.Cons(<<0>>, <<1>>)" });
     car.inline = new InlineTemplate({ 1: "(<<0>>).$a" });
     cdr.inline = new InlineTemplate({ 1: "(<<0>>).$d" });
-    setCar_.inline = new InlineTemplate({ 2: "((<<0>>).$a = (<<1>>))" });
-    setCdr_.inline = new InlineTemplate({ 2: "((<<0>>).$d = (<<1>>))" });
+    $['set-car!'].inline = new InlineTemplate({ 2: "((<<0>>).$a = (<<1>>))" });
+    $['set-cdr!'].inline = new InlineTemplate({ 2: "((<<0>>).$d = (<<1>>))" });
     
     caar.inline = new InlineTemplate({ 1: "(<<0>>).$a.$a" });
     cadr.inline = new InlineTemplate({ 1: "(<<0>>).$d.$a" });

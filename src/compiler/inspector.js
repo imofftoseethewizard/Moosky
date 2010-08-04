@@ -65,7 +65,7 @@ Moosky.Inspector = (function ()
 	else
 	  citation  = insp.citation;
 
-	return [citation.context(3, 3),
+	return [citation.context(3, 3), '\n',
 		e.name, ': while evaluating |', citation.content(), '|: ', e.message].join('');
       }
       return undefined;
