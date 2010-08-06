@@ -51,7 +51,7 @@
          [private-module (gensym name)])
     (assert (symbol? name) (format "Illegal module name: symbol expected: %s" name))
     `(begin
-       (define ,name (make-module ',name (current-module)))
+       (define ,name (make-module ',name (Object)))
        (let ([,private-module (make-module ',name (current-module) ',private-module)])
          (for-each (lambda (form)
                      (except (lambda (E)
