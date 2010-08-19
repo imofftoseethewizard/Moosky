@@ -35,7 +35,7 @@ Moosky.Tools = (function ()
     var text = this.$templ;
     for (var p in params) {
       if (this.$regexps[p])
-	text = text.replace(this.$regexps[p], params[p]);
+	text = text.replace(this.$regexps[p], function() { return params[p]; });
     }
 
     return text;

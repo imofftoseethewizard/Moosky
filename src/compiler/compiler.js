@@ -597,6 +597,8 @@ Moosky.Compiler = (function ()
 
     if (sexp.requiresQuotes()) {
       var desc = findSymbolDescriptor(sexp, ctx);
+      if (sexp.$sym == "$foo-bar_103")
+	debugger;
       if (desc && desc.scope == 'local')
 	sexp.munge();
     
@@ -967,7 +969,6 @@ Moosky.Compiler = (function ()
       return syntax(QUOTE, quoted);
 
     function parseQQ(sexp) {
-//      console.log("--parseqq: sexp: ", ''+sexp, sexp);
       if (!isPair(sexp))
 	return sexp;
 
@@ -1392,15 +1393,16 @@ Moosky.Compiler = (function ()
   function compile(sexp, env, options) {
     env = env || makeFrame(Moosky.Top);
     options = options || { namespace: env.$namespace };
+//    if (isSymbol(options.namespace))      options.namespace = options.namespace.munge().emit();
     var ctx = new Context(null, { tail: true });
     var parsed = parseSexp(sexp, env, topContext());
 //    console.log('========================================================');
 //    console.log("" + parsed);
     var result = emitTop(emit(parsed, ctx), sexp, options);
-    if (false) {
-      console.log('--------------------------------------------------------');
-      console.log(result);
-    }
+//    if (true) {
+//      console.log('--------------------------------------------------------');
+//      console.log(result);
+//    }
     return result;
   }
 

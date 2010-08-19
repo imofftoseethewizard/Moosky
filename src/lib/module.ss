@@ -48,10 +48,11 @@
                                             (string-slice (format "%s" stx) 100)))
   (let* ([name (cadr stx)]
          [forms (cddr stx)]
-         [private-module (gensym name)])
+         [private-module (gensym "private")])
     (assert (symbol? name) (format "Illegal module name: symbol expected: %s" name))
     `(begin
        (define ,name (make-module ',name (Object)))
+       (printf "Compiling module %s\n"',name)
        (let ([,private-module (make-module ',name (current-module) ',private-module)])
          (for-each (lambda (form)
                      (except (lambda (E)
@@ -62,16 +63,16 @@
                        (eval (compile form ,private-module))))
                    ',(append forms
                              (list `(module-import ,name (cons #f ,private-module) #f '*)
-                                   `(module-export ,name '*))))))))
+                                   `(module-export ,name (get-exports-list ,private-module)))))))))
 
 (define-macro (export stx)
   (assert (< 1 (length stx)) (format "Improper export: no exports listed: %s" stx))
   (let ([export-spec (if (eq? '* (cadr stx))
                          '*
-                         `(quote ,(map (lambda (name-spec)
+                         `,(map (lambda (name-spec)
                                          (parse-export-spec name-spec))
-                                       (cdr stx))))])
-    `(module-export (current-module) ,export-spec)))
+                                (cdr stx)))])
+    `(module-export (current-module) ',export-spec)))
 
 
 (define-macro (import stx)
@@ -157,6 +158,7 @@
                      (object-properties-list module)))
         (object->alist exports))))
 
+
 (define (module-import target-module src-module-spec name-map names)
 ;;  (printf "names-- %s\n" names)
 ;;  (printf "src-module-spec-- %s\n" src-module-spec)
@@ -174,12 +176,10 @@
                       names)))))
 
 (define (module-export src-module export-specs)
-;;  (printf "$exports: %s\nspecs: %s\n" (object-ref src-module "$exports") export-specs)
-  (console.log "src-module" src-module)
+;;  (printf  "exporting %s from %s" export-specs (object-properties-list src-module))
   (if (eq? export-specs '*)
       (object-set! src-module "$exports" '*)
       (let ([exports (object-ref src-module "$exports")])
-        (console.log "src-module.$exports" exports)
         (when (not (eq? exports '*))
           (for-each (lambda (pair)
 ;;                      (printf "pair: %s\n" pair)

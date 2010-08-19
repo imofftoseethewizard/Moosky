@@ -120,7 +120,7 @@
 	assertIsNonNegativeInteger('make-string', k);
 
 	assertIsCharacter('make-string', ch !== undefined ? ch : ' ');
-	return Bare['make-string'](l, ch);
+	return Bare['make-string'](k, ch);
       },
 
       'string': function(___) {

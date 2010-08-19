@@ -1,0 +1,57 @@
+Precedence Level	Associates	Operator	Operand Types	Operation Performed
+ 1	   Left		[]		MemberExp Expression	
+ 	   Left		.		MemberExp Identifier	
+ 	    Right	new		 MemberExp Arguments	
+ 2	     Left	( )		  CallExpression Arguments	 Function Call
+ 	      Left	[]		   CallExpression Expression	 
+ 	       Left	.		    CallExpression Identifier	 
+ 3	       n/a	++		     LeftHandSideExp		  PostfixIncrement
+ 	       n/a	--		      LeftHandSideExp		   PostfixDecrement
+ 4	       Right	delete		      UnaryExp			   Call Delete Method
+ 	       Right	void		      UnaryExp			   Eval and Return undefined
+ 	       Right	typeof		      UnaryExp			   Return Type of an Object
+ 	       Right	++		      UnaryExp			   PrefixIncrement
+ 	       Right	--		      UnaryExp			   PrefixDecrement
+ 	       Right	+		      UnaryExp			   UnaryPlus
+ 	       Right	-		      UnaryExp			   UnaryMinus
+ 	       Right	~		      UnaryExp			   BitwiseNot
+ 	       Right	!		      UnaryExp			   LogicalNot
+ 5	       Left	*		      MultExp UnaryExp		   Multiplication
+ 	       Left	/		      MultExp UnaryExp		   Division
+ 	       Left	%		      MultExp UnaryExp		   Remainder
+ 6	       Left	+		      AddExp MultExp		   Addition
+ 	       Left	-		      AddExp MultExp		   Subtraction
+ 7	       Left	<<		      ShiftExp AddExp		   BitwiseLeftShift
+ 	       Left	>>		      ShiftExp AddExp		   SignedRightShift
+ 	       Left	>>>		      ShiftExp AddExp		   UnsignedRightShift
+ 8	       Left	<		      RelExp ShiftExp		   LessThanComparison
+ 	       Left	>		      RelExp ShiftExp		   GreaterThanComparison
+ 	       Left	<=		      RelExp ShiftExp		   LessThanOrEqualComparison
+ 	       Left	>=		      RelExp ShiftExp		   GreaterThanOrEqualComparison
+ 	       Left	instanceof	      RelExp ShiftExp		   Call HasInstance Method
+ 	       Left	in		      RelExp ShiftExp		   Call HasProperty Method
+ 9	       Left	==		      EqualExp RelExp		   IsEqual
+ 	       Left	!=		      EqualExp RelExp		   IsNotEqual
+ 	       Left	===		      EqualExp RelExp		   IsStrictlyEqual
+ 	       Left	!==		      EqualExp RelExp		   IsStrictlyNotEqual
+ 10	       Left	&		      BitwiseAndExp EqualExp	   BitwiseAnd
+ 11	       Left	^		      BitwiseXorExp EqualExp	   Bitwise Xor
+ 12	       Left	|		      BitwiseOrExp EqualExp	   BitwiseOr
+ 13	       Left	&&		      LogicalAndExp BitwiseOrExp   LogicalAnd
+ 14	       Left	||		       LogicalOrExp LogicalAndExp  
+LogicalOr
+
+ 15	Right	? :	LogicalOrExp AssignExp AssignExp	ConditionalExpression
+ 16	Right	= LeftHandSideExp AssignExp    AssignmentExpression
+ 	Right	*=		  LeftHandSideExp AssignExp	AssignmentWithMultiplication
+ 	Right	/=		  LeftHandSideExp AssignExp	AssignmentWithDivision
+ 	Right	%=		  LeftHandSideExp AssignExp	AssignmentWithRemainder
+ 	Right	+=		  LeftHandSideExp AssignExp	AssignmentWithAddition
+ 	Right	-=		  LeftHandSideExp AssignExp	AssignmentWithSubtraction
+ 	Right	<<=		  LeftHandSideExp AssignExp	AssignmentWithBitwiseLeftShift
+ 	Right	>>=		  LeftHandSideExp AssignExp	AssignmentWithSignedRightShift
+ 	Right	>>>=		  LeftHandSideExp AssignExp	AssignmentWithUnsignedRightShift
+ 	Right	&=		  LeftHandSideExp AssignExp	AssignmentWithBitwiseAnd
+ 	Right	^=		  LeftHandSideExp AssignExp	AssignmentWithBitwiseOr
+ 	Right	|=		  LeftHandSideExp AssignExp	AssignmentWithLogicalNot
+ 17	Left	,		  Expression AssignExp		SequentialEvaluation

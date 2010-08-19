@@ -48,6 +48,19 @@
                   (list (car L))
                   (cdr L)))))
 
+(define (splice-join comma L)
+  (if (null? L)
+      L
+      (reverse
+       (fold-left (lambda (result next)
+                    (cons next (let loop ([comma comma]
+                                          [result result])
+                                 (if (null? comma)
+                                     result
+                                     (loop (cdr comma) (cons (car comma) result))))))
+                  (list (car L))
+                  (cdr L)))))
+
 (define (string-join comma L)
   (apply string-append (join comma L)))
 
@@ -69,6 +82,12 @@
                                            (cdr T)))
                                    (group-by 2 tuples: (cdr stx)))))
                ,(js-quote "}")))
+
+(define (object? x)
+  { typeof(x) == "object" })
+
+(define (function? x)
+  { typeof(x) == "function" })
                         
 (define (make-object L)
   (let ([obj (Object)])
@@ -81,6 +100,16 @@
                   L
                   (pairs L)))
     obj))
+
+
+(define (extend-object! obj . props)
+  (let loop ([props props])
+    (and (not (null? props)) (not (null? (cdr props)))
+         (begin
+           (object-set! obj (car props) (cadr props))
+           (loop (cddr props)))))
+  obj)
+
 
 (define (object-property-name k)
   (cond [(string? k) k]
@@ -114,6 +143,57 @@
      sexp = cons(cons($symbol(p), @^(obj)[p]), sexp);
 
    return sexp;
- })()
+  })()
 }#)
+
+;;--------------------------------------------------------------------------
+;;
+;; (rectify x)
+;;
+;; x is any value.
+;;
+;; rectify returns a proper list and the final cdr of its argument.
+;;
+;; If x not a list, simply a value, then rectify returns (values '() x).
+;;
+;; If x is a proper list, then rectify returns (values x '()).
+;;
+;; If x is an improper list, then rectify returns a the proper list formed
+;; by the cars of x, and the final cdr of x.  E.g
+;;
+;;   (rectify (cons 'foo 'bar)) --> (values '(foo) 'bar)
+;;
+;; This is a utility used in processing dotted argument lists, e.g
+;;
+;;   (let-values ([(formals rest) (rectify parameters)])
+;;     ...)
+;;
+
+(define (rectify x)
+  (let loop ([x x]
+             [result '()])
+    (cond [(null? x)
+           (values (reverse result) '())]
+
+          [(list? x)
+           (loop (cdr x) (cons (car x) result))]
+
+          [#t
+           (values (reverse result) x)])))
+
+
+(define (assoc-ref obj lst)
+  (let ([r (assoc obj lst)])
+    (and r (cdr r))))
+
+(define (take n L)
+  (if (zero? n)
+      '()
+      (cons (car L) (take (- n 1) (cdr L)))))
+
+(define (drop n L)
+  (if (zero? n)
+      L
+      (drop (- n 1) (cdr L))))
+
 

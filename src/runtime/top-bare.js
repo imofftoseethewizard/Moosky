@@ -304,7 +304,7 @@
       'make-string': function(k, ch) {
 	ch = ch !== undefined ? ch : ' ';
 	var s = '';
-	while (k > 0)
+	while (k-- > 0)
 	  s += ch;
 
 	return s;

@@ -17,7 +17,6 @@
 ;;;
 ;;;____________________________________________________________________________
 
-{ (window.__counter = 0) }
 (define (for-all proc . lists)
   (or (null? lists)
       (if (null? (car lists))
@@ -87,7 +86,7 @@
                        (reverse remainders))
                 (let ([lst (car lists)])
                   (if (null? lst)
-                      ; should be an exception
+ ; should be an exception
                       '&exception2
                       (loop (cdr lists)
                             (cons (car lst) args)

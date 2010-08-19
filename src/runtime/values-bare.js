@@ -168,6 +168,8 @@ Moosky.Values.Bare = (function ()
   Symbol.prototype.munge = function (munged) {
     if (!this.$munged)
       this.$munged = munged || Symbol.munge(this.$sym);
+
+    return this;
   };
 
   Symbol.prototype.emit = function() {

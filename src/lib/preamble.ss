@@ -114,7 +114,7 @@
                              (if (null? data)
                                  (cons 'or condition)
                                  (data-loop (cdr data)
-                                            (cons `(eqv? ,temp ,(car data)) condition)))))])
+                                            (cons `(eqv? ,temp ',(car data)) condition)))))])
             (clause-loop (cdr clauses)
                          `(if ,test ,result ,conditionals)))))))
 

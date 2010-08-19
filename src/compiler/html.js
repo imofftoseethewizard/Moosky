@@ -238,14 +238,19 @@ Moosky.HTML = (function ()
   }
 
   var outputContainer;
+  var deferredOutput = [];
   function print(text, color) {
     var span = new Span(text);
     if (color)
       span.style.color = color;
-    if (outputContainer)
+    if (!outputContainer)
+      deferredOutput.push(span);
+
+    else {
+      while (deferredOutput.length > 0)
+	outputContainer.appendChild(deferredOutput.shift());
       outputContainer.appendChild(span);
-    else
-      console.log("PRINT: " + text);
+    }
   }
 
   function REPL() {
