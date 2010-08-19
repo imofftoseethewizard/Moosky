@@ -103,6 +103,8 @@
   (define (context-stx ctx)
     (context-ref ctx stx:))
 
+  (define (context-local-bindings ctx)
+    (context-ref ctx bindings:))
   
   ;;--------------------------------------------------------------------------
   ;;
@@ -121,6 +123,16 @@
                        ctx)))
   
   
+  (define (context-alias ctx sym)
+    (let ([alias-binding (find (lambda (binding)
+                                 (eq? binding.symbol sym))
+                               (context-local-bindings ctx))])
+      (if alias-binding
+          alias-binding.alias
+          (if (root-context? ctx)
+              sym
+              (context-alias (next-context ctx) sym)))))
+           
   (define (context-extend! ctx . props)
     (apply object-extend! ctx props))
 
@@ -156,6 +168,11 @@
   (define (context-stack ctx)
     (cdrs ctx))
 
+  (define (root-context? ctx)
+    (null? (cdr ctx)))
+
+  (define next-context cdr)
+  
     
   ;;--------------------------------------------------------------------------
   ;;

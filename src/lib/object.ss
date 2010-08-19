@@ -146,6 +146,21 @@
   })()
 }#)
 
+(define (object-copy obj)
+  (make-object (object->alist obj)))
+
+(define (delete-property! obj prop)
+  (object-set! obj prop #u))
+
+(define (string-find s t)
+  (let ([index (s.indexOf t)])
+    (and (not (= -1 t))
+         t)))
+
+(define (simple-symbol? sym)
+  (string-find (symbol->string sym) "."))
+
+
 ;;--------------------------------------------------------------------------
 ;;
 ;; (rectify x)

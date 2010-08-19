@@ -170,51 +170,51 @@
                          (tail-context? ctx)
                          (find-set-context ctx applicand))])
 
-      (if (not set-ctx)
-          ;; normal, non-recursive application
+      (if set-ctx
+          (parse-recursive-application stx ctx set-ctx)
           `(CALL ,(parse applicand stx)
                  ,(map (lambda (stx)
                          (parse stx ctx))
                        (cdr stx)))
 
-          ;; recursive application
-          (let* ([set-form (object-ref set-ctx stx:)]
-                 [recurrer-ctx (find-recurring-lambda-context set-form stx ctx)]
-                 [params (map (lambda (stx)
-                                (parse stx ctx))
-                              (cdr stx))]
-                 
-                 [formals     (context-ref recurrer-ctx formals:)]
-                 [rest        (context-ref recurrer-ctx rest:)]
-                 [temporaries (context-ref recurrer-ctx temporaries:)]
-                 [formal-count (length formals)])
-            
-            (set-context-recurring! recurrer-ctx)
-            `(SEQUENCE ,@(map (lambda (formal actual)
-                                `(ASSIGN (IDENTIFIER ,temp)
-                                         ,(precedence-bracket 'ASSIGN actual)))
-                              temporaries
-                              (take formal-count params))
-                       ,@(if rest
-                             (list `(ASSIGN (IDENTIFIER ,rest)
-                                            (CALL (IDENTIFIER "list")
-                                                  ,(drop formal-count params))))
-                             '())
-                       ,@(map (lambda (formal actual)
-                                `(ASSIGN (IDENTIFIER ,formal) ,temp))
-                              formals
-                              temporaries)
-                       (IDENTIFIER ,(context-ref recurrer-ctx continue-symbol:)))))))
   
+  (define (parse-recursive-application stx ctx set-ctx)
+    ;; recursive application
+    (let* ([set-form (object-ref set-ctx stx:)]
+           [recurrer-ctx (find-recurring-lambda-context set-form stx ctx)]
+           [params (map (lambda (stx)
+                          (parse stx ctx))
+                        (cdr stx))]
+           
+           [formals     (context-ref recurrer-ctx formals:)]
+           [rest        (context-ref recurrer-ctx rest:)]
+           [temporaries (context-ref recurrer-ctx temporaries:)]
+           [formal-count (length formals)])
+      
+      (set-context-recurring! recurrer-ctx)
+      `(SEQUENCE ,@(map (lambda (formal actual)
+                          `(ASSIGN (IDENTIFIER ,temp)
+                                   ,(precedence-bracket 'ASSIGN actual)))
+                        temporaries
+                        (take formal-count params))
+                 ,@(if rest
+                       (list `(ASSIGN (IDENTIFIER ,rest)
+                                      (CALL (IDENTIFIER "list")
+                                            ,(drop formal-count params))))
+                       '())
+                 ,@(map (lambda (formal actual)
+                          `(ASSIGN (IDENTIFIER ,formal) ,temp))
+                        formals
+                        temporaries)
+                 (IDENTIFIER ,(context-ref recurrer-ctx continue-symbol:)))))
+
 
   (define (parse-let-form ctx)
     (let* ([applicand (car stx)]
            [ctx (make-let-context stx ctx)]
-           [locals (cadr applicand)]
-           [aliases (context-aliases ctx)])
+           [locals (cadr applicand)])
       `(SEQUENCE ,@(map (lambda (local actual)
-                          `(ASSIGN (IDENTIFIER ,(or (assoc-ref local aliases)
-                                                    local))
+                          `(ASSIGN (IDENTIFIER ,(context-alias ctx local))
                                    ,(precedence-bracket 'ASSIGN
                                                         (parse actual ctx))))
                         locals
@@ -224,12 +224,29 @@
                         (cddr applicand)))))
 
 
+  
+  (define (parse-tailed-sequence stx ctx)
+    (let* ([stx-r (reverse stx)]
+           [tail (parse (car stx-r) ctx)]
+           [ctx (make-non-tail-context stx ctx)])
+      (let loop ([stx (cdr stx-r)]
+                 [result (list tail)])
+        (if (null? stx)
+            result
+            (loop (cdr stx)
+                  (cons (parse (car stx) ctx)
+                        result))))))
+  
+  
   (define (parse-value stx ctx)
     (cond [(symbol? stx)
            (parse-symbol stx ctx)]
 
+          [(vector? stx)
+           (parse-vector stx ctx)]
+
           [#t
-           stx]))
+           `(LITERAL ,stx)]))
 
   
   ;;--------------------------------------------------------------------------
@@ -262,12 +279,9 @@
   ;;
 
   (define (parse-symbol sym ctx)
-    (let* ([components (let ([aliases (get-local-aliases ctx)])
-                         (map (lambda (sym)
-                                (or (assoc-ref sym aliases)
-                                    sym))
-                              (map string->symbol (string-split (symbol->string sym) "."))))]
-           [base (car components)])
+    (let* ([components (map string->symbol (string-split (symbol->string sym) "."))]
+           [base (context-alias ctx (car components))])
+
       (fold-left (lambda (component)
                    (if (identifier? component)
                        `(MEMBER-LIT ,result (IDENTIFIER ,component))
@@ -280,6 +294,13 @@
                          `(MEMBER-EXP (IDENTIFIER "$") (LITERAL raw))))
                  
                  (cdr components))))
+
+
+  (define (parse-vector stx ctx)
+    (let ([ctx (make-non-tail-context stx ctx)])
+      (list->vector (map (lambda (stx)
+                           (parse stx ctx))
+                         (vector->list stx)))))
 
   
   ;;--------------------------------------------------------------------------
@@ -300,7 +321,7 @@
   ;; the context object is consed onto the head of the existing context.
   ;;
 
-    
+  
   (define (make-root-context stx)
     (let ([ctx (make-parse-context stx '() 'root
                                    '() parse-kernel)])
@@ -331,11 +352,19 @@
           (add-binding! ctx (make-rest-binding rest)))
         
         (context-extend! ctx
-          tail: #f
+          tail: #t
           formals: formals
           rest: rest
           temporaries: '()
           recursive: #f))))
+
+
+  (define (make-let-context stx ctx)
+    (let ([let-ctx (make-parse-context stx ctx 'let)])
+      (for-all (lambda (sym)
+                 (add-binding! ctx (make-let-binding sym)))
+               (cadar stx))
+      let-ctx))
 
 
   (define (make-non-tail-context stx ctx)
@@ -343,12 +372,12 @@
       (context-extend! ctx
         tail: #t)))
 
-  
-  
+
+
   (define (make-binding symbol alias tag)
-    (object symbol: target
-            alias: target
-            tag: 'set))
+    (object symbol: symbol
+            alias: alias
+            tag: tag))
 
   (define (make-set-binding target value)
     (extend-object! (make-binding 'set target target)
@@ -357,6 +386,9 @@
   (define (make-formal-binding formal)
     (make-binding 'formal formal formal))
 
+  (define (make-let-binding sym)
+    (make-binding sym (gensym sym) 'let))
+
   (define (make-rest-binding rest)
     (make-binding 'rest rest rest))
 
@@ -364,31 +396,37 @@
     (make-binding 'definition name name))
 
 
+  (define (definition-binding? binding)
+    (eq? binding.tag 'definition))
+
+  (define (let-binding? binding)
+    (eq? binding.tag 'let))
+
+
   (define (lambda-context? ctx)
     (eq? (context-tag ctx) 'lambda))
-  
+
   (define (set-context? ctx)
     (eq? (context-tag ctx) 'set))
 
   (define (root-context? ctx)
     (eq? (context-tag ctx) 'root))
-  
+
 
   (define (definition-context? ctx)
     (or (lambda-context? ctx)
         (root-context? ctx)))
-  
+
   (define quote-context? root-context?)
 
   (define (recursive-lambda-context? ctx)
     (and (lambda-context? ctx)
          (context-ref ctx recursive:)))
-  
+
   (define (tail-context? ctx)
     (context-ref ctx tail:))
 
 
-  
   (define (add-definition! ctx target)
     (add-binding! (find definition-context? (context-stack ctx))
                   (make-definition-binding target)))
@@ -397,13 +435,11 @@
     (add-binding! (find quote-context? (context-stack ctx))
                   (make-quote-binding symbol value)))
 
-  
-  (define (context-aliases ctx)
-    (map (lambda (binding)
-           (cons binding.symbol binding.alias))
-         (context-bindings ctx)))
-  
 
+  (define (get-definitions ctx)
+    (filter definition-binding? (context-local-bindings ctx)))
+
+  
   (define (find-set-context ctx sym)
     (find (lambda (ctx)
             (and (set-context? ctx)
@@ -557,7 +593,6 @@
 
             [#t
              `(SEQUENCE ,@(parse-tailed-sequence (cdr stx) ctx))]))
-                            
 
 
     (define (DEFINE stx ctx)
@@ -594,37 +629,40 @@
                 (format "syntax error: the formal parameters of a lambda form are expected to be a symbol, a list of symbols, or a dotted list of symbols: %s"
                         stx))
 
-        (let ([lambda-ctx (make-lambda-context stx ctx)])
-          (let* ([body (let* ([ctx (make-tail-context stx lambda-ctx)]
-                              [body (parse-tailed-sequence (cddr stx) ctx)])
-                         ;; explicitly recursive lambdas rename their parameters
-                         ;; so that they can be expressed as while loops
-                         (if (recursive-lambda-context? lambda-ctx)
-                             (parse-tailed-sequence (cddr stx) ctx)
-                             body))]
-                 [rest-binding (if (null? rest)
-                                   '()
-                                   `(((IDENTIFIER ,rest) .
-                                      (CALL (IDENTIFIER "$arglist")
-                                            ((IDENTIFIER "arguments")
-                                             (LITERAL ,(length formals)))))))]
-                 [recursive-bindings (if (not (recursive-lambda-context? lambda-ctx))
-                                         '()
-                                         (append (map (lambda (temp)
-                                                        `((IDENTIFIER ,temp) . (LITERAL #u)))
-                                                      (get-temporaries lambda-ctx))
-                                                 (list `(((IDENTIFIER ,(context-ref lambda-ctx result-symbol:)) . (LITERAL #u))
-                                                         ((IDENTIFIER ,(context-ref lambda-ctx continue-symbol:)) .
-                                                          (CALL (IDENTIFIER "Object")
-                                                                ()))))))]
-                 [definition-bindings (map (lambda (sym)
-                                             `((IDENTIFIER ,sym) . (LITERAL #u)))
-                                           (get-definitions ctx))]
-                 [bindings `(STATEMENT
-                             (VAR (,@rest-binding
-                                   ,@recursive-bindings
-                                   ,@definition-bindings)))])
-            `(FUNCTION #f ,formals ,(append bindings body))))))
+        (let* ([ctx (make-lambda-context stx ctx)]
+               [body (let ([body (parse-tailed-sequence (cddr stx) ctx)])
+                       ;; explicitly recursive lambdas rename their parameters
+                       ;; so that they can be expressed as while loops, this may
+                       ;; require reparsing of expressions that occur lexically
+                       ;; prior to the first recursive call, as the symbols
+                       ;; referencing function arguments in the emitted code
+                       ;; will be different.
+                       (if (recursive-lambda-context? ctx)
+                           (parse-tailed-sequence (cddr stx) ctx)
+                           body))]
+               [rest-binding (if (null? rest)
+                                 '()
+                                 `(((IDENTIFIER ,rest) .
+                                    (CALL (IDENTIFIER "$arglist")
+                                          ((IDENTIFIER "arguments")
+                                           (LITERAL ,(length formals)))))))]
+               [recursive-bindings (if (not (recursive-lambda-context? ctx))
+                                       '()
+                                       (append (map (lambda (temp)
+                                                      `((IDENTIFIER ,temp) . (LITERAL #u)))
+                                                    (context-ref ctx temporaries:))
+                                               (list `(((IDENTIFIER ,(context-ref ctx result-symbol:)) . (LITERAL #u))
+                                                       ((IDENTIFIER ,(context-ref ctx continue-symbol:)) .
+                                                        (CALL (IDENTIFIER "Object")
+                                                              ()))))))]
+               [definition-bindings (map (lambda (binding)
+                                           `((IDENTIFIER ,binding.symbol) . (LITERAL #u)))
+                                         (get-definitions ctx))]
+               [bindings `(STATEMENT
+                           (VAR (,@rest-binding
+                                 ,@recursive-bindings
+                                 ,@definition-bindings)))])
+          `(FUNCTION #f ,formals ,(append bindings body)))))
 
 
     (define (OR stx ctx)
@@ -725,208 +763,6 @@
     
     "End Module special-forms")
 
-  
-  (define (parse-primitives stx)
-    (parse stx (make-parse-context stx "top" '() primitives.selector)))
-
-  ;;--------------------------------------------------------------------------
-  ;;
-  ;; (module primitives ...)
-  ;;
-  ;; primitives defines the syntax transformers from the primitive language
-  ;; to javascript ASTs.
-  ;;
-  ;; 
-  
-  (module primitives
-
-    (export selector)
-
-;;   (define (parse stx ctx)
-;;     (cond [(symbol? stx)
-;;            (ctx.syntax.parse-symbol stx ctx)]
-            
-;;           [(pair? stx)
-;;            (let* ([applicand (car stx)]
-;;                   [proc (and (symbol? applicand)
-;;                              (object-ref ctx.syntax applicand))])
-;;              (if (and (defined? proc)
-;;                       proc)
-;;                  (proc stx ctx)
-;;                  (ctx.syntax.parse-application stx ctx)))]
-
-;;           [#t
-;;            stx]))
-
-;;   (define (parse-primitives stx)
-;;     (parse stx (make-root-context stx primitives)))
-
-  (define (compute-aliases ctx)
-    (let* ([ctx-tip-r (let loop ([ctx ctx]
-                                 [result '()])
-                        (if (let-context? (car ctx))
-                            (cons (car ctx) result)
-                            (loop (cdr ctx) (cons (car ctx) result))))])
-      (if (base-context? (car ctx-tip-r))
-          '()
-          (fold-left (lambda (ctx-obj aliases)
-                       (cond [(let-context? ctx-obj)
-                              ctx-obj.aliases]
-
-                             [(set-context? ctx-obj)
-                              (remp (lambda (alias)
-                                      (eq? ctx-obj.target (car alias)))
-                                    aliases)]
-
-                             [(lambda-context? ctx-obj)
-                              (remp (lambda (alias)
-                                      (let ([sym (car alias)])
-                                        (or (member sym ctx-obj.formal)
-                                            (member sym ctx-obj.definitions)
-                                            (eq? sym ctx-obj.rest))))
-                                    aliases)]))
-                     '()
-                     ctx-tip-r))))
-
-  
-  (define (make-let-context form ctx)
-    (let ([local-aliases (map (lambda (sym)
-                                (cons sym (gensym sym)))
-                              (cadar form))])
-    (cons (object let: form
-                  local-aliases: local-aliases
-                  aliases: (append local-aliases
-                                   (compute-aliases ctx)))
-          ctx)))
-                                        
-
-
-  (define (make-tail-context ctx)
-    (if (tail-context? (car ctx))
-        ctx
-        (cons (object tail: #t)
-              ctx)))
-
-
-  (define (make-non-tail-context ctx)
-    (if (tail-context? (car ctx))
-        (cons (object tail: #f)
-              ctx)
-        ctx))
-
-
-  (define (definition-context? ctx-obj)
-    (defined? ctx-obj.definitions))
-  
-  (define (lambda-context? ctx-obj)
-    (defined? ctx-obj.lambda))
-  
-  (define (local-context? ctx-obj)
-    (defined? ctx-obj.locals))
-  
-  (define (quote-context? ctx-obj)
-    (defined? ctx-obj.quotes))
-  
-  (define (set-context? ctx-obj)
-    (defined? ctx-obj.set))
-
-  (define (tail-context? ctx-obj)
-    ctx-obj.tail)
-  
-
-  (define (definition-context ctx)
-    (find definition-context? ctx))
-  
-  (define (lambda-context ctx)
-    (find lambda-context? ctx))
-  
-  (define (local-context ctx)
-    (find local-context? ctx))
-  
-  (define (quote-context ctx)
-    (find quote-context? ctx))
-  
-  
-  (define (add-definition ctx sym)
-    (let ([ctx-def (definition-context ctx)])
-      (set! ctx-def.definitions (cons sym ctx-def.definitions)))))
-
-  
-  (define (add-quote ctx sym Q)
-    (let ([ctx-quote (quote-context ctx)])
-      (set! ctx-quote.quotes (cons (cons sym Q) ctx-quote.quotes))))
-
-  
-  (define (local-symbol? ctx sym)
-    (find (lambda (ctx-obj)
-            (and (local-context? ctx-obj)
-                 (member sym ctx-obj.locals)))
-          ctx))
-
-  
-  (define (get-rest ctx)
-    (let ([ctx-obj (car ctx)])
-      (assert (lambda-context? ctx-obj))
-      (default ctx-obj.rest #f)))
-
-  
-  (define (get-formals ctx)
-    (let ([ctx-obj (car ctx)])
-      (assert (lambda-context? ctx-obj))
-      (default ctx-obj.formals #f)))
-
-  
-  (define (get-local-aliases ctx)
-    (let ([ctx-obj (let-context ctx)])
-      (if ctx-obj
-          ctx-obj.aliases
-          '())))
-
-
-  (define (get-temporaries ctx)
-    (let ([ctx-obj (car ctx)])
-      (default ctx-obj.temporaries '())))
-
-
-  (define (get-result-symbol ctx)
-    (let ([ctx-obj (car ctx)])
-      (assert (lambda-context? ctx-obj))
-      ctx-obj.result-symbol))
-
-
-  (define (get-continue-symbol ctx)
-    (let ([ctx-obj (car ctx)])
-      (assert (lambda-context? ctx-obj))
-      ctx-obj.continue-symbol))
-
-
-    
-
-
-    
-    (define (parse-tailed-sequence stx ctx)
-      (let* ([stx-r (reverse stx)]
-             [tail (parse (car stx-r) ctx)]
-             [ctx (make-non-tail-context ctx)])
-        (let loop ([stx (cdr stx-r)]
-                   [result (list tail)])
-          (if (null? stx)
-              result
-              (loop (cdr stx)
-                    (cons (parse (car stx) ctx)
-                          result))))))
-    
-
-    (define (string-find s t)
-      (let ([index (s.indexOf t)])
-        (and (not (= -1 t))
-             t)))
-    
-    (define (simple-symbol? sym)
-      (string-find (symbol->string sym) "."))
-
-
-    "END Module syntax")
   
   (module test
     (define-macro (trial stx)
