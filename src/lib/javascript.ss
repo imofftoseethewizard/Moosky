@@ -2,6 +2,21 @@
 
   (export *)
 
+  (define (ast->markup sexp)
+    (if (not (pair? sexp))
+        sexp
+        (let ([applicand (car sexp)])
+          (cond [(symbol? applicand)
+                 (let ([emitter (assoc-ref applicand emitters)])
+                   (assert emitter (format "ast->markup: tag %s has no emitter"))
+                   (apply emitter (map ast->markup (cdr sexp))))]
+
+                [(list? applicand)
+                 (map ast->markup applicand)]
+
+                [#t (assert #f (format "ast->markup: unable to interpret %s" sexp))]))))
+              
+
   (define (regexp-match s regexp)
     (regexp.exec s))
 
@@ -14,7 +29,9 @@
                   (if (eq? #n (regexp-match c #/[\w]/))
                       (format "$%s" (c.charCodeAt 0))
                       c))
-                (string->list s))))
+                (string->list (if (string? s)
+                                  s
+                                  (symbol->string s))))))
   
   (define operator-precedence
     '((MEMBER-EXP . 1)                   ; []

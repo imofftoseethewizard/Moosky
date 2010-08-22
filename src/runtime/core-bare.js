@@ -283,6 +283,33 @@ Moosky.Runtime.Bare = (function ()
     return (result && result.$has_promise) ? result.force() : result;
   }
 
+  function $quasiUnquote(sexp, lambdas) {
+    if (!isPair(sexp))
+      return sexp;
+
+    var A = car(sexp);
+    if (isPair(A) && isSymbol(car(A))) {
+      if (car(A) == 'unquote-splicing') {
+	var unquoted = $force(lambdas.shift()());
+
+	if (isList(unquoted))
+	  return append(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+
+	return cons(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+      }
+
+    }
+    if (isSymbol(A)) {
+      if (A == 'unquote')
+	return $force(lambdas.shift()());
+
+      if (A == 'quasiquote')
+	return sexp;
+    }
+
+    return cons(Moosky.Top.$quasiUnquote(A, lambdas), Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+  }
+
   function values(___) {
     var value = arguments[0];
 
@@ -600,6 +627,7 @@ Moosky.Runtime.Bare = (function ()
     reverseSyntax: reverseSyntax,
     $promise: $promise,
     $force: $force,
+    $quasiUnquote: $quasiUnquote,
     values: values,
     callWithValues: callWithValues,
     numericComparator: numericComparator,

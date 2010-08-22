@@ -5,8 +5,10 @@
   (let ([new-module (Moosky.Runtime.exports.makeFrame base)])
     (object-set! new-module "$name" name)
     (object-set! new-module "$namespace" (default namespace
-                                           (format "%s.%s"
-                                                   (object-ref base "$namespace") name)))
+                                           (let ([base-namespace (object-ref base "$namespace")])
+                                             (if (defined? base-namespace)
+                                                 (format "%s.%s" base-namespace name)
+                                                 name))))
     (object-set! new-module "$exports" (Object))
     (object-set! new-module "current-module" (lambda () new-module))
     new-module))
@@ -42,6 +44,7 @@
   (lambda (sym)
     (string->symbol (format "%s%s" prefix sym))))
 
+(define log-imports #f)
 (define-macro (module stx)
   
   (assert (< 2 (length stx)) (string-append "Improper module definition: (module <name> forms...) expected: "
@@ -51,7 +54,7 @@
          [private-module (gensym "private")])
     (assert (symbol? name) (format "Illegal module name: symbol expected: %s" name))
     `(begin
-       (define ,name (make-module ',name (Object)))
+       (define ,name (make-module ',name (object)))
        (printf "Compiling module %s\n"',name)
        (let ([,private-module (make-module ',name (current-module) ',private-module)])
          (for-each (lambda (form)
@@ -86,7 +89,7 @@
                              (cond [(eq? key '*)
                                     (loop (cdr options) (cons (cons names: key) params))]
 
-                                   [(member key '(from prefix map))
+                                   [(member key '(from prefpix map))
                                     (if (null? (cdr options))
                                         (assert #f (format "Improper import specification: option %s needs value: %s" key stx))
                                         (loop (cddr options) (cons (cons key (cadr options))
@@ -143,8 +146,8 @@
                                              name module-name))
     
     (let ([export-value (object-ref module internal-name)])
-      (assert export-value (format "Export %s not found in module %s."
-                                   name module-name))
+      (assert (defined? export-value) (format "Export %s not found in module %s."
+                                              name module-name))
       export-value)))
 
 
@@ -154,20 +157,18 @@
         (map (lambda (sym)
                (cons sym sym))
              (filter (lambda (sym)
-                       (= -1 (string-search (symbol->string sym) #/\$/)))
+                       (and (= -1 (string-search (symbol->string sym) #/\$/))
+                            (not (eq? sym 'current-module))))
                      (object-properties-list module)))
         (object->alist exports))))
 
 
 (define (module-import target-module src-module-spec name-map names)
-;;  (printf "names-- %s\n" names)
-;;  (printf "src-module-spec-- %s\n" src-module-spec)
   (if (null? names)
       (object-set! target-module (car src-module-spec) (cdr src-module-spec))
       (let ([name-map (or name-map (lambda (x) x))]
             [src-module (cdr src-module-spec)])
         (for-each (lambda (name-spec)
-;;                    (printf "name-spec: %s\n" name-spec)
                     (let ([imported-as (car name-spec)]
                           [exported-as (cdr name-spec)])
                       (object-set! target-module imported-as (get-export src-module exported-as))))
@@ -176,7 +177,6 @@
                       names)))))
 
 (define (module-export src-module export-specs)
-;;  (printf  "exporting %s from %s" export-specs (object-properties-list src-module))
   (if (eq? export-specs '*)
       (object-set! src-module "$exports" '*)
       (let ([exports (object-ref src-module "$exports")])

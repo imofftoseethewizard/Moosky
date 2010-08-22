@@ -17,13 +17,15 @@
 ;;;
 ;;;____________________________________________________________________________
 
-(module parser
+(module generic-parser
 
   (export make-parse-context make-parse-frame
-          context-frame context-ref context-tag
-          context-set! context-extend!
-          find-context
+          context-stack context-frame
+          context-ref context-tag context-stx
+          context-set! context-extend! 
           add-binding! get-binding
+          context-bindings context-local-bindings
+          context-alias
           parse)
 
   ;;==========================================================================
@@ -81,12 +83,12 @@
   ;;
   
   (define (make-parse-context stx ctx tag bindings kernel)
-    (cons (make-parse-frame stx (default bindings '())
-                            '()
-                            (if (null? ctx)
-                                (and (assert (defined? kernel) "make-parse-context: null parent context, but no kernel given.")
-                                     kernel)
-                                ctx.kernel))
+    (cons (make-parse-frame stx tag (default bindings '())
+                            (let ([kernel (if (null? ctx)
+                                              kernel
+                                              (context-ref ctx kernel:))])
+                              (assert (defined? kernel) "make-parse-context: null parent kernel; or null parent context, but no kernel given.")
+                              kernel))
           ctx))
 
 
@@ -97,6 +99,9 @@
   (define (context-ref ctx sym)
     (object-ref (context-frame ctx) sym))
 
+  (define (context-set! ctx sym v)
+    (object-set! (context-frame ctx) sym v))
+
   (define (context-tag ctx)
     (context-ref ctx tag:))
 
@@ -105,6 +110,7 @@
 
   (define (context-local-bindings ctx)
     (context-ref ctx bindings:))
+
   
   ;;--------------------------------------------------------------------------
   ;;
@@ -117,16 +123,14 @@
   ;;
   
   (define (context-bindings ctx)
-    (assert (not (null? ctx)))
+    (assert (not (null? ctx)) "context-bindings: null context")
     (apply append (map (lambda (ctx-frame)
                          (object-ref ctx-frame bindings:))
                        ctx)))
   
   
   (define (context-alias ctx sym)
-    (let ([alias-binding (find (lambda (binding)
-                                 (eq? binding.symbol sym))
-                               (context-local-bindings ctx))])
+    (let ([alias-binding (assoc-ref sym (context-local-bindings ctx))])
       (if alias-binding
           alias-binding.alias
           (if (root-context? ctx)
@@ -134,7 +138,8 @@
               (context-alias (next-context ctx) sym)))))
            
   (define (context-extend! ctx . props)
-    (apply object-extend! ctx props))
+    (apply extend-object! (context-frame ctx) props)
+    ctx)
 
   (define (mapcdr proc . lists)
     (if (null? lists)
@@ -186,10 +191,9 @@
   ;;
   
   (define (add-binding! ctx sym obj)
-    (assert (not (null? ctx)))
+    (assert (not (null? ctx)) "add-binding!: null context")
     (let ([ctx-frame (car ctx)])
       (set! ctx-frame.bindings (cons (cons sym obj) ctx-frame.bindings))))
-
 
 
   ;;--------------------------------------------------------------------------
@@ -207,7 +211,7 @@
   ;;
   
   (define (get-binding ctx sym)
-    (assert (not (null? ctx)))
+    (assert (not (null? ctx)) "get-binding: null context")
     (let ([ctx-frame (car ctx)])
       (or (assoc-ref sym ctx-frame.bindings)
           (and (not (null? (cdr ctx)))
@@ -227,8 +231,8 @@
   ;; parse-error computes a message describing the error.
   ;;
   
-  (define (make-parse-error-message stx ctx msg)
-    (format "syntax-error: while parsing %s\n%s" stx msg))
+  (define (make-parse-error-message stx ctx type msg)
+    (format "%s: while parsing %s\n  %s" type stx msg))
   
 
 
@@ -245,11 +249,12 @@
   ;;
   
   (define (parse stx ctx)
-    (assert (not (null? ctx)))
-    
+    (assert (not (null? ctx)) "parse: null context")
     (except (lambda (e)
-              (raise (make-parse-error-message stx ctx e.message)))
-      (let ([kernel (object-ref (car ctx) kernel:)])
+              (raise "syntax error" (make-parse-error-message stx ctx e.name e.message)))
+      (let ([kernel (context-ref ctx kernel:)])
+;        (console.log "KERNEL: " (list->vector ctx))
+        (assert (defined? kernel) "parse: kernel not defined")
         (kernel stx ctx))))
 
 
@@ -275,13 +280,7 @@
     ;;     in the current frame an in earlier frames.
     ;;    get-bindings shows appropriately models lexical scoping.
     ;;
-    ;; 2. Errors
-    ;;    check that error predicates (error-parser?, error-frame?) work.
-    ;;    check that make-error-parser and error-parser? work together
-    ;;    check that make-error-frame and error-frame? work together
-    ;;    check that make-parse-error-message makes correct messages
-    ;;
-    ;; 3. Parser
+    ;; 2. Parser
     ;;    check that parser is called and the returned value is used correctly
     ;;    check that errors are raised with appropriate messages when parser fails
     ;;    check that the appropriate parser is called given the parser return
@@ -321,7 +320,7 @@
                         (case (car stx)
                           [(+) plus-parser]
                           [(*) times-parser]
-                          [else (make-error-parser (format "%s: unrecognized operator" (car stx)))])
+                          [else (assert (format "%s: unrecognized operator" (car stx)))])
                         value-parser)])
         (parser stx ctx)))
 
@@ -339,12 +338,6 @@
     
     (trial (string=? "foo base binding" (get-binding base-ctx 'foo)))
     (trial (string=? "foo test binding" (get-binding test-ctx 'foo)))
-    
-
-    ;; Errors
-
-    (trial (error-result? (make-error-result "foo")))
-    (trial (error-result? ((make-error-parser "foo") stx test-ctx)))
     
 
     ;; Parser

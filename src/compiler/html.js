@@ -385,13 +385,13 @@ Moosky.HTML = (function ()
 /*		try */{
 		  var tokens = new TokenStream(textArea.value);
                    while (!tokens.finished() && (sexp = read(tokens)) != END) {
-		    console.log('read --', sexp, sexp.toString());
+//		    console.log('read --', sexp, sexp.toString());
 		    
 		    code = compile(sexp, Top);
-		    console.log('compile --', code);
+//		    console.log('compile --', code);
 
 		    result = evaluate(code);
-		    console.log('evaluate --', result, ''+result);
+//		    console.log('evaluate --', result, ''+result);
 
 		    if (result !== undefined) {
 		      if (result && result.$values)

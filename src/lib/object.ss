@@ -196,6 +196,11 @@
           [#t
            (values (reverse result) x)])))
 
+(define (proper-list? x)
+  (and (list? x)
+       (or (null? x)
+           (proper-list? (cdr x)))))
+
 
 (define (assoc-ref obj lst)
   (let ([r (assoc obj lst)])
@@ -211,4 +216,11 @@
       L
       (drop (- n 1) (cdr L))))
 
+(define (take-right n L)
+  (reverse (take n (reverse L))))
 
+(define (drop-right n L)
+  (reverse (drop n (reverse L))))
+
+(define (last L)
+  (car (take-right 1 L)))

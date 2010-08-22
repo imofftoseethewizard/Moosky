@@ -159,8 +159,14 @@
 (define (defined? x)
   (not (eq? x #u)))
 
-(define (raise x)
-  #{ (function () { throw @^(x) })() }#)
+(define (raise . args)
+  (if (= 1 length args)
+      #{ (function () { throw @(car args) })() }#
+      #{ (function ()
+            { var e = new Error(@(cadr args));
+              e.name = @(car args);
+              throw e;
+            })() }#))
 
 (define (call-with-guard try-thunk final-thunk)
   #{
@@ -201,7 +207,7 @@
     `(call-with-exception-handler (lambda () ,@forms) ,handler)))
 
 (define (assert b msg)
-  (or b (raise (string-append "assert-failed: " msg))))
+  (or b (raise (string-append "assert-failed: " { "" + @^(msg) }))))
 
 (define (default v d)
   (if (undefined? v) d v))
@@ -237,4 +243,8 @@
 
 (define-macro (when stx)
   `(and ,(cadr stx)
+        (begin ,@(cddr stx))))
+
+(define-macro (unless stx)
+  `(or ,(cadr stx)
         (begin ,@(cddr stx))))

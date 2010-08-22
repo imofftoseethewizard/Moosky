@@ -99,7 +99,6 @@ Moosky.Reader = (function ()
 	    }, this.lexemeClasses);
 
 	if (!token) {
-	  debugger;
 	  var preview = this.text.slice(Math.max(0, this.index-30), this.index);
 	  var remainder = this.text.slice(this.index, Math.min(this.length, this.index+30));
 	  var caret_position = preview.slice(preview.lastIndexOf('\n')+1).length-1;
@@ -107,7 +106,6 @@ Moosky.Reader = (function ()
 			  + preview + remainder + '\n'
 			  + map(constant(' '), range(caret_position)).join('') + '^';
 
-	  debugger;
 	  throw message;
 	}
 

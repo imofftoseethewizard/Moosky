@@ -1091,7 +1091,13 @@ Moosky.Compiler = (function ()
       parameters = cdr(parameters);
     }
 
-    return applicand.inline.fill(values);
+    var result;
+    try {
+      result = applicand.inline.fill(values);
+    } catch (e) {
+      throw "" + e + "\n  while emitting " + sexp;
+    }
+    return result;
   }
 
   function emitObject(sexp, ctx) {
@@ -1106,8 +1112,13 @@ Moosky.Compiler = (function ()
 	     'boolean':   function(b) { return b ? 'true' : 'false'; },
 	     'number' :   function(n) { return n.toString(); },
 	     'string':    function(s) { return new Values.String(s).emit(); },
-	     'function':  function(f) { throw new SyntaxError('cannot emit function literal.'); },
-	     'object':    function(o, ctx) { return emitObject(sexp, ctx); }
+	     'object':    function(o, ctx) { return emitObject(sexp, ctx); },
+	     'function':  function(f) { 
+	       if (f.constructor !== RegExp)
+		 throw new SyntaxError('cannot emit function literal.');
+
+	       return new Values.RegExp(f).emit();
+	     }
 	   }[typeof(sexp)](sexp, ctx);
   }
 

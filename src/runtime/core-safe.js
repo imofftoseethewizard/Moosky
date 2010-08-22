@@ -505,6 +505,7 @@ Moosky.Runtime.Safe = (function ()
     reverseSyntax: reverseSyntax,
     $promise: $promise,
     $force: $force,
+    $quasiUnquote: $quasiUnquote,
     values: values,
     callWithValues: callWithValues,
     numericComparator: numericComparator,

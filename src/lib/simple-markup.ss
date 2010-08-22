@@ -1,8 +1,8 @@
-(module code-stream
+(module simple-markup
 
-  (export code-stream->string pretty-print)
+  (export null-markup pretty-print)
 
-  (define (code-stream->string cs)
+  (define (null-markup cs)
     (apply string-append
            (map (lambda (s)
                   (if (equal? s '(newline))
@@ -25,7 +25,6 @@
              (if (null? cs)
                  (reverse result)
                  (let ([e (car cs)])
-                   (console.log (format "%s" e))
                    (if (not (list? e))
                        (loop (cons e result) (cdr cs)
                              line (+ column (string-length e))

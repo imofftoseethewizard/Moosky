@@ -38,9 +38,9 @@ Moosky = (function ()
     var result;
     while (!tokens.finished() && (sexp = read(tokens)) != END) {
       var code = compile(sexp, Top);
-      console.log('evaluating---', code);
+//      console.log('evaluating---', code);
       result = evaluate(code);
-      console.log('evaluated---', result, ''+result);
+//      console.log('evaluated---', result, ''+result);
     }
 
     return result;

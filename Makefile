@@ -6,7 +6,11 @@ lib: \
 	src/lib/preamble.ss \
 	src/lib/r6rs-list.ss \
 	src/lib/object.ss \
-	src/lib/module.ss 
+	src/lib/module.ss \
+	src/lib/generic-parser.ss \
+	src/lib/simple-markup.ss \
+	src/lib/javascript.ss \
+	src/lib/primitive-syntax.ss
 
 	cp $^ build/lib/
 
@@ -104,7 +108,11 @@ build/examples/repl.html : \
 	src/lib/preamble.ss \
 	src/lib/r6rs-list.ss \
 	src/lib/object.ss \
-	src/lib/module.ss
+	src/lib/module.ss \
+	src/lib/generic-parser.ss \
+	src/lib/simple-markup.ss \
+	src/lib/javascript.ss \
+	src/lib/primitive-syntax.ss
 
 	cp $^ build/examples/
 
@@ -132,7 +140,11 @@ build/examples/debug-repl.html : \
 	src/lib/preamble.ss \
 	src/lib/r6rs-list.ss \
 	src/lib/object.ss \
-	src/lib/module.ss
+	src/lib/module.ss \
+	src/lib/generic-parser.ss \
+	src/lib/simple-markup.ss \
+	src/lib/javascript.ss \
+	src/lib/primitive-syntax.ss
 
 	cp $^ build/examples/
 
@@ -171,7 +183,11 @@ install-lib: \
 	build/lib/preamble.ss \
 	build/lib/r6rs-list.ss \
 	build/lib/object.ss \
-	build/lib/module.ss
+	build/lib/module.ss \
+	src/lib/generic-parser.ss \
+	src/lib/simple-markup.ss \
+	src/lib/javascript.ss \
+	src/lib/primitive-syntax.ss
 
 	cp $^ $(MOOSKY_INSTALL_TARGET)/lib/
 
