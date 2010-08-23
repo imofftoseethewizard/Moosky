@@ -76,6 +76,7 @@
        'syntax*': syntaxStar,
        'append-syntax': appendSyntax,
        'reverse-syntax': reverseSyntax,
+       'quote-string': Values.String.escapeString,
        $promise: $promise,
        $force: $force,
        $quasiUnquote: $quasiUnquote,

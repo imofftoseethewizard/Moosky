@@ -141,30 +141,6 @@
     (apply extend-object! (context-frame ctx) props)
     ctx)
 
-  (define (mapcdr proc . lists)
-    (if (null? lists)
-        '()
-        (if (null? (car lists))
-            ;; all lists must be empty
-            (let loop ([lists (cdr lists)])
-              (if (null? lists)
-                  '()
-                  (if (not (null? (car lists)))
-                      '&exception1
-                      (loop (cdr lists)))))
-            ;; all lists must have at least one element
-            (let loop ([lists lists]
-                       [result '()])
-              (if (null? (car lists))
-                  (let check-loop ([lists (cdr lists)])
-                    (if (null? lists)
-                        (reverse result)
-                        (if (not (null? (car lists)))
-                            '&exception2
-                            (check-loop (cdr lists)))))
-                  (loop (map cdr lists)
-                        (cons (apply proc lists) result)))))))
-
   (define (I x) x)
   
   (define (cdrs L)

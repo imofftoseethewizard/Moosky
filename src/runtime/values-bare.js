@@ -82,6 +82,8 @@ Moosky.Values.Bare = (function ()
     this.$str = str;
   }
 
+  MooskyString.escapeString = escapeString;
+
   MooskyString.prototype = new Value();
 
   MooskyString.prototype.toString = function () {
@@ -579,4 +581,5 @@ Moosky.Values.Bare = (function ()
 	   Complex: Complex,  Real: Real, Rational: Rational, Integer: Integer,
 	   Promise: Promise, Exception: Exception, Cons: Cons };
 })();
+
 

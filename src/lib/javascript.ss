@@ -2,7 +2,10 @@
 
   (export *)
 
+
   (define (ast->markup sexp)
+    (printf "ast->markup: %s\n" sexp)
+    (let ([result
     (if (not (pair? sexp))
         sexp
         (let ([applicand (car sexp)])
@@ -12,9 +15,11 @@
                    (apply emitter (map ast->markup (cdr sexp))))]
 
                 [(list? applicand)
-                 (map ast->markup applicand)]
+                 (map ast->markup sexp)]
 
-                [#t (assert #f (format "ast->markup: unable to interpret %s" sexp))]))))
+                [#t (assert #f (format "ast->markup: unable to interpret %s" sexp))])))])
+      (printf "-->%s\n" result)
+      result))
               
 
   (define (regexp-match s regexp)
@@ -107,7 +112,7 @@
   
   (define (sequence exps)
     `((push-base)
-      ,@(splice-join '(", " (newline)) exps)
+      ,@(apply append (join '(", " (newline)) exps))
       (pop-base)))
   
   (define (statements stmts)
@@ -124,10 +129,10 @@
   ;;; Emitters for Punctuation and Literals
   ;;;
 
-  (define (BLOCK stmt)
-    `((push-base) "{" (indent) (newline)
-      ,@stmt (newline)
-      (pop-base) "}"))
+  (define (BLOCK stmts)
+    `("{" (indent) (newline)
+      ,@(apply append (join '((newline)) stmts)) (outdent) (newline)
+      "}"))
 
   (define (IDENTIFIER id)
     (list (if (symbol? id)
@@ -136,10 +141,10 @@
   
   (define (LITERAL exp)
     (cond [(number? exp)
-           (format "%s" exp)]
+           (list (format "%s" exp))]
           
           [(string? exp)
-           (javascript-quote exp)]
+           `("\"" ,(quote-string exp) "\"")]
           
           [(symbol? exp)
            (CALL (IDENTIFIER "$S") (list (LITERAL (symbol->string exp))))]
@@ -157,16 +162,16 @@
            (assert #f (format "TODO: literal function" exp))]
 
           [(eq? #u exp)
-           "undefined"]
+           '("undefined")]
 
           [(eq? #n exp)
-           "null"]
+           '("null")]
 
           [(eq? #t exp)
-           "true"]
+           '("true")]
           
-          [(eq? #false exp)
-           "false"]
+          [(eq? #f exp)
+           '("false")]
 
           [(regexp? exp)
            (javascript-regexp exp)]
@@ -177,8 +182,8 @@
   (define (PAREN exp)
     `("(" ,@exp ")"))
 
-  (define (SEMI stmt)
-    `(,@stmt ";" (newline)))
+  (define (STATEMENT stmt)
+    `(,@stmt ";"))
 
 
   
@@ -219,7 +224,7 @@
 
   (define (CONDITIONAL cond csq alt)
     `((push-base)
-      ,@cond (newline) (indent)
+      ,@cond (indent) (newline)
       " ? " ,@csq (newline)
       " : " ,@alt
       (pop-base)))
@@ -266,10 +271,10 @@
   (define (LTE left right)
     `(,@left " <= " ,@right))
 
-  (define (MEMBER-EXP obj p)
+  (define (MEMBER-LIT obj p)
     `(,@obj "." ,@p))
 
-  (define (MEMBER-LIT obj exp)
+  (define (MEMBER-EXP obj exp)
     `(,@obj "[" ,@exp "]"))
 
   (define (MINUS . exps)
@@ -384,11 +389,12 @@
     `("for (var " ,@identifier " in " ,@obj ") " ,@stmt))
 
   (define (FUNCTION identifier formals body)
-    `("function " ,@(if (default identifier #f)
+    `((push-base) "function " ,@(if (default identifier #f)
                         identifier
                         '())
-      ,@(arglist formals)
-      ,@(BLOCK body)))
+      ,@(arglist formals) " "
+      ,@(BLOCK body)
+      (pop-base)))
 
   (define (IF cond csq alt)
     `((push-base) "if (" ,@cond ")" ,@csq
@@ -402,7 +408,7 @@
 
   (define (RETURN exp)
     `("return " ,@(if (default exp #f)
-                      (list exp)
+                      exp
                       '())))
 
   (define (SWITCH exp case-exps)
@@ -433,14 +439,14 @@
     `((push-base) "try " ,@try-block
       " finally " ,@final-block))
   
-  (define (VAR . decls)
+  (define (VAR decls)
     `("var " (push-base)
-      ,@(splice-join '(", " (newline))
-                     (map (lambda (decl)
-                            (if (list? decl)
-                                `(,@(car decl) " = " ,@(cdr decl))
-                                (list decl)))
-                          decls))
+      ,@(apply append (join '(", " (newline))
+                            (map (lambda (decl)
+                                   (if (= 1 (length decl))
+                                       decl
+                                       `(,@(car decl) " = " ,@(cadr decl))))
+                                 decls)))
       (pop-base)))
 
   (define (WHILE exp stmt)
@@ -449,11 +455,158 @@
   (define (WITH exp stmt)
     `("with (" ,@exp ") " ,@stmt))
 
+  (define emitters
+    `((BLOCK . ,BLOCK)
+      (IDENTIFIER . ,IDENTIFIER)
+      (LITERAL . ,LITERAL)
+      (PAREN . ,PAREN)
+      (STATEMENT . ,STATEMENT)
+      (ASSIGN . ,ASSIGN)
+      (BITWISE-AND . ,BITWISE-AND)
+      (BITWISE-AND-ASSIGN . ,BITWISE-AND-ASSIGN)
+      (BITWISE-LEFT-SHIFT . ,BITWISE-LEFT-SHIFT)
+      (BITWISE-LEFT-SHIFT-ASSIGN . ,BITWISE-LEFT-SHIFT-ASSIGN)
+      (BITWISE-OR . ,BITWISE-OR)
+      (BITWISE-OR-ASSIGN . ,BITWISE-OR-ASSIGN)
+      (BITWISE-XOR . ,BITWISE-XOR)
+      (BITWISE-XOR-ASSIGN . ,BITWISE-XOR-ASSIGN)
+      (CALL . ,CALL)
+      (CONDITIONAL . ,CONDITIONAL)
+      (DELETE . ,DELETE)
+      (DIV . ,DIV)
+      (DIV-ASSIGN . ,DIV-ASSIGN)
+      (EQUAL . ,EQUAL)
+      (GT . ,GT)
+      (GTE . ,GTE)
+      (STRICTLY-EQUAL . ,STRICTLY-EQUAL)
+      (INSTANCEOF . ,INSTANCEOF)
+      (IN . ,IN)
+      (LOGICAL-AND . ,LOGICAL-AND)
+      (LOGICAL-NOT . ,LOGICAL-NOT)
+      (LOGICAL-OR . ,LOGICAL-OR)
+      (LT . ,LT)
+      (LTE . ,LTE)
+      (MEMBER-EXP . ,MEMBER-EXP)
+      (MEMBER-LIT . ,MEMBER-LIT)
+      (MINUS . ,MINUS)
+      (MULT . ,MULT)
+      (MULT-ASSIGN . ,MULT-ASSIGN)
+      (NEW . ,NEW)
+      (NOT-EQUAL . ,NOT-EQUAL)
+      (NOT-STRICTLY-EQUAL . ,NOT-STRICTLY-EQUAL)
+      (PLUS . ,PLUS)
+      (PLUS-ASSIGN . ,PLUS-ASSIGN)
+      (MINUS-ASSIGN . ,MINUS-ASSIGN)
+      (POSTFIX-DEC . ,POSTFIX-DEC)
+      (POSTFIX-INC . ,POSTFIX-INC)
+      (PREFIX-DEC . ,PREFIX-DEC)
+      (PREFIX-INC . ,PREFIX-INC)
+      (REM . ,REM)
+      (REM-ASSIGN . ,REM-ASSIGN)
+      (SEQUENCE . ,SEQUENCE)
+      (SIGNED-RIGHT-SHIFT . ,SIGNED-RIGHT-SHIFT)
+      (SIGNED-RIGHT-SHIFT-ASSIGN . ,SIGNED-RIGHT-SHIFT-ASSIGN)
+      (TYPEOF . ,TYPEOF)
+      (UNARY-MINUS . ,UNARY-MINUS)
+      (UNARY-PLUS . ,UNARY-PLUS)
+      (UNSIGNED-RIGHT-SHIFT . ,UNSIGNED-RIGHT-SHIFT)
+      (UNSIGNED-RIGHT-SHIFT-ASSIGN . ,UNSIGNED-RIGHT-SHIFT-ASSIGN)
+      (VOID . ,VOID)
+      (BREAK . ,BREAK)
+      (CASE . ,CASE)
+      (CONTINUE . ,CONTINUE)
+      (DEFAULT . ,DEFAULT)
+      (DO-WHILE . ,DO-WHILE)
+      (FOR . ,FOR)
+      (FOR-IN . ,FOR-IN)
+      (FOR-VAR . ,FOR-VAR)
+      (FOR-VAR-IN . ,FOR-VAR-IN)
+      (FUNCTION . ,FUNCTION)
+      (IF . ,IF)
+      (LABEL . ,LABEL)
+      (RETURN . ,RETURN)
+      (SWITCH . ,SWITCH)
+      (THROW . ,THROW)
+      (TRY-CATCH . ,TRY-CATCH)
+      (TRY-CATCH-FINALLY . ,TRY-CATCH-FINALLY)
+      (TRY-FINALLY . ,TRY-FINALLY)
+      (VAR . ,VAR)
+      (WHILE . ,WHILE)
+      (WITH . ,WITH)))
+
   (module test
     (define-macro (trial stx)
       `(assert ,@(cdr stx) (format "%s failed" ',@(cdr stx))))
+    
+    (define-macro (fail stx)
+      `(assert (eq? 'exception (except (lambda (e) 'exception)
+                                 ,@(cdr stx)))
+               (format "%s failed" ',@(cdr stx))))
 
+    (for-each (lambda (trial-spec)
+                ;;(printf "trial-spec: %s\n" trial-spec)
+                (let ([result (ast->markup (car trial-spec))])
+                  ;;(printf "result: %s\n" result)
+                  (trial (equal? result (cadr trial-spec)))))
+                
+              '(((IDENTIFIER foo) ("foo"))
+                
+                ((MEMBER-LIT (IDENTIFIER foo) (IDENTIFIER "bar"))
+                 ("foo" "." "bar"))
+
+                ((MEMBER-EXP (IDENTIFIER foo) (LITERAL "bar*"))
+                 ("foo" "[" "\"" "bar*" "\"" "]"))
+
+                ((MEMBER-LIT (MEMBER-EXP (IDENTIFIER foo) (LITERAL "bar*")) (IDENTIFIER "baz"))
+                 ("foo" "[" "\"" "bar*" "\"" "]" "." "baz"))
+
+                ((CONDITIONAL (LITERAL 2) (LITERAL "A") (LITERAL "B"))
+                 ((push-base) "2" (indent) (newline) " ? " "\"" "A" "\"" (newline) " : " "\"" "B" "\"" (pop-base)))
+
+                ((STRICTLY-EQUAL (IDENTIFIER foo) (LITERAL #f))
+                 ("foo" " === " "false"))
+
+                ((NOT-STRICTLY-EQUAL (IDENTIFIER foo) (LITERAL #f))
+                 ("foo" " !== " "false"))
+
+                ((SEQUENCE (IDENTIFIER foo) (IDENTIFIER bar))
+                 ((push-base) "foo" ", " (newline) "bar" (pop-base)))
+
+                ((RETURN (LITERAL #t))
+                 ("return " "true"))
+
+                ((STATEMENT (RETURN (LITERAL #t)))
+                 ("return " "true" ";"))
+
+                ((FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (RETURN (LITERAL #t)))))
+                 ((push-base) "function " "(" (push-base) "x" (pop-base) ")" " " "{" (indent) (newline)
+                  "return " "true" ";" (outdent) (newline) "}" (pop-base)))
+
+                ((CALL (IDENTIFIER "$arglist")
+                       ((IDENTIFIER arguments)
+                        (LITERAL 0)))
+                 ("$arglist" "(" (push-base) "arguments" ", " (newline)
+                  "0" (pop-base) ")"))
+
+                ((VAR ((IDENTIFIER x)))
+                 ("var " (push-base) "x" (pop-base)))
+                
+                ((VAR (((IDENTIFIER x) (LITERAL 7))))
+                 ("var " (push-base) "x" " = " "7" (pop-base)))
+                
+                ((VAR (((IDENTIFIER x) (LITERAL 7)) (IDENTIFIER y)))
+                 ("var " (push-base) "x" " = " "7" ", " (newline)
+                  "y" (pop-base)))
+
+                ((ASSIGN (IDENTIFIER "$temp") (IDENTIFIER foo))
+                 ("$temp" " = " "foo"))
+
+                ((PAREN (ASSIGN (IDENTIFIER "$temp") (IDENTIFIER foo)))
+                 ("(" "$temp" " = " "foo" ")"))
+
+                ;; end of trials
+                ))
 
     "End Module test")
-  
+    
   "END Module javascript")

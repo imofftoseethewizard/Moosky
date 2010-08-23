@@ -12,7 +12,7 @@
                           s)))
                 cs)))
 
-  (define indent-size 4)
+  (define indent-size 2)
 
   (define (pretty-print cs)
     (apply string-append
