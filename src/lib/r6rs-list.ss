@@ -17,202 +17,202 @@
 ;;;
 ;;;____________________________________________________________________________
 
-(define (for-all proc . lists)
-  (or (null? lists)
-      (if (null? (car lists))
-          ;; all lists must be empty
-          (let loop ([lists (cdr lists)])
-            (or (null? lists)
-                (if (not (null? (car lists)))
+(define (for-all P . Ls)
+  (or (null? Ls)
+      (if (null? (car Ls))
+          ;; all Ls must be empty
+          (let loop ([Ls (cdr Ls)])
+            (or (null? Ls)
+                (if (not (null? (car Ls)))
                     '&exception
-                    (loop (cdr lists)))))
-          ;; all lists must have at least one element
-          (let loop ([lists lists]
+                    (loop (cdr Ls)))))
+          ;; all Ls must have at least one element
+          (let loop ([Ls Ls]
                      [args '()]
                      [remainders '()])
-            (if (null? lists)
-                (and (apply proc (reverse args))
-                     (apply for-all proc (reverse remainders)))
-                (let ([lst (car lists)])
-                  (if (null? lst)
+            (if (null? Ls)
+                (and (apply P (reverse args))
+                     (apply for-all P (reverse remainders)))
+                (let ([L (car Ls)])
+                  (if (null? L)
                       ;; should be an exception
                       '&exception
-                      (loop (cdr lists)
-                            (cons (car lst) args)
-                            (cons (cdr lst) remainders)))))))))
+                      (loop (cdr Ls)
+                            (cons (car L) args)
+                            (cons (cdr L) remainders)))))))))
 
 
-(define (exists proc . lists)
+(define (exists P . Ls)
   (not (apply for-all (lambda args
-                        (not (apply proc args))) lists)))
+                        (not (apply P args))) Ls)))
 
-(define (filter proc lst)
-  (let-values ([(matches misses) (partition proc lst)])
+(define (filter P L)
+  (let-values ([(matches misses) (partition P L)])
     matches))
 
-(define (partition proc lst)
-  (let loop ([lst lst]
+(define (partition P L)
+  (let loop ([L L]
              [matches '()]
              [misses '()])
-    (if (null? lst)
+    (if (null? L)
         (values (reverse matches)
                 (reverse misses))
-        (let ([head (car lst)])
-          (if (proc head)
-              (loop (cdr lst)
+        (let ([head (car L)])
+          (if (P head)
+              (loop (cdr L)
                     (cons head matches)
                     misses)
-              (loop (cdr lst)
+              (loop (cdr L)
                     matches
                     (cons head misses)))))))
 
-(define (fold-left combine nil . lists)
-  (if (null? lists)
+(define (fold-left combine nil . Ls)
+  (if (null? Ls)
       nil
-      (if (null? (car lists))
-          ; all lists must be empty
-          (let loop ([lists (cdr lists)])
-            (if (null? lists)
+      (if (null? (car Ls))
+          ; all Ls must be empty
+          (let loop ([Ls (cdr Ls)])
+            (if (null? Ls)
                 nil
-                (if (not (null? (car lists)))
+                (if (not (null? (car Ls)))
                     '&exception1
-                    (loop (cdr lists)))))
-          ; all lists must have at least one element
-          (let loop ([lists lists]
+                    (loop (cdr Ls)))))
+          ; all Ls must have at least one element
+          (let loop ([Ls Ls]
                      [args '()]
                      [remainders '()])
-            (if (null? lists)
+            (if (null? Ls)
                 (apply fold-left combine (apply combine nil (reverse args))
                        (reverse remainders))
-                (let ([lst (car lists)])
-                  (if (null? lst)
+                (let ([L (car Ls)])
+                  (if (null? L)
  ; should be an exception
                       '&exception2
-                      (loop (cdr lists)
-                            (cons (car lst) args)
-                            (cons (cdr lst) remainders)))))))))
+                      (loop (cdr Ls)
+                            (cons (car L) args)
+                            (cons (cdr L) remainders)))))))))
 
-(define (fold-right combine nil . lists)
-  (if (null? lists)
+(define (fold-right combine nil . Ls)
+  (if (null? Ls)
       nil
-      (if (null? (car lists))
-          ; all lists must be empty
-          (let loop ([lists (cdr lists)])
-            (if (null? lists)
+      (if (null? (car Ls))
+          ; all Ls must be empty
+          (let loop ([Ls (cdr Ls)])
+            (if (null? Ls)
                 nil
-                (if (not (null? (car lists)))
+                (if (not (null? (car Ls)))
                     '&exception3
-                    (loop (cdr lists)))))
-          ; all lists must have at least one element
-          (let loop ([lists lists]
+                    (loop (cdr Ls)))))
+          ; all Ls must have at least one element
+          (let loop ([Ls Ls]
                      [args '()]
                      [remainders '()])
-            (if (null? lists)
+            (if (null? Ls)
                 (apply combine (reverse (cons (apply fold-right combine nil (reverse remainders))
                                               args)))
-                (let ([lst (car lists)])
-                  (if (null? lst)
+                (let ([L (car Ls)])
+                  (if (null? L)
                       ; should be an exception
                       '&exception
-                      (loop (cdr lists)
-                            (cons (car lst) args)
-                            (cons (cdr lst) remainders)))))))))
+                      (loop (cdr Ls)
+                            (cons (car L) args)
+                            (cons (cdr L) remainders)))))))))
 
 
-(define (remp proc lst)
-  (let-values ([(matches misses) (partition proc lst)])
+(define (remp P L)
+  (let-values ([(matches misses) (partition P L)])
     misses))
 
-(define (remove obj lst)
+(define (remove x L)
   (remp (lambda (a)
-          (equal? a obj))
-        lst))
+          (equal? a x))
+        L))
 
-(define (remv obj lst)
+(define (remv x L)
   (remp (lambda (a)
-          (eqv? a obj))
-        lst))
+          (eqv? a x))
+        L))
 
-(define (remq obj lst)
+(define (remq x L)
   (remp (lambda (a)
-          (eq? a obj))
-        lst))
+          (eq? a x))
+        L))
 
-(define (memp proc lst)
-  (if (null? lst)
+(define (memp P L)
+  (if (null? L)
       #f
-      (if (proc (car lst))
-          lst
-          (memp proc (cdr lst)))))
+      (if (P (car L))
+          L
+          (memp P (cdr L)))))
 
 (define (member
-         obj lst)
+         x L)
   (memp (lambda (a)
-          (equal? a obj))
-        lst))
+          (equal? a x))
+        L))
 
-(define (memv obj lst)
+(define (memv x L)
   (memp (lambda (a)
-          (eqv? a obj))
-        lst))
+          (eqv? a x))
+        L))
 
-(define (memq obj lst)
+(define (memq x L)
   (memp (lambda (a)
-          (eq? a obj))
-        lst))
+          (eq? a x))
+        L))
 
-(define (assp proc lst)
+(define (assp P L)
   (find (lambda (pair)
-          (proc (car pair)))
-        lst))
+          (P (car pair)))
+        L))
 
-(define (assoc obj lst)
+(define (assoc x L)
   (assp (lambda (a)
-          (equal? a obj))
-        lst))
+          (equal? a x))
+        L))
 
-(define (assv obj lst)
+(define (assv x L)
   (assp (lambda (a)
-          (eqv? a obj))
-        lst))
+          (eqv? a x))
+        L))
 
-(define (assq obj lst)
+(define (assq x L)
   (assp (lambda (a)
-          (eq? a obj))
-        lst))
+          (eq? a x))
+        L))
 
-(define (find proc lst)
-  (let ([tail (memp proc lst)])
+(define (find P L)
+  (let ([tail (memp P L)])
     (and tail (car tail))))
 
-(define (cons* . objs)
-  (fold-right (lambda (lst nil)
+(define (cons* . xs)
+  (fold-right (lambda (L nil)
                       (if (null? nil)
-                          lst
-                          (cons lst nil)))
-              '() objs))
+                          L
+                          (cons L nil)))
+              '() xs))
 
-(define (mapcdr proc . lists)
-  (if (null? lists)
+(define (mapcdr P . Ls)
+  (if (null? Ls)
       '()
-      (if (null? (car lists))
-          ;; all lists must be empty
-          (let loop ([lists (cdr lists)])
-            (if (null? lists)
+      (if (null? (car Ls))
+          ;; all Ls must be empty
+          (let loop ([Ls (cdr Ls)])
+            (if (null? Ls)
                 '()
-                (if (not (null? (car lists)))
+                (if (not (null? (car Ls)))
                     '&exception1
-                    (loop (cdr lists)))))
-          ;; all lists must have at least one element
-          (let loop ([lists lists]
+                    (loop (cdr Ls)))))
+          ;; all Ls must have at least one element
+          (let loop ([Ls Ls]
                      [result '()])
-            (if (null? (car lists))
-                (let check-loop ([lists (cdr lists)])
-                  (if (null? lists)
+            (if (null? (car Ls))
+                (let check-loop ([Ls (cdr Ls)])
+                  (if (null? Ls)
                       (reverse result)
-                      (if (not (null? (car lists)))
+                      (if (not (null? (car Ls)))
                           '&exception2
-                          (check-loop (cdr lists)))))
-                (loop (map cdr lists)
-                      (cons (apply proc lists) result)))))))
+                          (check-loop (cdr Ls)))))
+                (loop (map cdr Ls)
+                      (cons (apply P Ls) result)))))))
 

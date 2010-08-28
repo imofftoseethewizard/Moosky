@@ -35,11 +35,6 @@
   ;;
   ;;
 
-  (define (assoc-ref obj lst)
-    (let ([r (assoc obj lst)])
-      (and r (cdr r))))
-
-  
   
   ;;--------------------------------------------------------------------------
   ;;
@@ -214,7 +209,7 @@
 
   ;;--------------------------------------------------------------------------
   ;;
-  ;; (parse stx ctx)
+  ;; (parse stx ctx env)
   ;;
   ;; stx is the syntax to be parsed.
   ;;
@@ -224,14 +219,15 @@
   ;; information.
   ;;
   
-  (define (parse stx ctx)
+  (define (parse stx ctx env)
     (assert (not (null? ctx)) "parse: null context")
+    (assert (not (null? env)) "parse: null environment")
     (except (lambda (e)
               (raise "syntax error" (make-parse-error-message stx ctx e.name e.message)))
       (let ([kernel (context-ref ctx kernel:)])
 ;        (console.log "KERNEL: " (list->vector ctx))
         (assert (defined? kernel) "parse: kernel not defined")
-        (kernel stx ctx))))
+        (kernel stx ctx env))))
 
 
 

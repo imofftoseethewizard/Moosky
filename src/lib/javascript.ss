@@ -4,7 +4,7 @@
 
 
   (define (ast->markup sexp)
-    (printf "ast->markup: %s\n" sexp)
+    ;;(printf "ast->markup: %s\n" sexp)
     (let ([result
     (if (not (pair? sexp))
         sexp
@@ -18,25 +18,47 @@
                  (map ast->markup sexp)]
 
                 [#t (assert #f (format "ast->markup: unable to interpret %s" sexp))])))])
-      (printf "-->%s\n" result)
       result))
               
 
   (define (regexp-match s regexp)
     (regexp.exec s))
 
+  (define javascript-keywords '("break" "case" "catch" "continue" "default" "delete"
+                                "do" "else" "finally" "for" "function" "if" "in"
+                                "instanceof" "new" "return" "switch" "this" "throw"
+                                "try" "typeof" "var" "void" "while" "with"))
+
+  (define javascript-reserved-words '("abstract" "boolean" "byte" "char" "class"
+                                      "const" "debugger" "double" "enum" "export"
+                                      "extends" "final" "float" "goto" "implements"
+                                      "import" "int" "interface" "long" "native"
+                                      "package" "private" "protected" "public" "short"
+                                      "static" "super" "synchronized" "throws"
+                                      "transient" "volatile"))
+
+  (define javascript-reserved-re
+    (RegExp (apply string-append `("^("
+                                   ,@(join "|" javascript-keywords)
+                                   "|"
+                                   ,@(join "|" javascript-reserved-words)
+                                   ")$"))))
+
   (define (identifier? s)
-    (not (eq? #n (regexp-match s #/^[\w$]*$/))))
+    (and (not (eq? #n (regexp-match s #/^[\w$]*$/)))
+         (eq? #n (regexp-match s javascript-reserved-re))))
 
   (define (make-identifier s)
-    (apply string-append
-           (map (lambda (c)
-                  (if (eq? #n (regexp-match c #/[\w]/))
-                      (format "$%s" (c.charCodeAt 0))
-                      c))
-                (string->list (if (string? s)
-                                  s
-                                  (symbol->string s))))))
+    (if (eq? #n (regexp-match s javascript-reserved-re))
+        (apply string-append
+               (map (lambda (c)
+                      (if (eq? #n (regexp-match c #/[\w]/))
+                          (format "$%s" (c.charCodeAt 0))
+                          c))
+                    (string->list (if (string? s)
+                                      s
+                                      (symbol->string s)))))
+        (string-append s "$")))
   
   (define operator-precedence
     '((MEMBER-EXP . 1)                   ; []
@@ -90,11 +112,14 @@
       (BITWISE-AND-ASSIGN . 16)          ; &=
       (BITWISE-OR-ASSIGN . 16)           ; |=
       (BITWISE-XOR-ASSIGN . 16)          ; ^=
-      (SEQUENCE . 17)))                  ; ,
+      (SEQUENCE . 17)                    ; ,
+
+      (FUNCTION . 100)
+      ))
 
   (define (precedence-bracket outer-tag inner)
-    (let ([prec-outer (assoc outer-tag operator-precedence)]
-          [prec-inner (assoc (car inner) operator-precedence)])
+    (let ([prec-outer (assoc-ref outer-tag operator-precedence)]
+          [prec-inner (assoc-ref (car inner) operator-precedence)])
       (if (and prec-outer prec-inner
                (<= prec-outer prec-inner))
           `(PAREN ,inner)
@@ -109,6 +134,9 @@
 
   (define (arglist args)
     `("(" ,@(sequence args) ")"))
+  
+  (define (formals-list formals)
+    `("(" ,@(apply append (join '(", ") formals)) ")"))
   
   (define (sequence exps)
     `((push-base)
@@ -147,7 +175,7 @@
            `("\"" ,(quote-string exp) "\"")]
           
           [(symbol? exp)
-           (CALL (IDENTIFIER "$S") (list (LITERAL (symbol->string exp))))]
+           (CALL (IDENTIFIER "$symbol") (list (LITERAL (symbol->string exp))))]
 
           [(vector? exp)
            (assert #f (format "TODO: literal vector" exp))]
@@ -392,7 +420,7 @@
     `((push-base) "function " ,@(if (default identifier #f)
                         identifier
                         '())
-      ,@(arglist formals) " "
+      ,@(formals-list formals) " "
       ,@(BLOCK body)
       (pop-base)))
 
@@ -579,13 +607,13 @@
                  ("return " "true" ";"))
 
                 ((FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (RETURN (LITERAL #t)))))
-                 ((push-base) "function " "(" (push-base) "x" (pop-base) ")" " " "{" (indent) (newline)
+                 ((push-base) "function " "(" "x" ")" " " "{" (indent) (newline)
                   "return " "true" ";" (outdent) (newline) "}" (pop-base)))
 
-                ((CALL (IDENTIFIER "$arglist")
+                ((CALL (IDENTIFIER "$argumentsList")
                        ((IDENTIFIER arguments)
                         (LITERAL 0)))
-                 ("$arglist" "(" (push-base) "arguments" ", " (newline)
+                 ("$argumentsList" "(" (push-base) "arguments" ", " (newline)
                   "0" (pop-base) ")"))
 
                 ((VAR ((IDENTIFIER x)))

@@ -1,37 +1,34 @@
 5. TODO
 
+
+Primitive Syntax
+
+Javascript literals
+Vectors
+Check all value types
+
+Javascript
+
+Constant folding/reduction
+more tests of primitives
+
+General
+
+Self-hosted Reader
+Self-hosted macroexpand (converts scheme to primitive syntax)
+Support for inlining (define-inline...
+Auto-inlining small functions
+Preamble, rewritten for new new macroexpander
+
+Self-hosted REPL
+Reflection server
+Re-implement module system for primitive syntax
+XHR-based module libraries (require/provide)
+Syntax modules (or syntax division of a module)
+
+Debugging
+
 5.1 Misc
-Using try/catch to implement CPS scheme:
-  1. rewrite to CPS during parse
-    force projections, promise injections
-  2. before each continuation is entered,
-    set a global or globals that have the function
-    arguments, and (perhaps) this object for the continuation
-  3. at top level, catch 'too much recursion' errors and restart
-    at saved continuation from 2.
-  4. for code that is side-effectful, throw an exception to ensure top-of-stack
-    prior to call
-    (define (foo bar)
-      <stuff that has side-effects>
-   --> function($c, bar) {
-         $C = function () {
-                 $c(<stuff that has side-effects>)
-              };
-         throw new Moosky.ClearStack();
-
-    at top level:
-    <<set up $C>>
-     while (true) {
-       try {
-         return $C();
-        } catch (e) {
-          if << e is 'too much recursion' or Moosky.ClearStack>>
-            continue;
-
-          throw (e)
-      }	
-    
-Use Keywords to decorate functions:
 
 (define (foo bar)
   documentation: "Bla bla bla.."
@@ -40,18 +37,9 @@ Use Keywords to decorate functions:
   (body of foo))
   
 
-investigate using iframes to install REPL in arbitrary web page
-  1. using bookmarklet insert iframe with href to moosky.org
-    and a parameter indicating the domain of the target page
-  2. load moosky source from moosky.org, instantiate moosky.
-  3. change document domain to hosting page
-  4. create repl
-
 (compile "file://home/pat/src/moosky/r6rs-list.ss")
   produces a new div with text of the result, suitable for uploading
   without full Moosky.
-
-provide quasiquote facility that respects syntax
 
 History
   commands

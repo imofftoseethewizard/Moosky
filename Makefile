@@ -10,7 +10,9 @@ lib: \
 	src/lib/generic-parser.ss \
 	src/lib/simple-markup.ss \
 	src/lib/javascript.ss \
-	src/lib/primitive-syntax.ss
+	src/lib/primitive-syntax.ss \
+	src/lib/macro.ss \
+	src/lib/list.js
 
 	cp $^ build/lib/
 
@@ -112,7 +114,9 @@ build/examples/repl.html : \
 	src/lib/generic-parser.ss \
 	src/lib/simple-markup.ss \
 	src/lib/javascript.ss \
-	src/lib/primitive-syntax.ss
+	src/lib/primitive-syntax.ss \
+	src/lib/macro.ss \
+	src/lib/list.js
 
 	cp $^ build/examples/
 
@@ -144,7 +148,9 @@ build/examples/debug-repl.html : \
 	src/lib/generic-parser.ss \
 	src/lib/simple-markup.ss \
 	src/lib/javascript.ss \
-	src/lib/primitive-syntax.ss
+	src/lib/primitive-syntax.ss \
+	src/lib/macro.ss \
+	src/lib/list.js
 
 	cp $^ build/examples/
 
@@ -187,7 +193,9 @@ install-lib: \
 	src/lib/generic-parser.ss \
 	src/lib/simple-markup.ss \
 	src/lib/javascript.ss \
-	src/lib/primitive-syntax.ss
+	src/lib/primitive-syntax.ss \
+	src/lib/macro.ss \
+	src/lib/list.js
 
 	cp $^ $(MOOSKY_INSTALL_TARGET)/lib/
 

@@ -68,24 +68,23 @@
     (trial (string=? "\n"                      (pretty-print '((newline)))))
     (trial (string=? "simple\n"                (pretty-print '("simple" (newline)))))
     (trial (string=? "\nsimple"                (pretty-print '((newline) "simple"))))
-    (trial (string=? "\n    "                  (pretty-print '((indent) (newline)))))
+    (trial (string=? "\n  "                    (pretty-print '((indent) (newline)))))
     (trial (string=? "\n"                      (pretty-print '((newline) (indent)))))
-    (trial (string=? "\n    simple"            (pretty-print '((indent) (newline) "simple"))))
+    (trial (string=? "\n  simple"              (pretty-print '((indent) (newline) "simple"))))
     (trial (string=? "\nsimple"                (pretty-print '((newline) (indent) "simple"))))
-    (trial (string=? "\n    simple\n    stuff" (pretty-print '((indent) (newline) "simple"
+    (trial (string=? "\n  simple\n  stuff"     (pretty-print '((indent) (newline) "simple"
                                                                (newline) "stuff"))))
     (trial (string=? "a(b,\n  c)\nfoo(bar)"    (pretty-print '("a(" (push-base) "b,"
                                                                (newline) "c)"
                                                                (pop-base)
                                                                (newline) "foo(bar)"))))
 
-    (trial (string=? "{\n    one;\n    two;\n}"
-                                               (pretty-print '("{" (indent) (newline)
+    (trial (string=? "{\n  one;\n  two;\n}"    (pretty-print '("{" (indent) (newline)
                                                                "one;" (newline)
                                                                "two;" (outdent) (newline)
                                                                "}"))))
 
-    (trial (string=? "{\n    foo(a,\n        b)\n    bar();\n}"
+    (trial (string=? "{\n  foo(a,\n      b)\n  bar();\n}"
                                                (pretty-print '("{" (indent) (newline)
                                                                "foo(" (push-base) "a," (newline)
                                                                "b)" (pop-base) (newline)
