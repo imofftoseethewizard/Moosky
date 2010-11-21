@@ -241,32 +241,43 @@
 ;; Makes two modules, a private one in which all of the module's forms are
 ;; evaluated; and a public one in which its exports are present.
 ;;
+;; there is a serious bug in this implementation: if a macro is defined that
+;; uses a function defined in the same module, then the function will not
+;; be found.  The entirety of the module undergoes syntax expansion before
+;; any of it is evaluated.
 ;;
 
 (define-macro (module stx)
   
   (assert (< 2 (length stx)) (string-append "Improper module definition: (module <name> forms...) expected: "
                                             (string-slice (format "%s" stx) 100)))
-  (let* ([name (cadr stx)]
+  (let* ([external-name (cadr stx)]
+         [internal-name (gensym external-name)]
          [forms (cddr stx)]
          [private-module (gensym "private")])
-    (assert (symbol? name) (format "Illegal module name: symbol expected: %s" name))
+    (assert (symbol? external-name) (format "Illegal module name: symbol expected: %s" external-name))
     `(begin
-       (define ,name (make-module ',name (object)))
-       (printf "Compiling module %s\n"',name)
-       (let ([,private-module (make-module ',name (current-module) ',private-module)])
+       (define ,external-name (make-module ',external-name (object)))
+       (printf "Compiling module %s\n" ',external-name)
+       (let ([,private-module (make-module ',external-name (current-module) ',private-module)])
          (for-each (lambda (form)
                      (except (lambda (E)
                                (print (format "An error occurred in module %s while evaluating form %s:\n"
-                                              ',name form)
+                                              ',external-name form)
                                       "red")
                                (print (format "%s\n" E) "red"))
+                       
+                       (when (equal? ',external-name 'foo)
+                         (printf "%s\n" form)
+                         (printf "%s\n" (compile form ,private-module)))
+                       
                        (eval (compile form ,private-module))))
-                   ',(append forms
-                             (list `(module-import ,name (cons #f ,private-module) #f '*)
-                                   `(module-export ,name (map (lambda (sym)
-                                                                (cons sym sym))
-                                                              (get-exports-list ,private-module))))))))))
+                   ',(append (list `(define ,internal-name ,external-name))
+                             forms
+                             (list `(module-import ,internal-name (cons #f ,private-module) #f '*)
+                                   `(module-export ,internal-name (map (lambda (sym)
+                                                                         (cons sym sym))
+                                                                       (get-exports-list ,private-module))))))))))
 
 (define-macro (export stx)
   (assert (< 1 (length stx)) (format "Improper export: no exports listed: %s" stx))

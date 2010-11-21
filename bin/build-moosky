@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# temporarily move to root directory of the nuj source tree.
+# this assumes that this script is in the bin subdirectory
+# of the tree.
+
+ROOT=`dirname $0`/..
+
+(cd $ROOT ;
+    update src/lib/ build/lib/ ;
+    update src/client build/webapp/media ;
+    update src/common build/webapp/lib/common
+
+    (cd src/runtime; 
+	cat base.js values-bare.js values.js core-bare.js core.js top-bare.js top.js 
+	| $ROOT/bin/compressor.sh >$ROOT/build/standalone/runtime-bare.js))
+
+    (cd src/runtime; 
+	cat base.js values-bare.js values-safe.js values.js core-bare.js core-safe.js core.js top-bare.js top-safe.js top.js 
+	| $ROOT/bin/compressor.sh >$ROOT/build/standalone/runtime-safe.js))
+
+    (cd src/compiler; 
+	cat $ROOT/build/standalone/runtime-safe.js reader.js inspector.js tools.js compiler-code.js compiler.js
+	| $ROOT/bin/compressor.sh >$ROOT/build/standalone/compiler.js))
+
+    (cd src/compiler; 
+	cat $ROOT/build/standalone/compiler.js compiler-inlines.js
+	| $ROOT/bin/compressor.sh >$ROOT/build/standalone/compiler.js))
+
+    (cd src/compiler; 
+	cat $ROOT/build/standalone/compiler-inlining.js evaluator.js html.js $ROOT/examples/start-repl.js
+	| $ROOT/bin/compressor.sh >$ROOT/build/standalone/repl-inlining.js))
+
+    (cd src/compiler; 
+	cat $ROOT/build/standalone/compiler.js evaluator.js html.js $ROOT/examples/start-repl.js
+	| $ROOT/bin/compressor.sh >$ROOT/build/standalone/repl.js))
+
+	
+
+	
+

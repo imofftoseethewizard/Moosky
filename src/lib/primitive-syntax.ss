@@ -1047,7 +1047,7 @@
             (EXCEPT           as except)
             (GUARD            as guard)
             (LET              as let)
-            (LET*             as let*)
+            (LET*             as LET*)
             (LETREC           as letrec)
             (LETREC           as letrec)
             (LET-VALUES       as let-values)

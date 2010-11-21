@@ -6,13 +6,15 @@ lib: \
 	src/lib/preamble.ss \
 	src/lib/r6rs-list.ss \
 	src/lib/object.ss \
+	src/lib/hash.ss \
+	src/lib/digraph.ss \
+	src/lib/class.ss \
 	src/lib/module.ss \
 	src/lib/generic-parser.ss \
 	src/lib/simple-markup.ss \
 	src/lib/javascript.ss \
 	src/lib/primitive-syntax.ss \
-	src/lib/macro.ss \
-	src/lib/list.js
+	src/lib/macro.ss 
 
 	cp $^ build/lib/
 
@@ -110,13 +112,15 @@ build/examples/repl.html : \
 	src/lib/preamble.ss \
 	src/lib/r6rs-list.ss \
 	src/lib/object.ss \
+	src/lib/hash.ss \
+	src/lib/digraph.ss \
+	src/lib/class.ss \
 	src/lib/module.ss \
 	src/lib/generic-parser.ss \
 	src/lib/simple-markup.ss \
 	src/lib/javascript.ss \
 	src/lib/primitive-syntax.ss \
-	src/lib/macro.ss \
-	src/lib/list.js
+	src/lib/macro.ss 
 
 	cp $^ build/examples/
 
@@ -144,13 +148,15 @@ build/examples/debug-repl.html : \
 	src/lib/preamble.ss \
 	src/lib/r6rs-list.ss \
 	src/lib/object.ss \
+	src/lib/hash.ss \
+	src/lib/digraph.ss \
+	src/lib/class.ss \
 	src/lib/module.ss \
 	src/lib/generic-parser.ss \
 	src/lib/simple-markup.ss \
 	src/lib/javascript.ss \
 	src/lib/primitive-syntax.ss \
-	src/lib/macro.ss \
-	src/lib/list.js
+	src/lib/macro.ss 
 
 	cp $^ build/examples/
 
@@ -189,13 +195,15 @@ install-lib: \
 	build/lib/preamble.ss \
 	build/lib/r6rs-list.ss \
 	build/lib/object.ss \
+	build/lib/hash.ss \
+	build/lib/digraph.ss \
+	build/lib/class.ss \
 	build/lib/module.ss \
 	src/lib/generic-parser.ss \
 	src/lib/simple-markup.ss \
 	src/lib/javascript.ss \
 	src/lib/primitive-syntax.ss \
-	src/lib/macro.ss \
-	src/lib/list.js
+	src/lib/macro.ss
 
 	cp $^ $(MOOSKY_INSTALL_TARGET)/lib/
 

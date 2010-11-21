@@ -474,7 +474,7 @@ Moosky.Reader.LexemeClasses =
     { tag: 'string',
       regexp: /"([^"\\]|\\(.|\n))*"/m, //"
       normalize: function(match) {
-	return eval(match[0].replace(/"^\s*\\\s*\n\s*/, '"')
+	return eval(match[0].replace(/^"\s*\\\s*\n\s*/, '"')
 			    .replace(/\s*\\\s*\n\s*"$/, '"')
 			    .replace(/\n/, '\\n')
 			    .replace(/\r/, '\\r'));

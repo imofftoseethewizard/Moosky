@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# temporarily move to root directory of the nuj source tree.
+# this assumes that this script is in the bin subdirectory
+# of the tree.
+
+(cd `dirname $0`/.. ;
+    update src/app/ build/webapp/ ;
+    update src/client build/webapp/media ;
+    update src/common build/webapp/lib/common )
+
+

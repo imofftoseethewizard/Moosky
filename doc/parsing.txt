@@ -1,0 +1,53 @@
+parsing
+
+parse context
+  list of parse frames, each containing
+    AST to be parsed
+    set of bindings
+    incomplete production in reverse order. 
+
+==> a primitive
+
+(parse-context)
+  the context in effect for the parse frame of the ast of '(parse-context)'.
+
+
+(<parser> context)
+  returns a parse frame
+
+bindings is an alist of (symbol . obj) items where
+
+(define (make-binding sym obj)
+   (cons sym obj))
+
+(define (add-binding ctx sym obj)
+  (set! ctx.bindings (cons (cons sym obj) ctx.bindings)))
+
+(define (get-binding ctx sym)
+  (assoc-ref sym ctx.bindings))
+
+(define error-parser (object))
+
+(define (error-parser? parser)
+  (and (object? parser)
+       (eq? parser.tag error-parser)))
+
+(define (make-error-parser msg)
+  (object tag: error-parser
+          msg: msg))
+
+(define (syntax-error
+
+(define (select-primitive-parser stx ctx)
+  (if (list? stx)
+      (if (symbol? (car stx))
+          (or (assoc-ref (car stx) primitive-parsers)
+              parse-application)
+          (if (and (list? (car stx))
+                   (eq? (caar stx) '_lambda_))
+              parse-let-form
+              parse-application))
+      parse-value))
+       
+AST source
+AST target

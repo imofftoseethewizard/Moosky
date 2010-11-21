@@ -1,3 +1,5 @@
+(define (identity x) x)
+  
 (define (make-counter)
   (let ([counter -1])
     (lambda ()
@@ -149,8 +151,9 @@
 (define (object-copy obj)
   (make-object (object->alist obj)))
 
-(define (delete-property! obj prop)
-  (object-set! obj prop #u))
+(define (object-remove! obj key)
+  { delete @^(obj)[@^(key)] }
+  #u)
 
 (define (string-find s t)
   (let ([index (s.indexOf t)])
@@ -227,4 +230,25 @@
 
 (define (get-keyword-option options kw def)
   (let ([tail (member kw options)])
-    (and tail (car tail))))
+    (and tail (cadr tail))))
+
+
+(define (all-clauses clauses kw)
+  ;; clauses is a list of specification clauses, each a list headed by
+  ;; a keyword or symbol indicating the clause type.  kw is a symbol or
+  ;; keyword indicating the clause types to be returned.
+
+  (filter (lambda (x)
+            (and (list? x)
+                 (equal? (car x) kw)))
+          clauses))
+
+(define (get-clause clauses kw default)
+  (let ([all (all-clauses clauses kw)])
+    (case (length all)
+      [(0) default]
+      [(1) (car all)]
+      [else (assert #f)])))
+
+
+  

@@ -1,0 +1,390 @@
+Moosky
+Compiling module generic-parser
+Compiling module test
+Compiling module simple-markup
+Compiling module test
+Compiling module javascript
+Compiling module test
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+ast->markup: (MEMBER-LIT (IDENTIFIER foo) (IDENTIFIER "bar"))
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+ast->markup: (IDENTIFIER "bar")
+ast->markup: bar
+-->bar
+-->("bar")
+-->("foo" "." "bar")
+ast->markup: (MEMBER-EXP (IDENTIFIER foo) (LITERAL "bar*"))
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+ast->markup: (LITERAL "bar*")
+ast->markup: bar*
+-->bar*
+-->("\"" "bar*" "\"")
+-->("foo" "[" "\"" "bar*" "\"" "]")
+ast->markup: (MEMBER-LIT (MEMBER-EXP (IDENTIFIER foo) (LITERAL "bar*")) (IDENTIFIER "baz"))
+ast->markup: (MEMBER-EXP (IDENTIFIER foo) (LITERAL "bar*"))
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+ast->markup: (LITERAL "bar*")
+ast->markup: bar*
+-->bar*
+-->("\"" "bar*" "\"")
+-->("foo" "[" "\"" "bar*" "\"" "]")
+ast->markup: (IDENTIFIER "baz")
+ast->markup: baz
+-->baz
+-->("baz")
+-->("foo" "[" "\"" "bar*" "\"" "]" "." "baz")
+ast->markup: (CONDITIONAL (LITERAL 2) (LITERAL "A") (LITERAL "B"))
+ast->markup: (LITERAL 2)
+ast->markup: 2
+-->2
+-->("2")
+ast->markup: (LITERAL "A")
+ast->markup: A
+-->A
+-->("\"" "A" "\"")
+ast->markup: (LITERAL "B")
+ast->markup: B
+-->B
+-->("\"" "B" "\"")
+-->((push-base) "2" (indent) (newline) " ? " "\"" "A" "\"" (newline) " : " "\"" "B" "\"" (pop-base))
+ast->markup: (STRICTLY-EQUAL (IDENTIFIER foo) (LITERAL #f))
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+ast->markup: (LITERAL #f)
+ast->markup: false
+-->false
+-->false
+-->("foo" " === " "false")
+ast->markup: (NOT-STRICTLY-EQUAL (IDENTIFIER foo) (LITERAL #f))
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+ast->markup: (LITERAL #f)
+ast->markup: false
+-->false
+-->false
+-->("foo" " !== " "false")
+ast->markup: (SEQUENCE (IDENTIFIER foo) (IDENTIFIER bar))
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+ast->markup: (IDENTIFIER bar)
+ast->markup: bar
+-->bar
+-->("bar")
+-->((push-base) "foo" ", " (newline) "bar" (pop-base))
+ast->markup: (RETURN (LITERAL #t))
+ast->markup: (LITERAL #t)
+ast->markup: true
+-->true
+-->true
+-->("return " "true")
+ast->markup: (STATEMENT (RETURN (LITERAL #t)))
+ast->markup: (RETURN (LITERAL #t))
+ast->markup: (LITERAL #t)
+ast->markup: true
+-->true
+-->true
+-->("return " "true")
+-->("return " "true" ";")
+ast->markup: (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (RETURN (LITERAL #t)))))
+ast->markup: false
+-->false
+ast->markup: ((IDENTIFIER x))
+ast->markup: (IDENTIFIER x)
+ast->markup: x
+-->x
+-->("x")
+-->(("x"))
+ast->markup: ((STATEMENT (RETURN (LITERAL #t))))
+ast->markup: (STATEMENT (RETURN (LITERAL #t)))
+ast->markup: (RETURN (LITERAL #t))
+ast->markup: (LITERAL #t)
+ast->markup: true
+-->true
+-->true
+-->("return " "true")
+-->("return " "true" ";")
+-->(("return " "true" ";"))
+-->("function " "(" (push-base) "x" (pop-base) ")" "{" (indent) (newline) "return " "true" ";" (outdent) (newline) "}")
+ast->markup: (CALL (IDENTIFIER "$arglist") ((IDENTIFIER arguments) (LITERAL 0)))
+ast->markup: (IDENTIFIER "$arglist")
+ast->markup: $arglist
+-->$arglist
+-->("$arglist")
+ast->markup: ((IDENTIFIER arguments) (LITERAL 0))
+ast->markup: (IDENTIFIER arguments)
+ast->markup: arguments
+-->arguments
+-->("arguments")
+ast->markup: (LITERAL 0)
+ast->markup: 0
+-->0
+-->("0")
+-->(("arguments") ("0"))
+-->("$arglist" "(" (push-base) "arguments" ", " (newline) "0" (pop-base) ")")
+ast->markup: (VAR ((IDENTIFIER x)))
+ast->markup: ((IDENTIFIER x))
+ast->markup: (IDENTIFIER x)
+ast->markup: x
+-->x
+-->("x")
+-->(("x"))
+-->("var " (push-base) "x" (pop-base))
+ast->markup: (VAR (((IDENTIFIER x) (LITERAL 7))))
+ast->markup: (((IDENTIFIER x) (LITERAL 7)))
+ast->markup: ((IDENTIFIER x) (LITERAL 7))
+ast->markup: (IDENTIFIER x)
+ast->markup: x
+-->x
+-->("x")
+ast->markup: (LITERAL 7)
+ast->markup: 7
+-->7
+-->("7")
+-->(("x") ("7"))
+-->((("x") ("7")))
+-->("var " (push-base) "x" " = " "7" (pop-base))
+ast->markup: (VAR (((IDENTIFIER x) (LITERAL 7)) (IDENTIFIER y)))
+ast->markup: (((IDENTIFIER x) (LITERAL 7)) (IDENTIFIER y))
+ast->markup: ((IDENTIFIER x) (LITERAL 7))
+ast->markup: (IDENTIFIER x)
+ast->markup: x
+-->x
+-->("x")
+ast->markup: (LITERAL 7)
+ast->markup: 7
+-->7
+-->("7")
+-->(("x") ("7"))
+ast->markup: (IDENTIFIER y)
+ast->markup: y
+-->y
+-->("y")
+-->((("x") ("7")) ("y"))
+-->("var " (push-base) "x" " = " "7" ", " (newline) "y" (pop-base))
+ast->markup: (ASSIGN (IDENTIFIER "$temp") (IDENTIFIER foo))
+ast->markup: (IDENTIFIER "$temp")
+ast->markup: $temp
+-->$temp
+-->("$temp")
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+-->("$temp" " = " "foo")
+ast->markup: (PAREN (ASSIGN (IDENTIFIER "$temp") (IDENTIFIER foo)))
+ast->markup: (ASSIGN (IDENTIFIER "$temp") (IDENTIFIER foo))
+ast->markup: (IDENTIFIER "$temp")
+ast->markup: $temp
+-->$temp
+-->("$temp")
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+-->("$temp" " = " "foo")
+-->("(" "$temp" " = " "foo" ")")
+Compiling module primitive-syntax
+Compiling module special-forms
+Compiling module drag
+Compiling module splitter
+Compiling module xhr
+Welcome to Moosky v0.1, Copyright 2010 Pat M. Lasswell.
+> (import * from primitive-syntax)
+(import * from javascript)
+(define stx (internal->target '(BEGIN (DEFINE foo) (SET! foo (LAMBDA (x) (IF (> x 0) (foo (- x 1)) "done"))))))
+internal->target: body: (SEQUENCE (LITERAL #u) (ASSIGN (IDENTIFIER foo) (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362)))))))
+> (ast->markup stx)
+ast->markup: (CALL (FUNCTION #f () ((STATEMENT (VAR ((IDENTIFIER foo)))) (STATEMENT (RETURN (SEQUENCE (LITERAL #u) (ASSIGN (IDENTIFIER foo) (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362))))))))))) ())
+ast->markup: (FUNCTION #f () ((STATEMENT (VAR ((IDENTIFIER foo)))) (STATEMENT (RETURN (SEQUENCE (LITERAL #u) (ASSIGN (IDENTIFIER foo) (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362)))))))))))
+ast->markup: false
+-->false
+ast->markup: ()
+-->()
+ast->markup: ((STATEMENT (VAR ((IDENTIFIER foo)))) (STATEMENT (RETURN (SEQUENCE (LITERAL #u) (ASSIGN (IDENTIFIER foo) (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362))))))))))
+ast->markup: (STATEMENT (VAR ((IDENTIFIER foo))))
+ast->markup: (VAR ((IDENTIFIER foo)))
+ast->markup: ((IDENTIFIER foo))
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+-->(("foo"))
+-->("var " (push-base) "foo" (pop-base))
+-->("var " (push-base) "foo" (pop-base) ";")
+ast->markup: (STATEMENT (RETURN (SEQUENCE (LITERAL #u) (ASSIGN (IDENTIFIER foo) (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362)))))))))
+ast->markup: (RETURN (SEQUENCE (LITERAL #u) (ASSIGN (IDENTIFIER foo) (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362))))))))
+ast->markup: (SEQUENCE (LITERAL #u) (ASSIGN (IDENTIFIER foo) (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362)))))))
+ast->markup: (LITERAL #u)
+ast->markup: undefined
+-->undefined
+-->undefined
+ast->markup: (ASSIGN (IDENTIFIER foo) (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362))))))
+ast->markup: (IDENTIFIER foo)
+ast->markup: foo
+-->foo
+-->("foo")
+ast->markup: (FUNCTION #f ((IDENTIFIER x)) ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362)))))
+ast->markup: false
+-->false
+ast->markup: ((IDENTIFIER x))
+ast->markup: (IDENTIFIER x)
+ast->markup: x
+-->x
+-->("x")
+-->(("x"))
+ast->markup: ((STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))) (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())) (STATEMENT (RETURN (IDENTIFIER $$R_362))))
+ast->markup: (STATEMENT (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ())))))
+ast->markup: (VAR ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))))
+ast->markup: ((IDENTIFIER $x_364) (IDENTIFIER $$R_362) ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ())))
+ast->markup: (IDENTIFIER $x_364)
+ast->markup: $x_364
+-->$x_364
+-->("$x_364")
+ast->markup: (IDENTIFIER $$R_362)
+ast->markup: $$R_362
+-->$$R_362
+-->("$$R_362")
+ast->markup: ((IDENTIFIER $$C_363) (CALL (IDENTIFIER Object) ()))
+ast->markup: (IDENTIFIER $$C_363)
+ast->markup: $$C_363
+-->$$C_363
+-->("$$C_363")
+ast->markup: (CALL (IDENTIFIER Object) ())
+ast->markup: (IDENTIFIER Object)
+ast->markup: Object
+-->Object
+-->("Object")
+ast->markup: ()
+-->()
+-->("Object" "(" (push-base) (pop-base) ")")
+-->(("$$C_363") ("Object" "(" (push-base) (pop-base) ")"))
+-->(("$x_364") ("$$R_362") (("$$C_363") ("Object" "(" (push-base) (pop-base) ")")))
+-->("var " (push-base) "$x_364" ", " (newline) "$$R_362" ", " (newline) "$$C_363" " = " "Object" "(" (push-base) (pop-base) ")" (pop-base))
+-->("var " (push-base) "$x_364" ", " (newline) "$$R_362" ", " (newline) "$$C_363" " = " "Object" "(" (push-base) (pop-base) ")" (pop-base) ";")
+ast->markup: (STATEMENT (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ()))
+ast->markup: (WHILE (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363)) ())
+ast->markup: (STRICTLY-EQUAL (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))) (IDENTIFIER $$C_363))
+ast->markup: (PAREN (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done")))))
+ast->markup: (ASSIGN (IDENTIFIER $$R_362) (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))))
+ast->markup: (IDENTIFIER $$R_362)
+ast->markup: $$R_362
+-->$$R_362
+-->("$$R_362")
+ast->markup: (PAREN (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done")))
+ast->markup: (CONDITIONAL (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0))) (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))) (LITERAL "done"))
+ast->markup: (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL >)) ((IDENTIFIER x) (LITERAL 0)))
+ast->markup: (MEMBER-EXP (IDENTIFIER "$") (LITERAL >))
+ast->markup: (IDENTIFIER "$")
+ast->markup: $
+-->$
+-->("$")
+ast->markup: (LITERAL >)
+ast->markup: >
+-->>
+-->("$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")")
+-->("$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]")
+ast->markup: ((IDENTIFIER x) (LITERAL 0))
+ast->markup: (IDENTIFIER x)
+ast->markup: x
+-->x
+-->("x")
+ast->markup: (LITERAL 0)
+ast->markup: 0
+-->0
+-->("0")
+-->(("x") ("0"))
+-->("$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")")
+ast->markup: (PAREN (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363)))
+ast->markup: (SEQUENCE (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))) (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364)) (IDENTIFIER $$C_363))
+ast->markup: (ASSIGN (IDENTIFIER $x_364) (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1)))))
+ast->markup: (IDENTIFIER $x_364)
+ast->markup: $x_364
+-->$x_364
+-->("$x_364")
+ast->markup: (PAREN (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1))))
+ast->markup: (CALL (MEMBER-EXP (IDENTIFIER "$") (LITERAL -)) ((IDENTIFIER x) (LITERAL 1)))
+ast->markup: (MEMBER-EXP (IDENTIFIER "$") (LITERAL -))
+ast->markup: (IDENTIFIER "$")
+ast->markup: $
+-->$
+-->("$")
+ast->markup: (LITERAL -)
+ast->markup: -
+-->-
+-->("$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")")
+-->("$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]")
+ast->markup: ((IDENTIFIER x) (LITERAL 1))
+ast->markup: (IDENTIFIER x)
+ast->markup: x
+-->x
+-->("x")
+ast->markup: (LITERAL 1)
+ast->markup: 1
+-->1
+-->("1")
+-->(("x") ("1"))
+-->("$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")")
+-->("(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")")
+-->("$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")")
+ast->markup: (ASSIGN (IDENTIFIER x) (IDENTIFIER $x_364))
+ast->markup: (IDENTIFIER x)
+ast->markup: x
+-->x
+-->("x")
+ast->markup: (IDENTIFIER $x_364)
+ast->markup: $x_364
+-->$x_364
+-->("$x_364")
+-->("x" " = " "$x_364")
+ast->markup: (IDENTIFIER $$C_363)
+ast->markup: $$C_363
+-->$$C_363
+-->("$$C_363")
+-->((push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base))
+-->("(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")")
+ast->markup: (LITERAL "done")
+ast->markup: done
+-->done
+-->("\"" "done" "\"")
+-->((push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base))
+-->("(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")")
+-->("$$R_362" " = " "(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")")
+-->("(" "$$R_362" " = " "(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")" ")")
+ast->markup: (IDENTIFIER $$C_363)
+ast->markup: $$C_363
+-->$$C_363
+-->("$$C_363")
+-->("(" "$$R_362" " = " "(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")" ")" " === " "$$C_363")
+ast->markup: ()
+-->()
+-->("while (" "(" "$$R_362" " = " "(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")" ")" " === " "$$C_363" ") ")
+-->("while (" "(" "$$R_362" " = " "(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")" ")" " === " "$$C_363" ") " ";")
+ast->markup: (STATEMENT (RETURN (IDENTIFIER $$R_362)))
+ast->markup: (RETURN (IDENTIFIER $$R_362))
+ast->markup: (IDENTIFIER $$R_362)
+ast->markup: $$R_362
+-->$$R_362
+-->("$$R_362")
+-->("return " ("$$R_362"))
+-->("return " ("$$R_362") ";")
+-->(("var " (push-base) "$x_364" ", " (newline) "$$R_362" ", " (newline) "$$C_363" " = " "Object" "(" (push-base) (pop-base) ")" (pop-base) ";") ("while (" "(" "$$R_362" " = " "(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")" ")" " === " "$$C_363" ") " ";") ("return " ("$$R_362") ";"))
+-->("function " "(" (push-base) "x" (pop-base) ")" "{" (indent) (newline) "var " (push-base) "$x_364" ", " (newline) "$$R_362" ", " (newline) "$$C_363" " = " "Object" "(" (push-base) (pop-base) ")" (pop-base) ";" newline "while (" "(" "$$R_362" " = " "(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")" ")" " === " "$$C_363" ") " ";" newline "return " ("$$R_362") ";" (outdent) (newline) "}")
+-->("foo" " = " "function " "(" (push-base) "x" (pop-base) ")" "{" (indent) (newline) "var " (push-base) "$x_364" ", " (newline) "$$R_362" ", " (newline) "$$C_363" " = " "Object" "(" (push-base) (pop-base) ")" (pop-base) ";" newline "while (" "(" "$$R_362" " = " "(" (push-base) "$" "[" "$S" "(" (push-base) "\"" ">" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "0" (pop-base) ")" (indent) (newline) " ? " "(" (push-base) "$x_364" " = " "(" "$" "[" "$S" "(" (push-base) "\"" "-" "\"" (pop-base) ")" "]" "(" (push-base) "x" ", " (newline) "1" (pop-base) ")" ")" ", " (newline) "x" " = " "$x_364" ", " (newline) "$$C_363" (pop-base) ")" (newline) " : " "\"" "done" "\"" (pop-base) ")" ")" " === " "$$C_363" ") " ";" newline "return " ("$$R_362") ";" (outdent) (newline) "}")
