@@ -1,5 +1,12 @@
 (define (identity x) x)
-  
+
+(define (make-list N x)
+  (let loop ([n N]
+             [result '()])
+    (if (<= n 0)
+        result
+        (loop (- n 1) (cons x result)))))
+
 (define (make-counter)
   (let ([counter -1])
     (lambda ()
@@ -20,22 +27,32 @@
       T
       (cons (reverse-tuple (- N 1) (cdr T)) (car T))))
 
+(define (tuple N L)
+  (if (= N 1)
+      (car L)
+      (cons (car L) (tuple (- N 1) (cdr L)))))
 
 (define (group-by N type L)
   (let-values ([(reverse-group begin-group)
                 (if (eq? type 'lists)
                     (values reverse list)
-                    (values (lambda (T) (reverse-tuple N T))
-                            (lambda (x) x)))])
+                    (values (lambda (L) (tuple N (reverse L)))
+                            list))])
       (reverse 
        (map reverse-group
-            (fold-left (let ([count (make-counter)])
-                         (lambda (groups next)
-                           (if (zero? (modulo (count) N))
-                               (cons (begin-group next) groups)
-                               (cons (cons next (car groups)) (cdr groups)))))
-                         '()
-                         L)))))
+            (let* ([count (make-counter)]
+                   [result (fold-left (lambda (groups next)
+                                        (if (zero? (modulo (count) N))
+                                            (cons (begin-group next) groups)
+                                            (cons (cons next (car groups)) (cdr groups))))
+                                      '()
+                                      L)])
+              (if (null? result)
+                  result
+                  (cons (append (make-list (modulo (- (count)) N) #u)
+                                (car result))
+                        (cdr result))))))))
+              
 
 (define (pairs L)
   (group-by 2 'tuples L))
@@ -96,7 +113,7 @@
     (for-each (lambda (pair)
                 (let ([k (car pair)]
                       [v (cdr pair)])
-                  { @^(obj)[Moosky.Values.Symbol.munge(''+@^(k))] = @^(v) }))
+                  { @^(obj)[@^(k)] = @^(v) }))
               (if (or (null? L)
                       (list? (car L)))
                   L
@@ -124,6 +141,14 @@
 
 (define (object-set! obj k v)
   { obj[@^(k)] = @^(v) })
+
+(define (object-extend! target source)
+#{
+  (function () {
+    var p;
+    for (p in @^(source)) @^(target)[p] = @^(source)[p];
+  })()
+}#)
 
 (define (object-properties-list obj)
 #{

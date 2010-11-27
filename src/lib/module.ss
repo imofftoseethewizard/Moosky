@@ -300,7 +300,7 @@
                              (cond [(eq? key '*)
                                     (loop (cdr options) (cons (cons names: key) params))]
 
-                                   [(member key '(from prefpix map))
+                                   [(member key '(from prefix map))
                                     (if (null? (cdr options))
                                         (assert #f (format "Improper import specification: option %s needs value: %s" key stx))
                                         (loop (cddr options) (cons (cons key (cadr options))

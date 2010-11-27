@@ -497,6 +497,10 @@
 	 return new Values.Javascript(str);
        },
 
+       'new!': function(constructor) {
+	 return new constructor();
+       },
+
        '?>>': function() {
 	 var insp = Moosky.Top.$lastInspector;
 	 if (insp && insp.children.length > 0)
