@@ -20,10 +20,10 @@
 //=============================================================================
 
 
-var intervalID = window.setInterval(startREPL, 100);
+const intervalID = window.setInterval(startREPL, 100);
 
 function startREPL() {
-  var divREPL = Moosky.HTML.REPL();
+  const divREPL = Moosky.HTML.REPL();
 
   if (!document.body)
     return;
@@ -32,6 +32,3 @@ function startREPL() {
 
   document.body.appendChild(divREPL);
 }
-
-
-

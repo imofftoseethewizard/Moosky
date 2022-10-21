@@ -39,7 +39,7 @@
 
         [ { label: 'Character',
 	    applicand: function (ch, str, code) {
-	        var v = new this.Moosky.Values.Character(ch);
+	        const v = new this.Moosky.Values.Character(ch);
 
 	        this.assert(v.toString() == str, 'Character#toString failed for 0x' + ch.charCodeAt(0) +
 			    ': expected "' + str + '" not "' + v.toString() + '"');
@@ -87,7 +87,7 @@
 
 	  { label: 'String',
 	    applicand: function(s, str, code) {
-	        var v = new this.Moosky.Values.String(s);
+	        const v = new this.Moosky.Values.String(s);
 
 	        this.assert(v.toString() == str, 'String#toString failed for 0x' + s +
 			    ': expected "' + str + '" not "' + v.toString() + '"');
@@ -107,7 +107,7 @@
 
 	  { label: 'Symbol',
 	    applicand: function(s, str, code) {
-	        var sym = new this.Moosky.Values.Symbol(s);
+	        const sym = new this.Moosky.Values.Symbol(s);
 
 	        this.assert(sym.toString() == str, 'Symbol#toString failed for ' + s +
 			    ': expected "' + str + '" not "' + sym.toString() + '"');
@@ -148,7 +148,7 @@
 
 	  { label: 'Keyword',
 	    applicand: function(k, str, code) {
-	        var kwd = new this.Moosky.Values.Keyword(k);
+	        const kwd = new this.Moosky.Values.Keyword(k);
 
 	        this.assert(kwd.toString() == str, 'Keyword#toString failed for ' + k +
 			    ': expected "' + str + '" not "' + kwd.toString() + '"');

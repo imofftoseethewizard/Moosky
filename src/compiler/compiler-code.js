@@ -22,7 +22,7 @@
 
 Moosky.Code = (
     function () {
-        var Inspector = Moosky.Inspector;
+        const Inspector = Moosky.Inspector;
 
         function Code(item) {
             return (Inspector.Debug ? Code.debug : Code.bare)[item];
@@ -86,12 +86,12 @@ Moosky.Code = (
 
             Top:
             ['(function () {\n  ',
-             '  var $I = Moosky.Inspector;\n',
-             '  var $C = $I.Citant($I.Sources[<<sourceId>>]);\n',
-             '  var $i = $I(null, function(x) { return eval($T(x)); }, $C(<<start>>, <<end>>, <<sexpId>>));\n',
-             '  var $E = Moosky.Values.Exception;\n',
-             '  var $A = $I.Abort;\n',
-             '  var $T = $A.Compiler;\n',
+             '  const $I = Moosky.Inspector;\n',
+             '  const $C = $I.Citant($I.Sources[<<sourceId>>]);\n',
+             '  const $i = $I(null, function(x) { return eval($T(x)); }, $C(<<start>>, <<end>>, <<sexpId>>));\n',
+             '  const $E = Moosky.Values.Exception;\n',
+             '  const $A = $I.Abort;\n',
+             '  const $T = $A.Compiler;\n',
              '  with (<<namespace>>) {\n',
              '<<bindings>>',
              '    try {\n',
@@ -103,7 +103,7 @@ Moosky.Code = (
              '})()'].join('')
         };
 
-        var Template = Moosky.Tools.Template;
+        const Template = Moosky.Tools.Template;
 
         for (var p in Code.bare)
             Code.bare[p] = new Template(Code.bare[p]);

@@ -1,5 +1,5 @@
 function onObjectProperty(obj, property, fn) {
-    var intervalID = window.setInterval(pollBody, 100);
+    const intervalID = window.setInterval(pollBody, 100);
 
     function pollBody() {
         if (!obj[property])
@@ -15,18 +15,18 @@ function onDocumentBody(fn) {
 }
 
 onDocumentBody(function() {
-    var frame = document.createElement('iframe');
+    const frame = document.createElement('iframe');
     document.body.appendChild(frame);
     //  frame.src = "empty.html";
 
 
     onObjectProperty(frame.contentWindow, 'document', function() {});
-    var doc = frame.contentWindow.document;
+    const doc = frame.contentWindow.document;
 
     document.foo = 'top doc';
     doc.foo = 'frame doc';
 
-    var script = doc.createElement('script');
+    const script = doc.createElement('script');
     script.type = 'text/javascript';
     script.text =
         'try { \n' +

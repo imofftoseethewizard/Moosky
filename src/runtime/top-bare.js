@@ -21,9 +21,9 @@
 
 (
     function () {
-        var Values = Moosky.Values;
-        var Symbol = Values.Symbol;
-        var Keyword = Values.Keyword;
+        const Values = Moosky.Values;
+        const Symbol = Values.Symbol;
+        const Keyword = Values.Keyword;
 
         //  with (Moosky.Runtime.exports) {
         {
@@ -333,9 +333,9 @@
                 },
 
                 'list->string': function(lst) {
-	            var chs = [];
+	            const chs = [];
 	            while (lst != nil) {
-	                var ch = car(lst);
+	                const ch = car(lst);
 	                chs.push(ch);
 	                lst = cdr(lst);
 	            }
@@ -348,15 +348,15 @@
                 },
 
                 'string-for-each': function(proc, s0, ___) {
-	            var strs = [s0];
-	            var length = s0.length;
+	            const strs = [s0];
+	            const length = s0.length;
 	            for (var i = 2; i < arguments.length; i++) {
-	                var s = arguments[i];
+	                const s = arguments[i];
 	                strs.push(s);
 	            }
 
 	            for (i = 0; i < length; i++) {
-	                var chs = [];
+	                const chs = [];
 	                for (var j = 0; j < strs.length; j++)
 	                    chs.push(strs[j].charAt(i));
 
@@ -369,7 +369,7 @@
                 },
 
                 'make-vector': function(k, obj) {
-	            var v = new Array();
+	            const v = new Array();
 	            while (k-- > 0)
 	                v.push(obj);
 
@@ -377,7 +377,7 @@
                 },
 
                 'vector': function(___) {
-	            var v = new Array;
+	            const v = new Array;
 	            for (var i = 0; i < arguments.length; i++)
 	                v.push(arguments[i]);
 
@@ -406,7 +406,7 @@
 
                 'list->vector': function(lst) {
 	            // use makeVector?
-	            var v = new Array();
+	            const v = new Array();
 	            while (lst != nil) {
 	                v.push(car(lst));
 	                lst = cdr(lst);
@@ -416,12 +416,12 @@
                 },
 
                 'vector-for-each': (function () {
-	            var iter = vectorIterator('vector-for-each');
+	            const iter = vectorIterator('vector-for-each');
 	            return function(___) { iter.apply(null, arguments); };
                 })(),
 
                 'vector-map': (function () {
-	            var iter = vectorIterator('vector-map', cons);
+	            const iter = vectorIterator('vector-map', cons);
 	            return function(___) { return reverse(iter.apply(null, arguments)); };
                 })(),
 
@@ -447,12 +447,12 @@
 
 
                 'for-each': (function () {
-	            var iter = iterator('for-each');
+	            const iter = iterator('for-each');
 	            return function(___) { iter.apply(null, arguments); };
                 })(),
 
                 'map': (function () {
-	            var iter = iterator('map', cons);
+	            const iter = iterator('map', cons);
 	            return function(___) { return reverse(iter.apply(null, arguments)); };
                 })(),
 
@@ -461,10 +461,10 @@
                 },
 
                 'apply': function(proc, ___, lst) {
-	            var tailIndex = arguments.length-1;
+	            const tailIndex = arguments.length-1;
 	            var tail = arguments[tailIndex];
 
-	            var args = [];
+	            const args = [];
 	            for (var i = 1; i < tailIndex; i++)
 	                args.push(arguments[i]);
 
@@ -477,11 +477,11 @@
                 },
 
                 get: function(url, ___) {
-	            var options = argsToObject(arguments, 1);
+	            const options = argsToObject(arguments, 1);
 	            if (options.handlers)
 	                options.handlers = sexpToObject(options.handlers);
 
-	            var handlers = options.handlers;
+	            const handlers = options.handlers;
 	            if (handlers)
 	                for (p in handlers)
 	                    handlers[p] = (function(h) { return function(s) { return $force(h(s)); }; })(handlers[p]);
@@ -502,19 +502,19 @@
                 },
 
                 '?>>': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            const insp = Moosky.Top.$lastInspector;
 	            if (insp && insp.children.length > 0)
 	                Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
                 },
 
                 '<<?': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            const insp = Moosky.Top.$lastInspector;
 	            if (insp && insp.inspector)
 	                Moosky.Top.$lastInspector = insp.inspector;
                 },
 
                 ':?': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            const insp = Moosky.Top.$lastInspector;
 	            return insp && insp.citation.content();
                 },
 

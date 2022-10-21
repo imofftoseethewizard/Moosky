@@ -21,7 +21,7 @@
 
 (
     function () {
-        var InlineTemplate = Moosky.Tools.InlineTemplate;
+        const InlineTemplate = Moosky.Tools.InlineTemplate;
 
         with (Moosky.Top) {
             $['symbol?'].inline = new InlineTemplate({ 1: "(<<0>>) instanceof Moosky.Values.Symbol" });

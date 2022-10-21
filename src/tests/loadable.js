@@ -24,7 +24,7 @@
     eval($Moosky.Util.importExpression);
     eval($Moosky.Test.importExpression);
 
-    var components = ["components/base.js",
+    const components = ["components/base.js",
 		      "components/values-bare.js",
 		      "components/values-safe.js",
 		      "components/values.js",
@@ -46,7 +46,7 @@
 			        count: components.length,
 			        prereqs: [ new FilesPreReq({ files: components }) ],
 			        action: function() {
-				    var test = this;
+				    const test = this;
 				    (new FramedEvaluator()).onReady(function(evaluator) {
 				        map(function(file) {
 				            if (tryEval(evaluator, test.texts[file]))
@@ -66,7 +66,7 @@
         { addTest(new TimedTest({ name: file + ' load test',
 				  prereqs: [ new FilesPreReq({ files: [file] }) ],
 				  action: function() {
-				      var test = this;
+				      const test = this;
 				      (new FramedEvaluator()).onReady(function(evaluator) {
 				          if (tryEval(evaluator, test.texts[file]))
 				              print(file + '\n');

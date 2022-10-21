@@ -40,25 +40,25 @@
 					     'lambda.ss'] }) ],
         action: function() {
             //      console.log('starting compiler test action --- \n\n\n\n\n\n\n\n\n\n\n.');
-            var Moosky = this.Moosky;
-            var nil = Moosky.Values.Cons.nil;
-            var Top = Moosky.Top
+            const Moosky = this.Moosky;
+            const nil = Moosky.Values.Cons.nil;
+            const Top = Moosky.Top
 
-            var cons = Top.cons;
-            var car = Top.car;
-            var cdr = Top.cdr;
-            var reverse = Top.reverse;
+            const cons = Top.cons;
+            const car = Top.car;
+            const cdr = Top.cdr;
+            const reverse = Top.reverse;
 
-            var texts = this.texts;
-            var files = this.files;
-            var evaluator = this.evaluator;
+            const texts = this.texts;
+            const files = this.files;
+            const evaluator = this.evaluator;
 
             function compile (source) {
-	        var read = Moosky.Reader.read;
-	        var END = Moosky.Reader.END;
-	        var compile = Moosky.Compiler.compile;
+	        const read = Moosky.Reader.read;
+	        const END = Moosky.Reader.END;
+	        const compile = Moosky.Compiler.compile;
 
-	        var tokens = new Moosky.Reader.TokenStream(source);
+	        const tokens = new Moosky.Reader.TokenStream(source);
 
 	        var result = nil;
 	        while (!tokens.finished() && (sexp = read(tokens)) != END)

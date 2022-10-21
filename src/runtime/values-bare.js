@@ -59,7 +59,7 @@ Moosky.Values.Bare = (
  	             '\u007f': 'DEL'}[this.$ch];
 
             if (name === undefined) {
-                var codePoint = this.$ch.charCodeAt(0);
+                const codePoint = this.$ch.charCodeAt(0);
                 if (codePoint <= 126)
 	            name = this.$ch;
                 else {
@@ -109,14 +109,14 @@ Moosky.Values.Bare = (
             return this.$sym;
         };
 
-        var jsIdentifierRE = /^[$\w_][\w\d_]*$/;
+        const jsIdentifierRE = /^[$\w_][\w\d_]*$/;
 
-        var jsKeywords = ["break", "case", "catch", "continue", "default", "delete",
+        const jsKeywords = ["break", "case", "catch", "continue", "default", "delete",
 		          "do", "else", "finally", "for", "function", "if", "in",
 		          "instanceof", "new", "return", "switch", "this", "throw",
 		          "try", "typeof", "var", "void", "while", "with"];
 
-        var jsReservedWords = ["abstract", "boolean", "byte", "char", "class",
+        const jsReservedWords = ["abstract", "boolean", "byte", "char", "class",
 			       "const", "debugger", "double", "enum", "export",
 			       "extends", "final", "float", "goto", "implements",
 			       "import", "int", "interface", "long", "native",
@@ -124,11 +124,11 @@ Moosky.Values.Bare = (
 			       "static", "super", "synchronized", "throws",
 			       "transient", "volatile"];
 
-        var jsReservedRE = new RegExp('^(' + jsKeywords.join('|') + '|'
+        const jsReservedRE = new RegExp('^(' + jsKeywords.join('|') + '|'
 				      + jsReservedWords.join('|') + ')$');
 
         Symbol.prototype.requiresQuotes = function() {
-            var value = this.toString();
+            const value = this.toString();
             return !value.match(jsIdentifierRE) || value.match(jsReservedRE);
         };
 
@@ -144,13 +144,13 @@ Moosky.Values.Bare = (
         };
 
         Symbol.nomunge = function(s) {
-            var obj = {};
+            const obj = {};
             obj[s] = s;
             Symbol.setTranslations(obj);
         }
 
         Symbol.camelize = function(str) {
-            var parts = str.split('-'), len = parts.length;
+            const parts = str.split('-'), len = parts.length;
             if (len == 1) return parts[0];
 
             var camelized = str.charAt(0) == '-'
@@ -186,7 +186,7 @@ Moosky.Values.Bare = (
         };
 
         Symbol.munge = function(sym) {
-            var cached = Symbol.translationResults[sym];
+            const cached = Symbol.translationResults[sym];
             if (cached)
                 return cached;
 
@@ -208,7 +208,7 @@ Moosky.Values.Bare = (
             value = Symbol.camelize(value);
             value = value.replace(/[^_$a-zA-Z0-9]/g, '_');
 
-            var originalForValue = Symbol.translationOrigins[value];
+            const originalForValue = Symbol.translationOrigins[value];
             if (originalForValue && originalForValue != sym)
                 value += '$' + Symbol.collisionCount++;
 
@@ -317,8 +317,8 @@ Moosky.Values.Bare = (
             pre =  pre  != undefined ? pre  : 1;
             post = post != undefined ? post : 1;
 
-            var start = this.findPriorLineStart(pre);
-            var end = this.findPostLineEnd(post);
+            const start = this.findPriorLineStart(pre);
+            const end = this.findPostLineEnd(post);
 
             return this.$text.substring(start, end);
         };
@@ -498,18 +498,18 @@ Moosky.Values.Bare = (
         };
 
         Cons.append = function(___) {
-            var argCount = arguments.length;
+            const argCount = arguments.length;
 
             if (argCount == 0)
                 return Cons.nil;
 
-            var resultHead = new Cons();
+            const resultHead = new Cons();
             var tail = resultHead;
 
             for (var i = 0; i < argCount-1; i++) {
                 var lst = arguments[i];
                 while (lst != Cons.nil) {
-	            var next = new Cons();
+	            const next = new Cons();
 	            tail.$d = next;
 	            tail = next;
 	            tail.$a = lst.$a;
@@ -535,7 +535,7 @@ Moosky.Values.Bare = (
                 }
 
                 if (sexp instanceof Array) {
-	            var chunks = [];
+	            const chunks = [];
 	            for (var i = 0; i < sexp.length; i++)
 	                chunks.push(Cons.printSexp(sexp[i]));
 
@@ -551,10 +551,10 @@ Moosky.Values.Bare = (
                 return sexp.toString();
             }
 
-            var result = [];
+            const result = [];
             while (sexp != Cons.nil) {
-                var A = sexp.$a;
-                var D = sexp.$d;
+                const A = sexp.$a;
+                const D = sexp.$d;
 
                 if (!Cons.isCons(D)) {
 	            result.push(Cons.printSexp(A));

@@ -21,8 +21,8 @@
 
 (
     function () {
-        var Bare = Moosky.Runtime.Bare.Top;
-        var Safe = Moosky.Runtime.Safe.Top = {};
+        const Bare = Moosky.Runtime.Bare.Top;
+        const Safe = Moosky.Runtime.Safe.Top = {};
 
         for (var p in Bare)
             Safe[p] = Bare[p];
@@ -36,10 +36,10 @@
 	            throw new SyntaxError(name + ': symbol expected: ' + sym);
             }
 
-            var wrappers = {
+            const wrappers = {
                 $quasiUnquote: function(sexp, lambdas) {
 	            if (isPair(sexp)) {
-	                var A = car(sexp);
+	                const A = car(sexp);
 	                if (isSymbol(A)) {
 	                    if (A == 'unquote-splicing')
 	                        throw new SyntaxError('quasiquote: illegal splice' + sexp);
@@ -165,7 +165,7 @@
 	            assertIsList('list->string', lst);
 
 	            while (lst != nil) {
-	                var ch = car(lst);
+	                const ch = car(lst);
 	                assertIsCharacter('list->string', ch);
 	                lst = cdr(lst);
 	            }
@@ -184,9 +184,9 @@
 	            assertIsProcedure('string-for-each', proc);
 	            assertIsString('string-for-each', s0);
 
-	            var length = s0.length;
+	            const length = s0.length;
 	            for (var i = 2; i < arguments.length; i++) {
-	                var s = arguments[i];
+	                const s = arguments[i];
 	                assertIsString('string-for-each', s);
 	                if (s.length != length)
 	                    throw new SyntaxError('string-for-each: all strings must be the same length: '
@@ -273,8 +273,8 @@
                 'apply': function(proc, ___, lst) {
 	            assertMinArgs('apply', 2, arguments);
 	            assertIsProcedure('apply', proc);
-	            var tailIndex = arguments.length-1;
-	            var tail = arguments[tailIndex];
+	            const tailIndex = arguments.length-1;
+	            const tail = arguments[tailIndex];
 	            if (!isList(tail))
 	                throw new SyntaxError('apply: last argument must be a list: ' + tail);
 
@@ -282,19 +282,19 @@
                 },
 
                 '?>>': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            const insp = Moosky.Top.$lastInspector;
 	            if (insp && insp.children.length > 0)
 	                Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
                 },
 
                 '<<?': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            const insp = Moosky.Top.$lastInspector;
 	            if (insp && insp.inspector)
 	                Moosky.Top.$lastInspector = insp.inspector;
                 },
 
                 ':?': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            const insp = Moosky.Top.$lastInspector;
 	            return insp && insp.citation.content();
                 },
 

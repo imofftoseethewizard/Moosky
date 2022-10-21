@@ -78,7 +78,7 @@
         if (this.canceled())
             return;
 
-        var _ = this;
+        const _ = this;
         function receiver() {
             if (!_.canceled()) {
 	        _.timeoutID = 'expired';
@@ -134,17 +134,17 @@
     Poll.prototype.expired = function() { };
 
     Poll.prototype.wait = function() {
-        var interval = this.interval;
-        var timeout = this.timeout;
+        const interval = this.interval;
+        const timeout = this.timeout;
 
         if (this.intervalID !== undefined && this.intervalID !== 'finished')
             return;
 
-        var limit = timeout == 'never' ? Number.MAX_VALUE : timeout/interval + 1;
+        const limit = timeout == 'never' ? Number.MAX_VALUE : timeout/interval + 1;
 
-        var count = new Countdown({ limit: limit, action: finish });
+        const count = new Countdown({ limit: limit, action: finish });
 
-        var _ = this;
+        const _ = this;
         function poll() {
             count.down();
             if (!finished() && _.isReady()) {
@@ -173,8 +173,8 @@
     //
 
     function map(fn, ___) {
-        var result = [];
-        var inputs = [];
+        const result = [];
+        const inputs = [];
         var length = Number.MAX_VALUE;
 
         for (var i = 1; i < arguments.length; i++) {
@@ -182,10 +182,10 @@
             length = Math.min(length, arguments[i].length);
         }
 
-        var width = inputs.length;
+        const width = inputs.length;
 
         for (i = 0; i < length; i++) {
-            var section = [];
+            const section = [];
             for (var j = 0; j < width; j++)
 	        section.push(inputs[j][i]);
 
@@ -288,7 +288,7 @@
     // to run whether or not document body already exists.
     //
 
-    var bodyInitQueue = new OneShotTaskQueue();
+    const bodyInitQueue = new OneShotTaskQueue();
 
     new Poll({ interval: 100,
 	       isReady: function(_) { return document.body; },
@@ -308,14 +308,14 @@
     // body.  print returns a new SPAN element containing the message.
     //
 
-    var pre = document.createElement('pre');
+    const pre = document.createElement('pre');
 
     function initializePrint() {
         document.body.appendChild(pre);
     }
 
     function print(msg) {
-        var span = document.createElement('span');
+        const span = document.createElement('span');
         span.appendChild(document.createTextNode(msg));
 
         pre.appendChild(span);
@@ -357,7 +357,7 @@
         //    console.log(state);
     }
 
-    var readyStateAliases = {
+    const readyStateAliases = {
         0: 'uninitialized',
         1: 'initialized',
         2: 'sent',
@@ -365,7 +365,7 @@
         4: 'complete'
     };
 
-    var readyStateDispatchLoggingHandlers = {
+    const readyStateDispatchLoggingHandlers = {
         'uninitialized': loggingHandler,
         'initialized': loggingHandler,
         'sent': loggingHandler,
@@ -373,24 +373,24 @@
         'complete': loggingHandler
     };
 
-    var readyStateDispatchNullHandlers = {};
+    const readyStateDispatchNullHandlers = {};
 
     function makeReadyStateDispatcher(options) {
-        var aliases = options.aliases || readyStateAliases;
-        var handlers = options.log ? readyStateDispatchLoggingHandlers
+        const aliases = options.aliases || readyStateAliases;
+        const handlers = options.log ? readyStateDispatchLoggingHandlers
 	    : options.handlers || readyStateDispatchNullHandlers;
 
         return function(state) {
-            var response = state.currentTarget;
-            var key = aliases[response.readyState];
-            var handler = key && handlers[key];
+            const response = state.currentTarget;
+            const key = aliases[response.readyState];
+            const handler = key && handlers[key];
             return handler && handler(state);
         };
     }
 
     function get(url, params, options) {
         options = options || {};
-        var r = new XMLHttpRequest();
+        const r = new XMLHttpRequest();
         r.open('get', url, true);
         r.onreadystatechange = options.dispatch || makeReadyStateDispatcher(options);
         if (options.mimeType)
@@ -424,8 +424,8 @@
     function callWithTextSequentially(files, fn) {
         var i, file, length = files.length;
 
-        var index = {};
-        var count = new Countdown({ limit: length,
+        const index = {};
+        const count = new Countdown({ limit: length,
 				    action: function() {
 				        map(function(file) {
 					    fn(file, index[file]);
@@ -455,12 +455,12 @@
     //
 
     function FramedEvaluator() {
-        var frame = this.frame = document.createElement('iframe');
+        const frame = this.frame = document.createElement('iframe');
         frame.src = 'empty.html';
         frame.style.display = 'none';
         document.body.appendChild(frame);
 
-        var script = document.createElement('script');
+        const script = document.createElement('script');
         script.type = 'text/javascript';
         script.text = 'function evaluate(s) { return eval(s); }';
 
@@ -470,7 +470,7 @@
     }
 
     FramedEvaluator.prototype.onReady = function(fn) {
-        var contentWindow = this.frame.contentWindow;
+        const contentWindow = this.frame.contentWindow;
 
         new Poll({ interval: 100,
 	           isReady: function() { return contentWindow.evaluate; },
@@ -496,7 +496,7 @@
     //
 
     function makeImportExpression(base, exports) {
-        var imports = [];
+        const imports = [];
         for (var p in exports)
             imports.push(['  var ', p, ' = ', base, '.exports.', p, ';\n'].join(''));
 

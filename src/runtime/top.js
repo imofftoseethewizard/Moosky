@@ -32,11 +32,11 @@ Moosky.Top = (
         //			   '*': '$times',
         //			   '/': '$divides' });
 
-        var Runtime = Moosky.Runtime;
-        var RuntimeTop = Runtime.Safe && Runtime.Safe.Top
+        const Runtime = Moosky.Runtime;
+        const RuntimeTop = Runtime.Safe && Runtime.Safe.Top
 	    || Runtime.Bare && Runtime.Bare.Top;
 
-        var Top = {};
+        const Top = {};
         Top.$ = Top;
 
         // DEMUNGE remove
@@ -45,7 +45,7 @@ Moosky.Top = (
         for (var p in RuntimeTop) {
             // DEMUNGE remove
             //    var munged = munge(p);
-            var target = RuntimeTop[p];
+            const target = RuntimeTop[p];
             //    Top[munged] = target;
             Top[p] = target;
         }

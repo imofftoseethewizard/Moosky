@@ -22,9 +22,9 @@
 
 Moosky.Inspector = (
     function () {
-        var Values = Moosky.Values;
-        var Symbol = Values.Symbol;
-        var Cite = Values.Cite;
+        const Values = Moosky.Values;
+        const Symbol = Values.Symbol;
+        const Cite = Values.Cite;
 
         //  with (Moosky.Runtime.exports) {
         {
@@ -57,7 +57,7 @@ Moosky.Inspector = (
             Inspector.Abort.prototype.name = 'Abort';
 
             Inspector.Abort.prototype.toString = function() {
-                var insp = this.inspector, e = this.exception;
+                const insp = this.inspector, e = this.exception;
                 if (insp) {
 	            var citation;
 	            if (insp.c.length > 0)
@@ -76,13 +76,13 @@ Moosky.Inspector = (
             };
 
             Inspector.registerSexp = function(sexp) {
-                var id = Inspector.Sexps.length;
+                const id = Inspector.Sexps.length;
                 Inspector.Sexps.push(sexp);
                 return id;
             };
 
             Inspector.registerSource = function(text) {
-                var id = Inspector.Sources.length;
+                const id = Inspector.Sources.length;
                 Inspector.Sources.push(text);
                 return id;
             };

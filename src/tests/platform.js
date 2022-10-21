@@ -57,11 +57,11 @@
 
         PreReq.call(this, options);
 
-        var files = this.files = options.files;
-        var prereq = this;
+        const files = this.files = options.files;
+        const prereq = this;
 
         this.ready = false;
-        var count = new Countdown({ limit: files.length,
+        const count = new Countdown({ limit: files.length,
 				    action: function () { prereq.ready = true; } });
         this.texts = {};
         callWithTextSequentially(options.files,
@@ -73,7 +73,7 @@
 
     FilesPreReq.prototype = new PreReq();
     FilesPreReq.prototype.fill = function(test) {
-        var prereq = this;
+        const prereq = this;
 
         this.waitForTexts(function() {
             test.texts = prereq.texts;
@@ -83,7 +83,7 @@
     };
 
     FilesPreReq.prototype.waitForTexts = function(fn) {
-        var prereq = this;
+        const prereq = this;
 
         new Poll({ interval: 100,
 	           isReady: function() { return prereq.ready; },
@@ -97,7 +97,7 @@
     EnvironmentPreReq.prototype = new FilesPreReq();
 
     EnvironmentPreReq.prototype.fill = function(test) {
-        var prereq = this;
+        const prereq = this;
 
         this.waitForTexts(function() {
             (new FramedEvaluator()).onReady(function (evaluator) {
@@ -128,8 +128,8 @@
 
         this.action = options.action;
 
-        var test = this;
-        var prereqs = this.prereqs = new TaskQueue();
+        const test = this;
+        const prereqs = this.prereqs = new TaskQueue();
         map(function (pr) { prereqs.add(function() { pr.fill(test); }); }, options.prereqs || []);
 
         this.failed = 0;
@@ -137,7 +137,7 @@
     }
 
     Test.prototype.run = function () {
-        var test = this;
+        const test = this;
         this.reqCount = new Countdown({ limit: this.prereqs.count(),
 				        action: function() { test.action(); } });
 
@@ -171,7 +171,7 @@
 
         Test.call(this, options);
 
-        var test = this;
+        const test = this;
 
         this.name = options.name;
         this.timer =  new Timer({ timeout: options.timeout || 10*1000,
@@ -201,7 +201,7 @@
 
         TimedTest.call(this, options);
 
-        var ctx = this;
+        const ctx = this;
 
         this.count = new Countdown({ limit: options.count,
 				     action: function() {
@@ -216,7 +216,7 @@
         if (options === undefined)
             return;
 
-        var action = options.action;
+        const action = options.action;
         options.action = function() {
             this.Moosky = this.evaluator('Moosky');
             action.apply(this, arguments);
@@ -272,10 +272,10 @@
         this.applicand = options.applicand;
         this.data = options.data;
 
-        var kernel = this;
+        const kernel = this;
 
         return function() {
-            var test = this;
+            const test = this;
 
             map(function(args) { kernel.applicand.apply(test, args); }, kernel.data);
 

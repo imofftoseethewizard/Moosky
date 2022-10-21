@@ -22,12 +22,12 @@
 
 Moosky.Reader = (
     function () {
-        var Values = Moosky.Values;
-        var Symbol = Values.Symbol;
-        var Keyword = Values.Keyword;
-        var Token = Values.Token;
-        var Cite = Values.Cite;
-        var Javascript = Values.Javascript;
+        const Values = Moosky.Values;
+        const Symbol = Values.Symbol;
+        const Keyword = Values.Keyword;
+        const Token = Values.Token;
+        const Cite = Values.Cite;
+        const Javascript = Values.Javascript;
 
         //  with (Moosky.Runtime.exports) {
         {
@@ -70,7 +70,7 @@ Moosky.Reader = (
 
             TokenStream.prototype.next = function() {
                 while (!this.finished()) {
-	            var token =
+	            const token =
 	                any.call(this,
 	                         function (lexemeClass) {
 	                             if (lexemeClass.nextMatch === null)
@@ -85,7 +85,7 @@ Moosky.Reader = (
 		                         return false;
 
 	                             if (lexemeClass.nextMatch.index == this.index) {
-		                         var lexeme = lexemeClass.nextMatch[0];
+		                         const lexeme = lexemeClass.nextMatch[0];
 		                         var norm;
 
 		                         if (lexemeClass.normalize)
@@ -99,10 +99,10 @@ Moosky.Reader = (
 	                         }, this.lexemeClasses);
 
 	            if (!token) {
-	                var preview = this.text.slice(Math.max(0, this.index-30), this.index);
-	                var remainder = this.text.slice(this.index, Math.min(this.length, this.index+30));
-	                var caret_position = preview.slice(preview.lastIndexOf('\n')+1).length-1;
-	                var message = 'lexing failure at: \n'
+	                const preview = this.text.slice(Math.max(0, this.index-30), this.index);
+	                const remainder = this.text.slice(this.index, Math.min(this.length, this.index+30));
+	                const caret_position = preview.slice(preview.lastIndexOf('\n')+1).length-1;
+	                const message = 'lexing failure at: \n'
 			    + preview + remainder + '\n'
 			    + map(constant(' '), range(caret_position)).join('') + '^';
 
@@ -130,7 +130,7 @@ Moosky.Reader = (
             MooskyTokenStream.prototype.constructor = MooskyTokenStream;
 
             function makeVector(lst) {
-                var v = [];
+                const v = [];
                 while (lst != nil) {
 	            v.push(car(lst));
 	            lst = cdr(lst);
@@ -154,18 +154,18 @@ Moosky.Reader = (
             }
             MismatchedDelimitersError.prototype = new ReaderError();
 
-            var END = {_: 'end of stream'};
+            const END = {_: 'end of stream'};
             END.toString = function () { return '<end of input stream>'; };
 
             function parseAtom(tokens) {
-                var start = tokens.getIndex();
-                var token = tokens.next();
+                const start = tokens.getIndex();
+                const token = tokens.next();
 
                 if (!token)
 	            return END;
 
                 if (token.$lexeme.match(/^[\[\(]|#\(/)) {
-	            var result = parseList(tokens, token);
+	            const result = parseList(tokens, token);
 
 	            if (token.$lexeme == '#(')
 	                return makeVector(result);
@@ -178,9 +178,9 @@ Moosky.Reader = (
 	            return END;
                 }
 
-                var atom = parseToken(token);
+                const atom = parseToken(token);
 
-                var implicitList = { "'":  'quote',
+                const implicitList = { "'":  'quote',
 			             '`':  'quasiquote',
 			             ',':  'unquote',
 			             ',@': 'unquote-splicing' }[atom && atom.$sym];
@@ -188,7 +188,7 @@ Moosky.Reader = (
                 if (!implicitList)
 	            return atom;
 
-                var result = syntaxStar(parseToken(new Token(implicitList, 'symbol', token.$cite, token.$norm)),
+                const result = syntaxStar(parseToken(new Token(implicitList, 'symbol', token.$cite, token.$norm)),
 			                syntaxStar(parseAtom(tokens), nil));
 
                 result.$source = new Cite(tokens.text, start, tokens.getIndex());
@@ -198,8 +198,8 @@ Moosky.Reader = (
 
 
             function parseList(tokens, openDelimiter) {
-                var start = tokens.index;
-                var delimiter = {'[': ']', '(': ')', '#(': ')'}[openDelimiter.$lexeme];
+                const start = tokens.index;
+                const delimiter = {'[': ']', '(': ')', '#(': ')'}[openDelimiter.$lexeme];
 
                 var token, next, last = nil;
 
@@ -248,7 +248,7 @@ Moosky.Reader = (
             }
 
             function parseToken(token) {
-                var result = { 'character':   function(token) { return new Values.Character(token.$norm); },
+                const result = { 'character':   function(token) { return new Values.Character(token.$norm); },
 		               'javascript':  parseJavascript,
 		               'literal':     parseLiteral,
 		               'number':      parseNumber,
@@ -264,16 +264,16 @@ Moosky.Reader = (
             }
 
             function parseJavascript(token) {
-                var text = token.$cite.$text;
-                var tokens = new MooskyTokenStream(text);
+                const text = token.$cite.$text;
+                const tokens = new MooskyTokenStream(text);
 
-                var block = token.$lexeme[0] == '#';
+                const block = token.$lexeme[0] == '#';
                 var components = block ? cons(new Javascript('(function () { return '), nil) : nil;
 
                 var start = token.$cite.$start + (block ? 2 : 1);
-                var end = token.$cite.$end - (block ? 2 : 1);
+                const end = token.$cite.$end - (block ? 2 : 1);
 
-                var interpolateRE = /[^\\](\\\\)*(@\^?)\(/mg;
+                const interpolateRE = /[^\\](\\\\)*(@\^?)\(/mg;
 
                 // A little special handling for the initial segments of block quotes
                 // is needed.  Since the js is interpolated literally into the emitted code,
@@ -282,7 +282,7 @@ Moosky.Reader = (
                 // To fix this, any initial whitespace is skipped.
 
                 if (block) {
-	            var blockStartRE = /\s*/mg;
+	            const blockStartRE = /\s*/mg;
 	            blockStartRE.lastIndex = start;
 	            start += (blockStartRE.exec(text)[0] || '').length;
                 }
@@ -314,7 +314,7 @@ Moosky.Reader = (
 	            components = syntaxStar(new Javascript(text.substring(last, match.index+1)),
 				            components);
 
-	            var splice = match[2] == '@^';
+	            const splice = match[2] == '@^';
 
 	            var sexp = parseAtom(tokens);
 	            if (!splice)
@@ -340,7 +340,7 @@ Moosky.Reader = (
                 if (block)
 	            components = syntaxStar(new Javascript(' })()'), components);
 
-                var js = syntaxStar(new Symbol('javascript'), reverseSyntax(components));
+                const js = syntaxStar(new Symbol('javascript'), reverseSyntax(components));
                 return js;
             }
 
@@ -353,12 +353,12 @@ Moosky.Reader = (
             }
 
             function parseNumber(token) {
-                var lexeme = token.$lexeme;
+                const lexeme = token.$lexeme;
                 if (lexeme.match(/^-?([\d]+|0[xX][\da-fA-F]+)$/))
 	            return new Values.Integer(parseInt(lexeme));
 
                 if (lexeme.match(/^-?[\d]+\/[\d]+$/)) {
-	            var nd = lexeme.split('/');
+	            const nd = lexeme.split('/');
 	            return new Values.Rational(nd[0], nd[1]);
                 }
 
@@ -375,19 +375,19 @@ Moosky.Reader = (
                 // to a set! form, eg, '(set! ok-button.title "Send")'.
 
                 // has a dot that is not the first character
-                var components = token.$lexeme.split('.');
+                const components = token.$lexeme.split('.');
 
                 components[0] = Symbol.munge(components[0]);
 
                 for (var i = 1; i < components.length; i++) {
-	            var c = components[i];
+	            const c = components[i];
 	            if (c.match(/[^\w$]/))
 	                components[i] = "['" + c + "']";
 	            else
 	                components[i] = '.' + c;
                 }
 
-                var result = components.join('')
+                const result = components.join('')
                 Symbol.nomunge(result);
                 return new Symbol(result, token.$cite, token.$norm);
             }
@@ -408,7 +408,7 @@ Moosky.Reader = (
                 return parseAtom(tokens);
             }
 
-            var Reader = { read: read,
+            const Reader = { read: read,
 		           END: END,
 		           IncompleteInputError: IncompleteInputError,
 		           TokenStream: MooskyTokenStream,

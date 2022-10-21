@@ -139,23 +139,23 @@ Moosky.Compiler = (
     function () {
         eval(Moosky.Runtime.importExpression);
 
-        var Values = Moosky.Values;
-        var Value = Values.Value;
-        var Symbol = Values.Symbol;
-        var Keyword = Values.Keyword;
-        var Exception = Values.Exception;
-        var Inspector = Moosky.Inspector;
-        var Code = Moosky.Code;
+        const Values = Moosky.Values;
+        const Value = Values.Value;
+        const Symbol = Values.Symbol;
+        const Keyword = Values.Keyword;
+        const Exception = Values.Exception;
+        const Inspector = Moosky.Inspector;
+        const Code = Moosky.Code;
 
-        var APPLY       = new Symbol('apply');
-        var BEGIN       = new Symbol('begin');
-        var FORCE       = new Symbol('force');
-        var INLINE      = new Symbol('inline');
-        var JAVASCRIPT  = new Symbol('javascript');
-        var LAMBDA      = new Symbol('lambda');
-        var PROMISE     = new Symbol('promise');
-        var PROMISING   = new Symbol('promising');
-        var QUOTE       = new Symbol('quote');
+        const APPLY       = new Symbol('apply');
+        const BEGIN       = new Symbol('begin');
+        const FORCE       = new Symbol('force');
+        const INLINE      = new Symbol('inline');
+        const JAVASCRIPT  = new Symbol('javascript');
+        const LAMBDA      = new Symbol('lambda');
+        const PROMISE     = new Symbol('promise');
+        const PROMISING   = new Symbol('promising');
+        const QUOTE       = new Symbol('quote');
 
         function isMacro(v) {
             return v !== undefined && typeof v == 'function' && v.tag == 'macro';
@@ -271,19 +271,19 @@ Moosky.Compiler = (
         };
 
         Context.Guardian.prototype.add = function(ctx, value) {
-            var lambdaCtx = ctx.innerLambda() || findTopContext(ctx);
+            const lambdaCtx = ctx.innerLambda() || findTopContext(ctx);
             this.items.push({ ctx: lambdaCtx, value: value });
         };
 
         Context.Guardian.prototype.get = function(ctx) {
-            var items = this.items;
-            var length = items.length;
+            const items = this.items;
+            const length = items.length;
 
-            var result = [];
-            var remainder = [];
+            const result = [];
+            const remainder = [];
 
             for (var i = 0; i < length; i++) {
-                var item = items[i];
+                const item = items[i];
                 if (!ctx || ctx.containsContext(item.ctx))
 	            result.push(item.value);
                 else
@@ -321,22 +321,21 @@ Moosky.Compiler = (
         }
 
         function getDefinedNames(ctx) {
-            var result = Context.definedNames.get(ctx);
+            const result = Context.definedNames.get(ctx);
             return result;
         }
 
         function getContextBindings(ctx) {
-            var bindings = [];
-            var quotes = getQuotes(ctx);
-            var length = quotes.length;
+            const bindings = [];
+            const quotes = getQuotes(ctx);
 
-            for (var i = 0; i < length; i++) {
-                var quote = quotes[i];
+            for (var i = 0, length = quotes.length; i < length; i++) {
+                const quote = quotes[i];
                 bindings.push(quote);
             }
 
-            var names = getDefinedNames(ctx);
-            for (i = 0, length = names.length; i < length; i++)
+            const names = getDefinedNames(ctx);
+            for (var i = 0, length = names.length; i < length; i++)
                 bindings.push({ symbol: names[i], value: undefined });
 
             return bindings;
@@ -374,7 +373,7 @@ Moosky.Compiler = (
 
         function findSymbolDescriptor(sym, ctx) {
             while (ctx !== undefined) {
-                var desc = ctx.symbols[sym];
+                const desc = ctx.symbols[sym];
                 if (desc !== undefined)
 	            return desc;
 
@@ -385,7 +384,7 @@ Moosky.Compiler = (
         }
 
         function updateSymbolBinding(ctx, sym, value) {
-            var desc = findSymbolDescriptor(sym, ctx);
+            const desc = findSymbolDescriptor(sym, ctx);
             if (desc !== undefined)
                 desc.value = value;
         }
@@ -452,7 +451,7 @@ Moosky.Compiler = (
         //
 
         function setValueContext(ctx, target, value) {
-            var desc = findSymbolDescriptor(target, ctx);
+            const desc = findSymbolDescriptor(target, ctx);
 
             if (desc) {
                 desc.free = false;
@@ -490,7 +489,7 @@ Moosky.Compiler = (
         // env['core.index-offset'] does not find env['core']['index-offset'], so
         // a little more sophisticated handling is in order.
         function lookupSymbol(sym, env) {
-            var components = sym.raw().split('.');
+            const components = sym.raw().split('.');
             var result = env;
 
             for (var i = 0; i < components.length; i++) {
@@ -523,17 +522,17 @@ Moosky.Compiler = (
                 return sexp;
             }
 
-            var key = car(sexp);
+            const key = car(sexp);
 
             if (isSymbol(key)) {
-                var applicand = lookupSymbol(key, env);
+                const applicand = lookupSymbol(key, env);
                 if (isMacro(applicand)) {
 	            // force may not be necessary here....
-	            var result = $force(applicand.call(applicand.env, sexp));
+	            const result = $force(applicand.call(applicand.env, sexp));
 	            return parseSexp(result, env, ctx);
                 }
 
-                var parsers = { 'and': parseAnd,
+                const parsers = { 'and': parseAnd,
 		                'begin': parseBegin,
 		                '$define': parseDefine,
 		                'define-macro': parseDefineMacro,
@@ -545,7 +544,7 @@ Moosky.Compiler = (
 		                'quasiquote': parseQuasiQuote,
 		                'set!': parseSet };
 
-                var parser = parsers[key];
+                const parser = parsers[key];
                 if (parser)
 	            return parser(sexp, env, ctx);
             }
@@ -560,7 +559,7 @@ Moosky.Compiler = (
 
         function parseNonTailedSequence(sexp, env, ctx) {
             var forms = nil;
-            var nonTailCtx = nonTailContext(ctx);
+            const nonTailCtx = nonTailContext(ctx);
             while (sexp != nil) {
                 forms = syntaxStar(parseSexp(car(sexp), env, nonTailCtx), forms);
                 sexp = cdr(sexp);
@@ -573,8 +572,8 @@ Moosky.Compiler = (
             var forms = nil;
             var next;
 
-            var parentCtx = ctx;
-            var nonTailCtx = nonTailContext(ctx);
+            const parentCtx = ctx;
+            const nonTailCtx = nonTailContext(ctx);
 
             ctx = nonTailCtx;
             while (sexp != nil) {
@@ -596,7 +595,7 @@ Moosky.Compiler = (
                 return parseDottedSymbol(sexp, env, ctx);
 
             if (sexp.requiresQuotes()) {
-                var desc = findSymbolDescriptor(sexp, ctx);
+                const desc = findSymbolDescriptor(sexp, ctx);
                 if (sexp.$sym == "$foo-bar_103")
 	            debugger;
                 if (desc && desc.scope == 'local')
@@ -618,11 +617,11 @@ Moosky.Compiler = (
             // to a set! form, eg, '(set! ok-button.title "Send")'.
 
             // has a dot that is not the first character
-            var components = sexp.raw().split('.');
+            const components = sexp.raw().split('.');
 
-            var base = new Symbol(components[0]);
+            const base = new Symbol(components[0]);
 
-            var desc = findSymbolDescriptor(base, ctx);
+            const desc = findSymbolDescriptor(base, ctx);
 
             // base object symbol is a parameter (or a variety of let binding)
             // These are all munged.
@@ -636,7 +635,7 @@ Moosky.Compiler = (
                 components[0] = "$['" + components[0] + "']";
 
             for (var i = 1; i < components.length; i++) {
-                var c = components[i];
+                const c = components[i];
                 if (c.match(/[^\w$]/))
 	            components[i] = "['" + c + "']";
                 else
@@ -648,7 +647,7 @@ Moosky.Compiler = (
         }
 
         function parseVector(sexp, env, ctx) {
-            var result = [];
+            const result = [];
             var i;
             for (i = 0; i < sexp.length; i++)
                 result[i] = parseSexp(sexp[i], env, ctx);
@@ -800,16 +799,16 @@ Moosky.Compiler = (
             if (isLambdaForm(car(sexp)))
                 return parseAppliedLambda(sexp, env, ctx);
 
-            var forms = parseNonTailedSequence(sexp, env, nonTailContext(ctx));
-            var applicand = car(forms);
-            var args = cdr(forms);
+            const forms = parseNonTailedSequence(sexp, env, nonTailContext(ctx));
+            const applicand = car(forms);
+            const args = cdr(forms);
 
             if (isInline(applicand, env, ctx))
                 return syntaxStar(INLINE, lookupSymbol(applicand, env), args); //DEMUNGE
 
-            var isTail = isTailContext(ctx);
-            var recursive = possiblyRecursive(applicand, ctx);
-            var promising = isApplicandPromising(applicand, env, ctx);
+            const isTail = isTailContext(ctx);
+            const recursive = possiblyRecursive(applicand, ctx);
+            const promising = isApplicandPromising(applicand, env, ctx);
             var application = syntaxStar(APPLY, applicand, args);
 
             if (isTail && recursive)
@@ -825,13 +824,13 @@ Moosky.Compiler = (
         }
 
         function parseAppliedLambda(sexp, env, ctx) {
-            var lambdaExp = car(sexp);
+            const lambdaExp = car(sexp);
             assertLambdaWellFormed(lambdaExp);
 
-            var values = parseNonTailedSequence(cdr(sexp), env, ctx);
+            const values = parseNonTailedSequence(cdr(sexp), env, ctx);
             var args = values;
 
-            var lambdaCtx = lambdaContext(ctx);
+            const lambdaCtx = lambdaContext(ctx);
 
             var formals = cadr(lambdaExp);
             if (!isList(formals))
@@ -850,9 +849,9 @@ Moosky.Compiler = (
                 formals = cadr(lambdaExp);
             }
 
-            var body = parseTailedSequence(cddr(lambdaExp), makeFrame(env), lambdaCtx);
+            const body = parseTailedSequence(cddr(lambdaExp), makeFrame(env), lambdaCtx);
 
-            var lambda = syntaxStar(car(lambdaExp), formals, body);
+            const lambda = syntaxStar(car(lambdaExp), formals, body);
             if (isPromisingLambda(lambdaCtx))
                 markLambdaAsPromising(ctx);
 
@@ -889,7 +888,7 @@ Moosky.Compiler = (
             assertDefineMacroWellFormed(sexp);
 
             var name;
-            var nameClause = cadr(sexp);
+            const nameClause = cadr(sexp);
             var body = cddr(sexp);
 
             if (!isList(nameClause)) {
@@ -901,7 +900,7 @@ Moosky.Compiler = (
                 body = syntaxStar(LAMBDA, cdr(nameClause), body);
             }
 
-            var code = emitTop(emit(parseSexp(body, env, ctx),
+            const code = emitTop(emit(parseSexp(body, env, ctx),
 			            new Context(null, { tail: false })),
 		               sexp,
 		               { namespace: '{}' });
@@ -954,7 +953,7 @@ Moosky.Compiler = (
                 formals = cadr(sexp);
             }
 
-            var body = parseTailedSequence(cddr(sexp), makeFrame(env), ctx);
+            const body = parseTailedSequence(cddr(sexp), makeFrame(env), ctx);
             var result = syntaxStar(car(sexp), formals, body);
             if (isPromisingLambda(ctx))
                 result = syntaxStar(PROMISING, result);
@@ -971,7 +970,7 @@ Moosky.Compiler = (
 
             ctx = nonTailContext(ctx);
 
-            var quoted = cadr(sexp);
+            const quoted = cadr(sexp);
             if (!isPair(quoted))
                 return syntax(QUOTE, quoted);
 
@@ -979,7 +978,7 @@ Moosky.Compiler = (
                 if (!isPair(sexp))
 	            return sexp;
 
-                var A = car(sexp);
+                const A = car(sexp);
 
                 if (isSymbol(A)) {
 	            if (A == 'unquote-splicing' || A == 'unquote')
@@ -1003,10 +1002,10 @@ Moosky.Compiler = (
         function parseSet(sexp, env, ctx) {
             assertSetWellFormed(sexp);
 
-            var target = parseSymbol(cadr(sexp), env, ctx);
+            const target = parseSymbol(cadr(sexp), env, ctx);
 
             if (target.requiresQuotes()) {
-                var desc = findSymbolDescriptor(target, ctx);
+                const desc = findSymbolDescriptor(target, ctx);
                 if (desc && desc.scope == 'local')
 	            target.munge();
 
@@ -1014,7 +1013,7 @@ Moosky.Compiler = (
 	            target.munge("$['" + target.raw() + "']");
             }
 
-            var value = parseSexp(caddr(sexp), env, setValueContext(ctx, target));
+            const value = parseSexp(caddr(sexp), env, setValueContext(ctx, target));
 
             updateSymbolBinding(ctx, target, value); //DEMUNGE?
             return syntax(car(sexp), target, value);
@@ -1035,7 +1034,7 @@ Moosky.Compiler = (
                 return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, ctx);
             }
 
-            var op = car(sexp);
+            const op = car(sexp);
 
             return ({'and': emitAnd,
 	             'apply': emitApply,
@@ -1051,7 +1050,7 @@ Moosky.Compiler = (
 	             'promising': emitPromising,
 	             'quasiquote': emitQuasiQuote,
 	             'quote': emitQuote,
-	             'set!': emitSet}[car(sexp).toString()])(sexp, ctx);
+	             'set!': emitSet}[op.toString()])(sexp, ctx);
         }
 
         //---------------------------------------------------------------------------
@@ -1060,9 +1059,9 @@ Moosky.Compiler = (
         //
 
         function emitArray(sexp, ctx) {
-            var chunks = ['['];
+            const chunks = ['['];
             var i;
-            var items = [];
+            const items = [];
             for (i = 0; i < sexp.length; i++)
                 items.push(emit(sexp[i], ctx));
 
@@ -1077,11 +1076,11 @@ Moosky.Compiler = (
         }
 
         function emitBindings(bindings) {
-            var emitted = [];
-            var length = bindings.length;
+            const emitted = [];
+            const length = bindings.length;
 
             for (var i = 0; i < length; i++) {
-                var binding = bindings[i];
+                const binding = bindings[i];
                 emitted.push(emitBinding(binding.symbol, binding.value));
             }
 
@@ -1089,10 +1088,10 @@ Moosky.Compiler = (
         }
 
         function emitInline(sexp, ctx) {
-            var applicand = cadr(sexp);
+            const applicand = cadr(sexp);
             var parameters = cddr(sexp);
 
-            var values = [];
+            const values = [];
             while (parameters != nil) {
                 values.push(emit(car(parameters), ctx));
                 parameters = cdr(parameters);
@@ -1130,7 +1129,7 @@ Moosky.Compiler = (
         }
 
         function emitSequence(sexp, ctx) {
-            var values = [];
+            const values = [];
             while (sexp != nil) {
                 values.push(emit(car(sexp), ctx));
                 sexp = cdr(sexp);
@@ -1139,8 +1138,8 @@ Moosky.Compiler = (
         }
 
         function emitTop(body, sexp, options) {
-            var source = sexp.$source;
-            var params =
+            const source = sexp.$source;
+            const params =
                 { bindings: emitBindings(getContextBindings()),
 	          body: body,
 	          namespace: 'Moosky.Top',
@@ -1164,16 +1163,16 @@ Moosky.Compiler = (
         function emitAnd(sexp, ctx) {
             sexp = cdr(sexp);
 
-            var values = length(sexp);
+            const values = length(sexp);
             if (values == 0)
                 return 'true';
 
             if (values == 1)
                 return emit(car(sexp), ctx);
 
-            var chunks = ['('];
+            const chunks = ['('];
             while (sexp != nil) {
-                var next = cdr(sexp);
+                const next = cdr(sexp);
 
                 if (next == nil) {
 	            chunks.push('(');
@@ -1193,16 +1192,16 @@ Moosky.Compiler = (
         }
 
         function emitApply(sexp, ctx) {
-            var applicand = cadr(sexp);
+            const applicand = cadr(sexp);
             var parameters = cddr(sexp);
 
-            var values = [];
+            const values = [];
             while (parameters != nil) {
                 values.push(emit(car(parameters), ctx));
                 parameters = cdr(parameters);
             }
 
-            var source = sexp.$source || {};
+            const source = sexp.$source || {};
             return Code('application').fill({ body: [emit(applicand, ctx), '(', values.join(', '), ')'].join(''),
 				              start: source.$start,
 				              end: source.$end,
@@ -1210,7 +1209,7 @@ Moosky.Compiler = (
         }
 
         function emitBegin(sexp, ctx) {
-            var body = cdr(sexp);
+            const body = cdr(sexp);
             if (body == nil)
                 return emit(undefined, ctx);
             else
@@ -1218,7 +1217,7 @@ Moosky.Compiler = (
         }
 
         function emitDefine(sexp, ctx) {
-            var name = cadr(sexp);
+            const name = cadr(sexp);
 
             if (!findInnerLambdaContext(ctx))
                 // TRICKY: This allocates a member of Moosky.Top with value undefined.
@@ -1245,9 +1244,9 @@ Moosky.Compiler = (
 
         function emitJavascript(sexp, ctx) {
             sexp = cdr(sexp);
-            var chunks = [];
+            const chunks = [];
             while (sexp != nil) {
-                var chunk = car(sexp);
+                const chunk = car(sexp);
 
                 if (chunk instanceof Values.Javascript)
 	            chunks.push(chunk.raw());
@@ -1256,17 +1255,17 @@ Moosky.Compiler = (
 
                 sexp = cdr(sexp);
             }
-            var js = chunks.join('');
+            const js = chunks.join('');
             return js;
         }
 
         function emitLambda(sexp, ctx) {
-            var bodyCtx = lambdaContext(ctx);
-            var body = emitSequence(cddr(sexp), bodyCtx);
+            const bodyCtx = lambdaContext(ctx);
+            const body = emitSequence(cddr(sexp), bodyCtx);
 
             var formals = cadr(sexp);
-            var emittedFormals = [];
-            var bindings = getContextBindings(bodyCtx);
+            const emittedFormals = [];
+            const bindings = getContextBindings(bodyCtx);
 
             if (isSymbol(formals)) {
                 bindings.push({ symbol: formals,
@@ -1290,7 +1289,7 @@ Moosky.Compiler = (
                 }
             }
 
-            var source = sexp.$source || {};
+            const source = sexp.$source || {};
 
             return Code('lambda').fill({ formals: emittedFormals.join(', '),
 				         bindings: emitBindings(bindings),
@@ -1302,7 +1301,7 @@ Moosky.Compiler = (
 
         function emitOr(sexp, ctx) {
             sexp = cdr(sexp);
-            var values = length(sexp);
+            const values = length(sexp);
             if (values == 0)
                 return 'false';
 
@@ -1310,12 +1309,12 @@ Moosky.Compiler = (
                 return emit(car(sexp), ctx);
 
             // ($or_45 = (expr)) != false ? $or_45 : ... : false)
-            var $temp = gensym('or');
+            const $temp = gensym('or');
             addDefinedName(ctx, $temp);
 
-            var chunks = ['('];
+            const chunks = ['('];
             while (sexp != nil) {
-                var next = cdr(sexp);
+                const next = cdr(sexp);
 
                 if (next == nil) {
 	            chunks.push('(');
@@ -1347,13 +1346,13 @@ Moosky.Compiler = (
         }
 
         function emitQuasiQuote(sexp, ctx) {
-            var lambdas = [];
+            const lambdas = [];
 
             function emitQQ(sexp) {
                 if (!isPair(sexp))
 	            return sexp;
 
-                var A = car(sexp);
+                const A = car(sexp);
 
                 if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote') {
 	            // this should be moved to the parse phase
@@ -1367,13 +1366,13 @@ Moosky.Compiler = (
                 return syntaxStar(emitQQ(A), emitQQ(cdr(sexp)));
             }
 
-            var quoted = syntax(QUOTE, emitQQ(cadr(sexp)));
+            const quoted = syntax(QUOTE, emitQQ(cadr(sexp)));
 
             return ['$quasiUnquote(', emitQuote(quoted, ctx), ', [', lambdas.join(', '), '])'].join('');
         }
 
         function emitQuote(sexp, ctx) {
-            var quoted = cadr(sexp);
+            const quoted = cadr(sexp);
             if (quoted == nil)
                 return '$nil';
 
@@ -1397,7 +1396,7 @@ Moosky.Compiler = (
 
                 return ['cons(', emitQ(car(sexp), ctx), ', ', emitQ(cdr(sexp), ctx), ')'].join('');
             }
-            var $temp = gensym('quote');
+            const $temp = gensym('quote');
             addQuote(ctx, $temp, emitQ(quoted, ctx));
 
             return $temp.emit();
@@ -1412,11 +1411,11 @@ Moosky.Compiler = (
             env = env || makeFrame(Moosky.Top);
             options = options || { namespace: env.$namespace };
             //    if (isSymbol(options.namespace))      options.namespace = options.namespace.munge().emit();
-            var ctx = new Context(null, { tail: true });
-            var parsed = parseSexp(sexp, env, topContext());
+            const ctx = new Context(null, { tail: true });
+            const parsed = parseSexp(sexp, env, topContext());
             //    console.log('========================================================');
             //    console.log("" + parsed);
-            var result = emitTop(emit(parsed, ctx), sexp, options);
+            const result = emitTop(emit(parsed, ctx), sexp, options);
             //    if (true) {
             //      console.log('--------------------------------------------------------');
             //      console.log(result);
@@ -1424,7 +1423,7 @@ Moosky.Compiler = (
             return result;
         }
 
-        var Compiler = {};
+        const Compiler = {};
 
         Compiler.Context = Context;
         Compiler.emit = emit;

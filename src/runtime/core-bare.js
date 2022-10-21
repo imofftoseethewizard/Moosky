@@ -9,11 +9,11 @@ Moosky.Runtime = {};
 
 Moosky.Runtime.Bare = (
     function () {
-        var Values = Moosky.Values;
-        var Symbol = Values.Symbol;
-        var Keyword = Values.Keyword;
-        var Cons = Values.Cons;
-        var Cite = Values.Cite;
+        const Values = Moosky.Values;
+        const Symbol = Values.Symbol;
+        const Keyword = Values.Keyword;
+        const Cons = Values.Cons;
+        const Cite = Values.Cite;
         var nil = Cons.nil;
 
         function isString(sexp) {
@@ -41,15 +41,15 @@ Moosky.Runtime.Bare = (
         }
 
         function makeFrame(env) {
-            var Frame = function () { };
+            const Frame = function () { };
             Frame.prototype = env;
-            var frame = new Frame();
+            const frame = new Frame();
             frame.$ = frame;
             return frame;
         }
 
         function any(fn, ___) {
-            var inputs = [];
+            const inputs = [];
             var length = Number.MAX_VALUE;
 
             for (var i = 1; i < arguments.length; i++) {
@@ -57,14 +57,14 @@ Moosky.Runtime.Bare = (
                 length = Math.min(length, arguments[i].length);
             }
 
-            var width = inputs.length;
+            const width = inputs.length;
 
             for (i = 0; i < length; i++) {
-                var section = [];
+                const section = [];
                 for (var j = 0; j < width; j++)
 	            section.push(inputs[j][i]);
 
-                var result = fn.apply(this, section);
+                const result = fn.apply(this, section);
 
                 if (result)
 	            return result;
@@ -74,8 +74,8 @@ Moosky.Runtime.Bare = (
         }
 
         function map(fn, ___) {
-            var result = [];
-            var inputs = [];
+            const result = [];
+            const inputs = [];
             var length = Number.MAX_VALUE;
 
             for (var i = 1; i < arguments.length; i++) {
@@ -83,10 +83,10 @@ Moosky.Runtime.Bare = (
                 length = Math.min(length, arguments[i].length);
             }
 
-            var width = inputs.length;
+            const width = inputs.length;
 
             for (i = 0; i < length; i++) {
-                var section = [];
+                const section = [];
                 for (var j = 0; j < width; j++)
 	            section.push(inputs[j][i]);
 
@@ -103,7 +103,7 @@ Moosky.Runtime.Bare = (
             else
                 start = n, end = m;
 
-            var result = [];
+            const result = [];
             for (i = start; i < end; i += step)
                 result.push(i);
 
@@ -113,7 +113,7 @@ Moosky.Runtime.Bare = (
         function constant(v) { return function () { return v; }; }
 
         function filter(fn, A) {
-            var result = [];
+            const result = [];
             for (var i = 0, length = A.length; i < length; i++)
                 if (fn(A[i]))
 	            result.push(A[i]);
@@ -207,9 +207,9 @@ Moosky.Runtime.Bare = (
 
         function syntax(___) {
             var list = nil;
-            var source = new Cite(undefined, Number.MAX_VALUE, 0);
+            const source = new Cite(undefined, Number.MAX_VALUE, 0);
             for (var i = arguments.length-1; i >= 0; i--) {
-                var item = arguments[i];
+                const item = arguments[i];
                 item && source.merge(item.$source);
                 list = cons(item, list);
             }
@@ -222,9 +222,9 @@ Moosky.Runtime.Bare = (
 
         function syntaxStar(___) {
             var list = arguments[arguments.length-1];
-            var source = list && list.$source || new Cite(undefined, Number.MAX_VALUE, 0);
+            const source = list && list.$source || new Cite(undefined, Number.MAX_VALUE, 0);
             for (var i = arguments.length-2; i >= 0; i--) {
-                var item = arguments[i];
+                const item = arguments[i];
                 item && source.merge(item.$source);
                 list = cons(item, list);
             }
@@ -246,7 +246,7 @@ Moosky.Runtime.Bare = (
         }
 
         function mergeSources(list) {
-            var source = new Cite(undefined, Number.MAX_VALUE, 0);
+            const source = new Cite(undefined, Number.MAX_VALUE, 0);
             var sexp = list;
             while (sexp != nil) {
                 car(sexp) && source.merge(car(sexp).$source);
@@ -287,10 +287,10 @@ Moosky.Runtime.Bare = (
             if (!isPair(sexp))
                 return sexp;
 
-            var A = car(sexp);
+            const A = car(sexp);
             if (isPair(A) && isSymbol(car(A))) {
                 if (car(A) == 'unquote-splicing') {
-	            var unquoted = $force(lambdas.shift()());
+	            const unquoted = $force(lambdas.shift()());
 
 	            if (isList(unquoted))
 	                return append(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
@@ -363,7 +363,7 @@ Moosky.Runtime.Bare = (
 
                 var result = arguments[0].valueOf();
                 for (var i = 1; i < arguments.length; i++) {
-	            var a = arguments[i].valueOf();
+	            const a = arguments[i].valueOf();
 	            result = binop(result, a);
                 }
 
@@ -403,9 +403,9 @@ Moosky.Runtime.Bare = (
         function characterComparator(name, kernel, prep) {
             return function(___) {
                 prep = prep || function (x) { return x; };
-                var A = prep(arguments[0]).charCodeAt(0);
+                const A = prep(arguments[0]).charCodeAt(0);
                 for (var i = 1; i < arguments.length; i++) {
-	            var B = prep(arguments[i]).charCodeAt(0);
+	            const B = prep(arguments[i]).charCodeAt(0);
 	            if (!kernel(A, B))
 	                return false;
                 }
@@ -421,15 +421,14 @@ Moosky.Runtime.Bare = (
             return kernel;
         }
 
-        var characterOperator = characterPredicate;
-
+        const characterOperator = characterPredicate;
 
         function stringComparator(name, kernel, prep) {
             return function(___) {
                 prep = prep || function (x) { return x; };
-                var A = prep(arguments[0]);
+                const A = prep(arguments[0]);
                 for (var i = 1; i < arguments.length; i++) {
-	            var B = prep(arguments[i]);
+	            const B = prep(arguments[i]);
 	            if (!kernel(A, B))
 	                return false;
                 }
@@ -445,29 +444,29 @@ Moosky.Runtime.Bare = (
             return kernel;
         }
 
-        var stringOperator = stringPredicate;
+        const stringOperator = stringPredicate;
 
 
         function integerPredicate(name, kernel) {
             return kernel;
         }
 
-        var integerOperator = integerPredicate;
+        const integerOperator = integerPredicate;
 
 
         function iterator(name, collect) {
             collect = collect || function () {};
 
             return function(proc, lst0, ___) {
-                var lsts = [lst0];
+                const lsts = [lst0];
                 for (var i = 2; i < arguments.length; i++) {
-	            var lst = arguments[i];
+	            const lst = arguments[i];
 	            lsts.push(lst);
                 }
 
                 var result = nil;
                 while (true) {
-	            var args = [];
+	            const args = [];
 	            for (var i = 0; i < lsts.length; i++) {
 	                if (lsts[i] == nil)
 	                    break;
@@ -490,14 +489,14 @@ Moosky.Runtime.Bare = (
             collect = collect || function () {};
 
             return function(proc, v0, ___) {
-                var vs = [v0];
-                var length = v0.length;
+                const vs = [v0];
+                const length = v0.length;
                 for (var i = 2; i < arguments.length; i++)
 	            vs.push(arguments[i]);
 
                 var result = nil;
                 for (i = 0; i < length; i++) {
-	            var args = [];
+	            const args = [];
 	            for (var j = 0; j < vs.length; j++)
 	                args.push(vs[j][i]);
 
@@ -525,10 +524,10 @@ Moosky.Runtime.Bare = (
         }
 
         function alistToObject(alist) {
-            var obj = {};
+            const obj = {};
             while (alist != nil) {
-                var pair = car(alist);
-                var key = alistKeyToString(car(pair));
+                const pair = car(alist);
+                const key = alistKeyToString(car(pair));
 
                 obj[key] = cdr(pair);
                 alist = cdr(alist);
@@ -541,10 +540,10 @@ Moosky.Runtime.Bare = (
         }
 
         function sexpToObject(sexp) {
-            var original = sexp;
-            var obj = {};
+            const original = sexp;
+            const obj = {};
             while (sexp != nil) {
-                var key = keywordToString(car(sexp));
+                const key = keywordToString(car(sexp));
 
                 sexp = cdr(sexp);
                 obj[key] = car(sexp);
@@ -554,16 +553,16 @@ Moosky.Runtime.Bare = (
         }
 
         function argsToObject(args, first) {
-            var obj = {};
+            const obj = {};
             for (var i = first; i < args.length; i++) {
-                var key = keywordToString(args[i]);
+                const key = keywordToString(args[i]);
                 i++;
                 obj[key] = args[i];
             }
             return obj;
         }
 
-        var Bare = {};
+        const Bare = {};
         Bare.exports = {
             isString: isString,
             isNumber: isNumber,

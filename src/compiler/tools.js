@@ -24,9 +24,9 @@ Moosky.Tools = (
         function Template(templ) {
             this.$templ = templ;
             this.$regexps = {};
-            var matches = templ.match(/<<(\w|\d)+>>/g) || [];
+            const matches = templ.match(/<<(\w|\d)+>>/g) || [];
             for (var i = 0; i < matches.length; i++) {
-                var pattern = matches[i];
+                const pattern = matches[i];
                 this.$regexps[pattern.slice(2, -2)] = new RegExp(pattern, 'g');
             }
         }
@@ -49,22 +49,22 @@ Moosky.Tools = (
         RecursiveTemplate.prototype.initialize = function() {
             this.base = new Template(this.base);
 
-            var pattern = this.pattern;
+            const pattern = this.pattern;
 
-            var next = pattern.match(this.nextRe);
-            var prior = pattern.match(this.priorRe);
+            const next = pattern.match(this.nextRe);
+            const prior = pattern.match(this.priorRe);
 
             console.log(next.index);
             if (!next || !prior)
                 throw RecursiveTemplate.DefinitionError(this.definitionErrorMessage);
 
-            var nextRe = new RegExp("(.{" + next.index + "})(.{" + this.nextSubstLength + "})");
-            var priorRe = new RegExp("(.{" + prior.index + "})(.{" + this.priorSubstLength + "})");
+            const nextRe = new RegExp("(.{" + next.index + "})(.{" + this.nextSubstLength + "})");
+            const priorRe = new RegExp("(.{" + prior.index + "})(.{" + this.priorSubstLength + "})");
 
-            var nextTarget = { re: nextRe,
+            const nextTarget = { re: nextRe,
 		               label: this.nextLabel };
 
-            var priorTarget = { re: priorRe,
+            const priorTarget = { re: priorRe,
 			        label: this.priorLabel };
 
             this.targets = [];
@@ -86,18 +86,18 @@ Moosky.Tools = (
         RecursiveTemplate.DefinitionError.prototype.name = 'RecursiveTemplate.DefinitionError';
 
         RecursiveTemplate.prototype.fill = function(params) {
-            var baseParamIndex = this.getBaseParamIndex(params);
+            const baseParamIndex = this.getBaseParamIndex(params);
             var result = this.base.fill([params[baseParamIndex]]);
 
             params = this.orderParams(params);
             for (var i = 0, length = params.length; i < length; i++) {
-                var values = [];
+                const values = [];
                 values[this.priorLabel] = result;
                 values[this.nextLabel] = params[i];
 
                 var intermediate = this.pattern;
                 for (var j = 0; j < 2; j++) {
-	            var target = this.targets[j];
+	            const target = this.targets[j];
 	            intermediate = intermediate.replace(target.re, '$1' + values[target.label]);
                 }
 
@@ -133,7 +133,7 @@ Moosky.Tools = (
         };
 
         RightRecursiveTemplate.prototype.orderParams = function(params) {
-            var indices = [];
+            const indices = [];
             for (var i = 1, length = params.length; i < length; i++)
                 indices.push(params[i]);
             return indices;
@@ -165,7 +165,7 @@ Moosky.Tools = (
         };
 
         LeftRecursiveTemplate.prototype.orderParams = function(params) {
-            var indices = [];
+            const indices = [];
             for (var i = params.length-2; i >= 0; i--)
                 indices.push(params[i]);
             return indices;
@@ -175,16 +175,16 @@ Moosky.Tools = (
             this.subTemplates = [];
 
             for (var p in patterns) {
-                var template = InlineTemplate.createTemplate(patterns[p], patterns);
+                const template = InlineTemplate.createTemplate(patterns[p], patterns);
                 InlineTemplate.assertSubTemplateWellFormed(p, template);
                 this.subTemplates[p] = template;
             }
         }
 
         InlineTemplate.createTemplate = function(pattern, patterns) {
-            var matches = pattern.match(/<<(\w|\.)+>>/g) || [];
+            const matches = pattern.match(/<<(\w|\.)+>>/g) || [];
             for (var i = 0; i < matches.length; i++) {
-                var target = matches[i].slice(2, -2);
+                const target = matches[i].slice(2, -2);
                 if (target == '1...')
 	            return new LeftRecursiveTemplate(patterns[1], pattern);
 
@@ -220,7 +220,7 @@ Moosky.Tools = (
         InlineTemplate.ExpansionError.prototype.name = 'InlineTemplate.ExpansionError';
 
         InlineTemplate.prototype.fill = function(params) {
-            var template = this.subTemplates[params.length]
+            const template = this.subTemplates[params.length]
 		|| this.subTemplates['1...']
 		|| this.subTemplates['...n'];
 

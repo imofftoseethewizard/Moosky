@@ -21,16 +21,16 @@
 
 Moosky.Runtime.Safe = (
     function () {
-        var Values = Moosky.Values;
-        var Symbol = Values.Symbol;
-        var Keyword = Values.Keyword;
-        var Cons = Values.Cons;
-        var Cite = Values.Cite;
+        const Values = Moosky.Values;
+        const Symbol = Values.Symbol;
+        const Keyword = Values.Keyword;
+        const Cons = Values.Cons;
+        const Cite = Values.Cite;
         var nil = Cons.nil;
 
-        var Bare = Moosky.Runtime.Bare;
+        const Bare = Moosky.Runtime.Bare;
 
-        var imports = [];
+        const imports = [];
         for (var p in Bare.exports)
             imports.push(['var ', p, ' = Bare.exports.', p, ';'].join(''));
 
@@ -192,7 +192,7 @@ Moosky.Runtime.Safe = (
         }
 
         function numericComparator(symbol, relation) {
-            var comparator = Bare.numericComparator(symbol, relation);
+            const comparator = Bare.numericComparator(symbol, relation);
 
             return function(___) {
                 for (var i = 0; i < arguments.length-1; i++) {
@@ -205,7 +205,7 @@ Moosky.Runtime.Safe = (
         }
 
         function numericFold(symbol, binop, zero) {
-            var fold = Bare.numericFold(symbol, binop, zero);
+            const fold = Bare.numericFold(symbol, binop, zero);
 
             return function(___) {
                 if (arguments.length == 0) {
@@ -224,7 +224,7 @@ Moosky.Runtime.Safe = (
         }
 
         function divisiveBinop(symbol, binop) {
-            var op = Bare.divisiveBinop(symbol, binop);
+            const op = Bare.divisiveBinop(symbol, binop);
 
             return function(a, b) {
                 if (arguments.length != 2)
@@ -241,7 +241,7 @@ Moosky.Runtime.Safe = (
         }
 
         function numericUnop(symbol, unop) {
-            var op = Bare.numericUnop(symbol, unop);
+            const op = Bare.numericUnop(symbol, unop);
 
             return function(a) {
                 if (arguments.length != 1)
@@ -255,7 +255,7 @@ Moosky.Runtime.Safe = (
         }
 
         function numericBinop(symbol, binop) {
-            var op = Bare.numericBinop(symbol, binop);
+            const op = Bare.numericBinop(symbol, binop);
 
             return function(a, b) {
                 if (arguments.length != 2)
@@ -275,7 +275,7 @@ Moosky.Runtime.Safe = (
         var quotient = Bare.quotient;
 
         function characterComparator(name, kernel, prep) {
-            var comparator = Bare.characterComparator(name, kernel, prep);
+            const comparator = Bare.characterComparator(name, kernel, prep);
 
             return function(___) {
                 assertMinArgs(name, 2, arguments);
@@ -291,7 +291,7 @@ Moosky.Runtime.Safe = (
         }
 
         function characterPredicate(name, kernel) {
-            var predicate = Bare.characterPredicate(name, kernel);
+            const predicate = Bare.characterPredicate(name, kernel);
 
             return function(a) {
                 assertArgCount(name, 1, arguments);
@@ -303,7 +303,7 @@ Moosky.Runtime.Safe = (
         var characterOperator = characterPredicate;
 
         function stringComparator(name, kernel, prep) {
-            var comparator = Bare.stringComparator(name, kernel, prep);
+            const comparator = Bare.stringComparator(name, kernel, prep);
 
             return function(___) {
                 assertMinArgs(name, 2, arguments);
@@ -319,7 +319,7 @@ Moosky.Runtime.Safe = (
         }
 
         function stringPredicate(name, kernel) {
-            var predicate = Bare.stringPredicate(name, kernel);
+            const predicate = Bare.stringPredicate(name, kernel);
             return function(a) {
                 assertArgCount(name, 1, arguments);
                 assertIsString(name, a);
@@ -331,7 +331,7 @@ Moosky.Runtime.Safe = (
 
 
         function integerPredicate(name, kernel) {
-            var predicate = integerPredicate(name, kernel);
+            const predicate = integerPredicate(name, kernel);
 
             return function (i) {
                 assertArgCount(name, 1, arguments);
@@ -343,14 +343,14 @@ Moosky.Runtime.Safe = (
         var integerOperator = integerPredicate;
 
         function iterator(name, collect) {
-            var iter = Bare.iterator(name, collect);
+            const iter = Bare.iterator(name, collect);
 
             return function(proc, lst0, ___) {
                 assertMinArgs(name, 2, arguments);
                 assertIsProcedure(name, proc);
                 assertIsList(name, lst0);
 
-                var lsts = [lst0];
+                const lsts = [lst0];
                 for (var i = 2; i < arguments.length; i++)
 	            assertIsList(name, lst);
 
@@ -359,17 +359,17 @@ Moosky.Runtime.Safe = (
         }
 
         function vectorIterator(name, collect) {
-            var iter = Bare.vectorIterator(name, collect);
+            const iter = Bare.vectorIterator(name, collect);
 
             return function(proc, v0, ___) {
                 assertMinArgs(name, 2, arguments);
                 assertIsProcedure(name, proc);
                 assertIsVector(name, v0);
 
-                var vs = [v0];
-                var length = v0.length;
+                const vs = [v0];
+                const length = v0.length;
                 for (var i = 2; i < arguments.length; i++) {
-	            var v = arguments[i];
+	            const v = arguments[i];
 	            assertIsVector(name, v);
 	            if (v.length != length)
 	                throw new SyntaxError(name + ': all vectors must be the same length: '
@@ -385,8 +385,8 @@ Moosky.Runtime.Safe = (
         function alistToObject(alist) {
             // should use safe_iterator
             while (alist != nil) {
-                var pair = car(alist);
-                var key = alistKeyToString(car(pair));
+                const pair = car(alist);
+                const key = alistKeyToString(car(pair));
                 if (!key)
 	            throw new SyntaxError('bad alist key: ' + car(pair));
 
@@ -403,10 +403,10 @@ Moosky.Runtime.Safe = (
         }
 
         function sexpToObject(sexp) {
-            var original = sexp;
+            const original = sexp;
             while (sexp != nil) {
                 // should use safe_traverse
-                var key = keywordToString(car(sexp));
+                const key = keywordToString(car(sexp));
 
                 sexp = cdr(sexp);
                 if (!isPair(sexp))
@@ -420,7 +420,7 @@ Moosky.Runtime.Safe = (
 
         function argsToObject(args, first) {
             for (var i = first; i < args.length; i++) {
-                var key = keywordToString(args[i]);
+                const key = keywordToString(args[i]);
                 i++;
                 if (i == args.length)
 	            throw new Exception('unexpected end of list while constructing Object: ('
@@ -429,7 +429,7 @@ Moosky.Runtime.Safe = (
             return Bare.argsToObject(args, first);
         }
 
-        var Safe = {};
+        const Safe = {};
         Safe.exports = {
             isString: isString,
             isNumber: isNumber,

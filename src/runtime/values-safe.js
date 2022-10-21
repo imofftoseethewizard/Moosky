@@ -21,7 +21,7 @@
 
 Moosky.Values.Safe = (
     function () {
-        var Safe = {}, Bare = Moosky.Values.Bare;
+        const Safe = {}, Bare = Moosky.Values.Bare;
 
         for (var p in Bare)
             Safe[p] = Bare[p];
@@ -85,18 +85,18 @@ Moosky.Values.Safe = (
         };
 
         Cons.append = function(___) {
-            var argCount = arguments.length;
+            const argCount = arguments.length;
 
             if (argCount == 0)
                 return Cons.nil;
 
-            var resultHead = new Cons();
+            const resultHead = new Cons();
             var tail = resultHead;
 
             for (var i = 0; i < argCount-1; i++) {
                 Cons.safe_traverse(arguments[i],
 			           function(lst) {
-			               var next = new Cons();
+			               const next = new Cons();
 			               tail.$d = next;
 			               tail = next;
 			               tail.$a = lst.$a;
@@ -121,7 +121,7 @@ Moosky.Values.Safe = (
                 }
 
                 if (sexp instanceof Array) {
-	            var chunks = [];
+	            const chunks = [];
 	            for (var i = 0; i < sexp.length; i++)
 	                chunks.push(Cons.printSexp(sexp[i]));
 
@@ -137,10 +137,10 @@ Moosky.Values.Safe = (
                 return sexp.toString();
             }
 
-            var result = [];
+            const result = [];
             while (sexp != Cons.nil) {
-                var A = sexp.$a;
-                var D = sexp.$d;
+                const A = sexp.$a;
+                const D = sexp.$d;
 
                 if (!Cons.isCons(D)) {
 	            result.push(Cons.printSexp(A));

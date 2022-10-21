@@ -27,17 +27,17 @@
 Moosky = (
     function () {
         return function (str, env) {
-            var read = Moosky.Reader.read;
-            var END = Moosky.Reader.END;
-            var compile = Moosky.Compiler.compile;
-            var Top = Moosky.Top;
-            var evaluate = Moosky.Evaluator.evaluate;
+            const read = Moosky.Reader.read;
+            const END = Moosky.Reader.END;
+            const compile = Moosky.Compiler.compile;
+            const Top = Moosky.Top;
+            const evaluate = Moosky.Evaluator.evaluate;
 
-            var tokens = new Moosky.Reader.TokenStream(str);
+            const tokens = new Moosky.Reader.TokenStream(str);
 
             var result;
             while (!tokens.finished() && (sexp = read(tokens)) != END) {
-                var code = compile(sexp, Top);
+                const code = compile(sexp, Top);
                 //      console.log('evaluating---', code);
                 result = evaluate(code);
                 //      console.log('evaluated---', result, ''+result);

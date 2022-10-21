@@ -19,7 +19,10 @@
 //
 //=============================================================================
 
-
-var Values = Moosky.Values, Source = Values.Safe || Values.Bare;
-for (var p in Source)
-    Values[p] = Source[p];
+(
+    function() {
+        const Values = Moosky.Values, Source = Values.Safe || Values.Bare;
+        for (var p in Source)
+            Values[p] = Source[p];
+    }
+)();

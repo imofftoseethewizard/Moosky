@@ -26,7 +26,7 @@ Moosky.Evaluator = (
             return eval(code);
         }
 
-        var Evaluator = { evaluate: evaluate };
+        const Evaluator = { evaluate: evaluate };
 
         return Evaluator;
     }
