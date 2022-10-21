@@ -44,7 +44,7 @@ CONTENTS
   3.3 Moosky.read
   3.4 Moosky.compile
   3.5 Moosky.Top
-  3.6 Moosky.TokenClasses 
+  3.6 Moosky.TokenClasses
 
 4. Implementation
   4.1 Frames and Scope
@@ -125,13 +125,13 @@ conversion, so that if we have
 
 { str.splice(@^(params)) }
 
-where params evaluates to a list, then the result will NOT be a 
+where params evaluates to a list, then the result will NOT be a
 comma separated list, but a reference to a Moosky list.
 
 
 1.2.3 define-macro
 
-R6RS specifices a hygienic macro system using define-syntax,
+R6RS specifies a hygienic macro system using define-syntax,
 syntax-rules, let-syntax, and letrec-syntax.  It is very powerful, and
 relatively easy to use, but at the cost of being a rather large chunk
 of software.  The old define-macro system, while having some rather
@@ -197,7 +197,7 @@ Create moosky-runtime.js.
   (begin
     (form) ...
     (loop ...)
-  --> (emitted form), ...; 
+  --> (emitted form), ...;
       set! ...
       continue;
 
@@ -228,4 +228,12 @@ XHR
 
 6.1 Bare and Safe
 
-Basic functionality is implemented with two safety levels.  Bare provides no error checking and throws no exceptions other than those provided by the browser's script engine.  Safe wraps the bare code with error checking and exception handling.  It is intended that safe be used for development and testing, and once the code has been thoroughly checked, that bare be used for deployment.  Safe and bare have identical api and identical semantics, save for the exceptions thrown by safe.  Therefore, code intended for bare deployment should not rely on exceptions thrown by safe.  
+Basic functionality is implemented with two safety levels.  Bare
+provides no error checking and throws no exceptions other than those
+provided by the browser's script engine.  Safe wraps the bare code
+with error checking and exception handling.  It is intended that safe
+be used for development and testing, and once the code has been
+thoroughly checked, that bare be used for deployment.  Safe and bare
+have identical api and identical semantics, save for the exceptions
+thrown by safe.  Therefore, code intended for bare deployment should
+not rely on exceptions thrown by safe.
