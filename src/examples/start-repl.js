@@ -23,12 +23,12 @@
 const intervalID = window.setInterval(startREPL, 100);
 
 function startREPL() {
-  const divREPL = Moosky.HTML.REPL();
+    const divREPL = Moosky.HTML.REPL();
 
-  if (!document.body)
-    return;
+    if (!document.body)
+        return;
 
-  window.clearInterval(intervalID);
+    window.clearInterval(intervalID);
 
-  document.body.appendChild(divREPL);
+    document.body.appendChild(divREPL);
 }

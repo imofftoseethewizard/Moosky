@@ -533,16 +533,16 @@ Moosky.Compiler = (
                 }
 
                 const parsers = { 'and': parseAnd,
-		                'begin': parseBegin,
-		                '$define': parseDefine,
-		                'define-macro': parseDefineMacro,
-		                'if': parseIf,
-		                'javascript': parseJavascript,
-		                'lambda': parseLambda,
-		                'or': parseOr,
-		                'quote': parseQuote,
-		                'quasiquote': parseQuasiQuote,
-		                'set!': parseSet };
+		                  'begin': parseBegin,
+		                  '$define': parseDefine,
+		                  'define-macro': parseDefineMacro,
+		                  'if': parseIf,
+		                  'javascript': parseJavascript,
+		                  'lambda': parseLambda,
+		                  'or': parseOr,
+		                  'quote': parseQuote,
+		                  'quasiquote': parseQuasiQuote,
+		                  'set!': parseSet };
 
                 const parser = parsers[key];
                 if (parser)
@@ -901,9 +901,9 @@ Moosky.Compiler = (
             }
 
             const code = emitTop(emit(parseSexp(body, env, ctx),
-			            new Context(null, { tail: false })),
-		               sexp,
-		               { namespace: '{}' });
+			              new Context(null, { tail: false })),
+		                 sexp,
+		                 { namespace: '{}' });
 
             //    console.log('macro --', code);
             var result;
@@ -1140,14 +1140,14 @@ Moosky.Compiler = (
         function emitTop(body, sexp, options) {
             const source = sexp.$source;
             const params =
-                { bindings: emitBindings(getContextBindings()),
-	          body: body,
-	          namespace: 'Moosky.Top',
-	          replId: 0,
-	          sourceId: source && Inspector.registerSource(source.$text),
-                  start: source && source.$start,
-	          end: source && source.$end,
-                  sexpId: Inspector.registerSexp(sexp) };
+                  { bindings: emitBindings(getContextBindings()),
+	            body: body,
+	            namespace: 'Moosky.Top',
+	            replId: 0,
+	            sourceId: source && Inspector.registerSource(source.$text),
+                    start: source && source.$start,
+	            end: source && source.$end,
+                    sexpId: Inspector.registerSexp(sexp) };
 
             for (var p in options)
                 params[p] = options[p];

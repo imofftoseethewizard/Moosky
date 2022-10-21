@@ -112,20 +112,20 @@ Moosky.Values.Bare = (
         const jsIdentifierRE = /^[$\w_][\w\d_]*$/;
 
         const jsKeywords = ["break", "case", "catch", "continue", "default", "delete",
-		          "do", "else", "finally", "for", "function", "if", "in",
-		          "instanceof", "new", "return", "switch", "this", "throw",
-		          "try", "typeof", "var", "void", "while", "with"];
+		            "do", "else", "finally", "for", "function", "if", "in",
+		            "instanceof", "new", "return", "switch", "this", "throw",
+		            "try", "typeof", "var", "void", "while", "with"];
 
         const jsReservedWords = ["abstract", "boolean", "byte", "char", "class",
-			       "const", "debugger", "double", "enum", "export",
-			       "extends", "final", "float", "goto", "implements",
-			       "import", "int", "interface", "long", "native",
-			       "package", "private", "protected", "public", "short",
-			       "static", "super", "synchronized", "throws",
-			       "transient", "volatile"];
+			         "const", "debugger", "double", "enum", "export",
+			         "extends", "final", "float", "goto", "implements",
+			         "import", "int", "interface", "long", "native",
+			         "package", "private", "protected", "public", "short",
+			         "static", "super", "synchronized", "throws",
+			         "transient", "volatile"];
 
         const jsReservedRE = new RegExp('^(' + jsKeywords.join('|') + '|'
-				      + jsReservedWords.join('|') + ')$');
+				        + jsReservedWords.join('|') + ')$');
 
         Symbol.prototype.requiresQuotes = function() {
             const value = this.toString();

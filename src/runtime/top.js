@@ -34,7 +34,7 @@ Moosky.Top = (
 
         const Runtime = Moosky.Runtime;
         const RuntimeTop = Runtime.Safe && Runtime.Safe.Top
-	    || Runtime.Bare && Runtime.Bare.Top;
+	      || Runtime.Bare && Runtime.Bare.Top;
 
         const Top = {};
         Top.$ = Top;

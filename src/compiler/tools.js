@@ -62,10 +62,10 @@ Moosky.Tools = (
             const priorRe = new RegExp("(.{" + prior.index + "})(.{" + this.priorSubstLength + "})");
 
             const nextTarget = { re: nextRe,
-		               label: this.nextLabel };
+		                 label: this.nextLabel };
 
             const priorTarget = { re: priorRe,
-			        label: this.priorLabel };
+			          label: this.priorLabel };
 
             this.targets = [];
             if (next.index < prior.index) {
@@ -221,8 +221,8 @@ Moosky.Tools = (
 
         InlineTemplate.prototype.fill = function(params) {
             const template = this.subTemplates[params.length]
-		|| this.subTemplates['1...']
-		|| this.subTemplates['...n'];
+		  || this.subTemplates['1...']
+		  || this.subTemplates['...n'];
 
             if (template === undefined)
                 throw new InlineTemplate.ExpansionError('Too many parameters for any ' +

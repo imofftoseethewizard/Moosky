@@ -66,7 +66,7 @@ Moosky.HTML = (
         function makeReadyStateDispatcher(options) {
             const aliases = options.aliases || readyStateAliases;
             const handlers = options.log ? readyStateDispatchLoggingHandlers
-                : options.handlers || readyStateDispatchNullHandlers;
+                  : options.handlers || readyStateDispatchNullHandlers;
 
             return function(state) {
                 const response = state.currentTarget;

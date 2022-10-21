@@ -62,7 +62,7 @@
 
         this.ready = false;
         const count = new Countdown({ limit: files.length,
-				    action: function () { prereq.ready = true; } });
+				      action: function () { prereq.ready = true; } });
         this.texts = {};
         callWithTextSequentially(options.files,
 			         function(file, s) {

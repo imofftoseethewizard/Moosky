@@ -71,40 +71,40 @@ Moosky.Reader = (
             TokenStream.prototype.next = function() {
                 while (!this.finished()) {
 	            const token =
-	                any.call(this,
-	                         function (lexemeClass) {
-	                             if (lexemeClass.nextMatch === null)
-		                         return false;
+	                  any.call(this,
+	                           function (lexemeClass) {
+	                               if (lexemeClass.nextMatch === null)
+		                           return false;
 
-	                             if (lexemeClass.nextMatch.index < this.index) {
-		                         lexemeClass.regexp.lastIndex = this.index;
-		                         lexemeClass.nextMatch = lexemeClass.regexp.exec(this.text);
-	                             }
+	                               if (lexemeClass.nextMatch.index < this.index) {
+		                           lexemeClass.regexp.lastIndex = this.index;
+		                           lexemeClass.nextMatch = lexemeClass.regexp.exec(this.text);
+	                               }
 
-	                             if (lexemeClass.nextMatch === null)
-		                         return false;
+	                               if (lexemeClass.nextMatch === null)
+		                           return false;
 
-	                             if (lexemeClass.nextMatch.index == this.index) {
-		                         const lexeme = lexemeClass.nextMatch[0];
-		                         var norm;
+	                               if (lexemeClass.nextMatch.index == this.index) {
+		                           const lexeme = lexemeClass.nextMatch[0];
+		                           var norm;
 
-		                         if (lexemeClass.normalize)
-		                             norm = lexemeClass.normalize(lexemeClass.nextMatch);
+		                           if (lexemeClass.normalize)
+		                               norm = lexemeClass.normalize(lexemeClass.nextMatch);
 
-		                         if (!lexemeClass.condition || lexemeClass.condition(this, lexeme))
-		                             return new Token(lexeme, lexemeClass.tag, this.makeCite(lexeme), norm);
-	                             }
+		                           if (!lexemeClass.condition || lexemeClass.condition(this, lexeme))
+		                               return new Token(lexeme, lexemeClass.tag, this.makeCite(lexeme), norm);
+	                               }
 
-	                             return false;
-	                         }, this.lexemeClasses);
+	                               return false;
+	                           }, this.lexemeClasses);
 
 	            if (!token) {
 	                const preview = this.text.slice(Math.max(0, this.index-30), this.index);
 	                const remainder = this.text.slice(this.index, Math.min(this.length, this.index+30));
 	                const caret_position = preview.slice(preview.lastIndexOf('\n')+1).length-1;
 	                const message = 'lexing failure at: \n'
-			    + preview + remainder + '\n'
-			    + map(constant(' '), range(caret_position)).join('') + '^';
+			      + preview + remainder + '\n'
+			      + map(constant(' '), range(caret_position)).join('') + '^';
 
 	                throw message;
 	            }
@@ -181,15 +181,15 @@ Moosky.Reader = (
                 const atom = parseToken(token);
 
                 const implicitList = { "'":  'quote',
-			             '`':  'quasiquote',
-			             ',':  'unquote',
-			             ',@': 'unquote-splicing' }[atom && atom.$sym];
+			               '`':  'quasiquote',
+			               ',':  'unquote',
+			               ',@': 'unquote-splicing' }[atom && atom.$sym];
 
                 if (!implicitList)
 	            return atom;
 
                 const result = syntaxStar(parseToken(new Token(implicitList, 'symbol', token.$cite, token.$norm)),
-			                syntaxStar(parseAtom(tokens), nil));
+			                  syntaxStar(parseAtom(tokens), nil));
 
                 result.$source = new Cite(tokens.text, start, tokens.getIndex());
 
@@ -249,13 +249,13 @@ Moosky.Reader = (
 
             function parseToken(token) {
                 const result = { 'character':   function(token) { return new Values.Character(token.$norm); },
-		               'javascript':  parseJavascript,
-		               'literal':     parseLiteral,
-		               'number':      parseNumber,
-		               'punctuation': function(token) { return new Symbol(token.$lexeme); },
-		               'regexp':      function(token) { return new Values.RegExp(new RegExp(token.$norm)); },
-		               'string':      function(token) { return new Values.String(token.$norm); },
-		               'symbol':      parseSymbol }[token.$tag](token);
+		                 'javascript':  parseJavascript,
+		                 'literal':     parseLiteral,
+		                 'number':      parseNumber,
+		                 'punctuation': function(token) { return new Symbol(token.$lexeme); },
+		                 'regexp':      function(token) { return new Values.RegExp(new RegExp(token.$norm)); },
+		                 'string':      function(token) { return new Values.String(token.$norm); },
+		                 'symbol':      parseSymbol }[token.$tag](token);
 
                 if (result != null && typeof(result) == 'object' && result != nil)
 	            result.$source = token.$cite;
@@ -409,10 +409,10 @@ Moosky.Reader = (
             }
 
             const Reader = { read: read,
-		           END: END,
-		           IncompleteInputError: IncompleteInputError,
-		           TokenStream: MooskyTokenStream,
-		         };
+		             END: END,
+		             IncompleteInputError: IncompleteInputError,
+		             TokenStream: MooskyTokenStream,
+		           };
 
             return Reader;
         }
