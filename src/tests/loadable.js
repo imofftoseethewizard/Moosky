@@ -21,68 +21,66 @@
 
 
 (function () {
-  eval($Moosky.Util.importExpression);
-  eval($Moosky.Test.importExpression);
+    eval($Moosky.Util.importExpression);
+    eval($Moosky.Test.importExpression);
 
-  var components = ["components/base.js",
-		    "components/values-bare.js",
-		    "components/values-safe.js",
-		    "components/values.js",
-		    "components/core-bare.js",
-		    "components/core-safe.js",
-		    "components/core.js",
-		    "components/top-bare.js",
-		    "components/top-safe.js",
-		    "components/top.js",
-		    "components/reader.js",
-		    "components/inspector.js",
-		    "components/tools.js",
-		    "components/compiler-code.js",
-		    "components/compiler-inlines.js",
-		    "components/compiler.js",
-		    "components/html.js"];
+    var components = ["components/base.js",
+		      "components/values-bare.js",
+		      "components/values-safe.js",
+		      "components/values.js",
+		      "components/core-bare.js",
+		      "components/core-safe.js",
+		      "components/core.js",
+		      "components/top-bare.js",
+		      "components/top-safe.js",
+		      "components/top.js",
+		      "components/reader.js",
+		      "components/inspector.js",
+		      "components/tools.js",
+		      "components/compiler-code.js",
+		      "components/compiler-inlines.js",
+		      "components/compiler.js",
+		      "components/html.js"];
 
-  addTest(new CompositeTest({ name: 'Individual files load test',
-			      count: components.length,
-			      prereqs: [ new FilesPreReq({ files: components }) ],
-			      action: function() {
-				var test = this;
-				(new FramedEvaluator()).onReady(function(evaluator) {
-				  map(function(file) { 
-				    if (tryEval(evaluator, test.texts[file]))
-				      print(file + '\n');
-				    
-				    else {
-				      test.fail();
-				      print(file + ' failed to load.\n');
-				    }
-				    test.complete();
-				  }, components);
-				});
-			      } }));
-  
+    addTest(new CompositeTest({ name: 'Individual files load test',
+			        count: components.length,
+			        prereqs: [ new FilesPreReq({ files: components }) ],
+			        action: function() {
+				    var test = this;
+				    (new FramedEvaluator()).onReady(function(evaluator) {
+				        map(function(file) {
+				            if (tryEval(evaluator, test.texts[file]))
+				                print(file + '\n');
 
-  map(function(file)
-      { addTest(new TimedTest({ name: file + ' load test',
-				prereqs: [ new FilesPreReq({ files: [file] }) ],
-				action: function() {
-				  var test = this;
-				  (new FramedEvaluator()).onReady(function(evaluator) {
-				    if (tryEval(evaluator, test.texts[file]))
-				      print(file + '\n');
+				            else {
+				                test.fail();
+				                print(file + ' failed to load.\n');
+				            }
+				            test.complete();
+				        }, components);
+				    });
+			        } }));
 
-				    else {
-				      test.fail();
-				      print(file + ' failed to load.\n');
-				    }
-				    test.complete();
-				  });
-				} }));
-      }, ['standalone/runtime-bare.js',
-	  'standalone/runtime-safe.js',
-	  'standalone/compiler.js',
-	  'standalone/compiler-inlining.js',
-	  'standalone/repl.js']);
+
+    map(function(file)
+        { addTest(new TimedTest({ name: file + ' load test',
+				  prereqs: [ new FilesPreReq({ files: [file] }) ],
+				  action: function() {
+				      var test = this;
+				      (new FramedEvaluator()).onReady(function(evaluator) {
+				          if (tryEval(evaluator, test.texts[file]))
+				              print(file + '\n');
+
+				          else {
+				              test.fail();
+				              print(file + ' failed to load.\n');
+				          }
+				          test.complete();
+				      });
+				  } }));
+        }, ['standalone/runtime-bare.js',
+	    'standalone/runtime-safe.js',
+	    'standalone/compiler.js',
+	    'standalone/compiler-inlining.js',
+	    'standalone/repl.js']);
 })();
-
-

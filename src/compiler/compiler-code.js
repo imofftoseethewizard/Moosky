@@ -20,97 +20,97 @@
 //=============================================================================
 
 
-Moosky.Code = (function ()
-{
-  var Inspector = Moosky.Inspector;
+Moosky.Code = (
+    function () {
+        var Inspector = Moosky.Inspector;
 
-  function Code(item) {
-    return (Inspector.Debug ? Code.debug : Code.bare)[item];
-  }
+        function Code(item) {
+            return (Inspector.Debug ? Code.debug : Code.bare)[item];
+        }
 
-  Code.bare = {
-    application: '<<body>>',
-    binding: 'var <<symbol>> = <<value>>',
-    
-    'if': '((<<test>>) !== false ? (<<consequent>>) : (<<alternate>>))',
+        Code.bare = {
+            application: '<<body>>',
+            binding: 'var <<symbol>> = <<value>>',
 
-    lambda: '(function (<<formals>>) {\n <<bindings>> return <<body>>;\n })\n',
-    
-    force: '$force(<<expression>>)',
-    promise: '$promise(function () {\n  return <<expression>>;\n})',
-    promising: '((<<temp>> = <<lambda>>), <<temp>>.promising = true, <<temp>>)',
+            'if': '((<<test>>) !== false ? (<<consequent>>) : (<<alternate>>))',
 
-    set: '((<<target>> = <<value>>), undefined)',
+            lambda: '(function (<<formals>>) {\n <<bindings>> return <<body>>;\n })\n',
 
-    'top-level-define': '($["<<name>>"] = undefined)',
-    
-    Top:
-      ['(function () {\n  ',
-       '  with (<<namespace>>) {\n',
-       '<<bindings>>',
-       '    return <<body>>;\n',
-       '  }\n',
-       '})()'].join('')
-  };
+            force: '$force(<<expression>>)',
+            promise: '$promise(function () {\n  return <<expression>>;\n})',
+            promising: '((<<temp>> = <<lambda>>), <<temp>>.promising = true, <<temp>>)',
 
-  Code.debug = {
-    application: '($i.c.push($C(<<start>>, <<end>>, <<sexpId>>)), <<body>>)',
-    binding: 'var <<symbol>> = <<value>>',
-    
-    'if': '((<<test>>) !== false ? (<<consequent>>) : (<<alternate>>))',
-    
-    lambda:
-      ['(function(<<formals>>) {\n',
-       '<<bindings>>',
-       '  return (function ($i) {\n',
-       '    return <<body>>;\n',
-       '  })($I($i, function(x) { return eval($T(x)); },\n',
-       '        $C(<<start>>, <<end>>, <<sexpId>>)));\n',
-       '})\n'].join(''),
-    
-    force: '$force(<<expression>>)',
-    promise: ['$promise(function () {\n',
-	      '  try {\n',
-	      '    return <<expression>>;\n',
-	      '  } catch (e) {\n',
-	      '    if (e.$i) throw e;\n',
-	      '    throw new $E(e.message, $i);\n',
-	      '  }\n',
-	      '})\n'].join(''),
-    
-    promising: '((<<temp>> = <<lambda>>), <<temp>>.promising = true, <<temp>>)',
+            set: '((<<target>> = <<value>>), undefined)',
 
-    set: '((<<target>> = <<value>>), undefined)',
-    
-    'top-level-define': '($["<<name>>"] = undefined)',
-    
-    Top:
-      ['(function () {\n  ',
-       '  var $I = Moosky.Inspector;\n',
-       '  var $C = $I.Citant($I.Sources[<<sourceId>>]);\n',
-       '  var $i = $I(null, function(x) { return eval($T(x)); }, $C(<<start>>, <<end>>, <<sexpId>>));\n',
-       '  var $E = Moosky.Values.Exception;\n',
-       '  var $A = $I.Abort;\n',
-       '  var $T = $A.Compiler;\n',
-       '  with (<<namespace>>) {\n',
-       '<<bindings>>',
-       '    try {\n',
-       '      return <<body>>;\n',
-       '    } catch (e) {\n',
-       '      throw new $A(e.$i || $i, e);',
-       '    }\n',
-       '  }\n',
-       '})()'].join('')
-  };
+            'top-level-define': '($["<<name>>"] = undefined)',
 
-  var Template = Moosky.Tools.Template;
-  
-  for (var p in Code.bare)
-    Code.bare[p] = new Template(Code.bare[p]);
+            Top:
+            ['(function () {\n  ',
+             '  with (<<namespace>>) {\n',
+             '<<bindings>>',
+             '    return <<body>>;\n',
+             '  }\n',
+             '})()'].join('')
+        };
 
-  for (var p in Code.debug)
-    Code.debug[p] = new Template(Code.debug[p]);
+        Code.debug = {
+            application: '($i.c.push($C(<<start>>, <<end>>, <<sexpId>>)), <<body>>)',
+            binding: 'var <<symbol>> = <<value>>',
 
-  return Code;
-})();
+            'if': '((<<test>>) !== false ? (<<consequent>>) : (<<alternate>>))',
 
+            lambda:
+            ['(function(<<formals>>) {\n',
+             '<<bindings>>',
+             '  return (function ($i) {\n',
+             '    return <<body>>;\n',
+             '  })($I($i, function(x) { return eval($T(x)); },\n',
+             '        $C(<<start>>, <<end>>, <<sexpId>>)));\n',
+             '})\n'].join(''),
+
+            force: '$force(<<expression>>)',
+            promise: ['$promise(function () {\n',
+	              '  try {\n',
+	              '    return <<expression>>;\n',
+	              '  } catch (e) {\n',
+	              '    if (e.$i) throw e;\n',
+	              '    throw new $E(e.message, $i);\n',
+	              '  }\n',
+	              '})\n'].join(''),
+
+            promising: '((<<temp>> = <<lambda>>), <<temp>>.promising = true, <<temp>>)',
+
+            set: '((<<target>> = <<value>>), undefined)',
+
+            'top-level-define': '($["<<name>>"] = undefined)',
+
+            Top:
+            ['(function () {\n  ',
+             '  var $I = Moosky.Inspector;\n',
+             '  var $C = $I.Citant($I.Sources[<<sourceId>>]);\n',
+             '  var $i = $I(null, function(x) { return eval($T(x)); }, $C(<<start>>, <<end>>, <<sexpId>>));\n',
+             '  var $E = Moosky.Values.Exception;\n',
+             '  var $A = $I.Abort;\n',
+             '  var $T = $A.Compiler;\n',
+             '  with (<<namespace>>) {\n',
+             '<<bindings>>',
+             '    try {\n',
+             '      return <<body>>;\n',
+             '    } catch (e) {\n',
+             '      throw new $A(e.$i || $i, e);',
+             '    }\n',
+             '  }\n',
+             '})()'].join('')
+        };
+
+        var Template = Moosky.Tools.Template;
+
+        for (var p in Code.bare)
+            Code.bare[p] = new Template(Code.bare[p]);
+
+        for (var p in Code.debug)
+            Code.debug[p] = new Template(Code.debug[p]);
+
+        return Code;
+    }
+)();

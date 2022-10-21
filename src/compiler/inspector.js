@@ -20,75 +20,74 @@
 //=============================================================================
 
 
-Moosky.Inspector = (function ()
-{
-  var Values = Moosky.Values;
-  var Symbol = Values.Symbol;
-  var Cite = Values.Cite;
+Moosky.Inspector = (
+    function () {
+        var Values = Moosky.Values;
+        var Symbol = Values.Symbol;
+        var Cite = Values.Cite;
 
-//  with (Moosky.Runtime.exports) {
-  {
-    eval(Moosky.Runtime.importExpression);
+        //  with (Moosky.Runtime.exports) {
+        {
+            eval(Moosky.Runtime.importExpression);
 
-    function Inspector(inspector, evaluator, citation) {
-      evaluator.children = [];
-      evaluator.citation = citation;
-      evaluator.inspector = inspector;
-      inspector && inspector.children.push(evaluator);
-      evaluator.c = [citation];
-      return evaluator;
+            function Inspector(inspector, evaluator, citation) {
+                evaluator.children = [];
+                evaluator.citation = citation;
+                evaluator.inspector = inspector;
+                inspector && inspector.children.push(evaluator);
+                evaluator.c = [citation];
+                return evaluator;
+            }
+
+            Inspector.Debug = false;
+            Inspector.Citant = function(text) {
+                return function(start, end, sexpId) {
+	            return new Cite(text, start, end, Moosky.Inspector.Sexps[sexpId]);
+                };
+            };
+
+            Inspector.Sexps = [];
+            Inspector.Sources = [];
+            Inspector.Abort = function(inspector, exception) {
+                this.inspector = inspector;
+                this.exception = exception;
+            };
+
+            Inspector.Abort.prototype = new Error();
+            Inspector.Abort.prototype.name = 'Abort';
+
+            Inspector.Abort.prototype.toString = function() {
+                var insp = this.inspector, e = this.exception;
+                if (insp) {
+	            var citation;
+	            if (insp.c.length > 0)
+	                citation = insp.c[insp.c.length-1];
+	            else
+	                citation  = insp.citation;
+
+	            return [citation.context(3, 3), '\n',
+		            e.name, ': while evaluating |', citation.content(), '|: ', e.message].join('');
+                }
+                return undefined;
+            };
+
+            Inspector.Abort.Compiler = function(sexp) {
+                return Moosky.Compiler.compile(sexp, null, { namespace: '{}' });
+            };
+
+            Inspector.registerSexp = function(sexp) {
+                var id = Inspector.Sexps.length;
+                Inspector.Sexps.push(sexp);
+                return id;
+            };
+
+            Inspector.registerSource = function(text) {
+                var id = Inspector.Sources.length;
+                Inspector.Sources.push(text);
+                return id;
+            };
+
+            return Inspector;
+        }
     }
-
-    Inspector.Debug = false;
-    Inspector.Citant = function(text) {
-      return function(start, end, sexpId) {
-	return new Cite(text, start, end, Moosky.Inspector.Sexps[sexpId]);
-      };
-    };
-
-    Inspector.Sexps = [];
-    Inspector.Sources = [];
-    Inspector.Abort = function(inspector, exception) {
-      this.inspector = inspector;
-      this.exception = exception;
-    };
-
-    Inspector.Abort.prototype = new Error();
-    Inspector.Abort.prototype.name = 'Abort';
-
-    Inspector.Abort.prototype.toString = function() {
-      var insp = this.inspector, e = this.exception;
-      if (insp) {
-	var citation;
-	if (insp.c.length > 0)
-	  citation = insp.c[insp.c.length-1];
-	else
-	  citation  = insp.citation;
-
-	return [citation.context(3, 3), '\n',
-		e.name, ': while evaluating |', citation.content(), '|: ', e.message].join('');
-      }
-      return undefined;
-    };
-
-    Inspector.Abort.Compiler = function(sexp) {
-      return Moosky.Compiler.compile(sexp, null, { namespace: '{}' });
-    };
-
-    Inspector.registerSexp = function(sexp) {
-      var id = Inspector.Sexps.length;
-      Inspector.Sexps.push(sexp);
-      return id;
-    };
-
-    Inspector.registerSource = function(text) {
-      var id = Inspector.Sources.length;
-      Inspector.Sources.push(text);
-      return id;
-    };
-
-    return Inspector;
-  }
-})();
-
-
+)();

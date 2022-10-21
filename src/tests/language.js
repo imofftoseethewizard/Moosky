@@ -22,64 +22,63 @@
 //=============================================================================
 //
 // test/language.js
-// 
+//
 // General test of the scheme language implemented by Moosky.
-// 
+//
 //=============================================================================
 
 (function () {
-  eval($Moosky.Util.importExpression);
-  eval($Moosky.Test.importExpression);
+    eval($Moosky.Util.importExpression);
+    eval($Moosky.Test.importExpression);
 
-  addTest(new MooskyCompilerTest({
-    name: 'Language',
-    prereqs: [ new FilesPreReq({ files: ['lib/preamble.ss',
-				         'lib/r6rs-list.ss',
-					 'platform.ss',
-					 'core.ss',
-					 'lambda.ss'] }) ],
-    action: function() {
-//      console.log('starting compiler test action --- \n\n\n\n\n\n\n\n\n\n\n.');
-      var Moosky = this.Moosky;
-      var nil = Moosky.Values.Cons.nil;
-      var Top = Moosky.Top
+    addTest(new MooskyCompilerTest({
+        name: 'Language',
+        prereqs: [ new FilesPreReq({ files: ['lib/preamble.ss',
+				             'lib/r6rs-list.ss',
+					     'platform.ss',
+					     'core.ss',
+					     'lambda.ss'] }) ],
+        action: function() {
+            //      console.log('starting compiler test action --- \n\n\n\n\n\n\n\n\n\n\n.');
+            var Moosky = this.Moosky;
+            var nil = Moosky.Values.Cons.nil;
+            var Top = Moosky.Top
 
-      var cons = Top.cons;
-      var car = Top.car;
-      var cdr = Top.cdr;
-      var reverse = Top.reverse;
+            var cons = Top.cons;
+            var car = Top.car;
+            var cdr = Top.cdr;
+            var reverse = Top.reverse;
 
-      var texts = this.texts;
-      var files = this.files;
-      var evaluator = this.evaluator;
+            var texts = this.texts;
+            var files = this.files;
+            var evaluator = this.evaluator;
 
-      function compile (source) {
-	var read = Moosky.Reader.read;
-	var END = Moosky.Reader.END;
-	var compile = Moosky.Compiler.compile;
+            function compile (source) {
+	        var read = Moosky.Reader.read;
+	        var END = Moosky.Reader.END;
+	        var compile = Moosky.Compiler.compile;
 
-	var tokens = new Moosky.Reader.TokenStream(source);
+	        var tokens = new Moosky.Reader.TokenStream(source);
 
-	var result = nil;
-	while (!tokens.finished() && (sexp = read(tokens)) != END)
-	    result = cons(compile(sexp, Top), result);
+	        var result = nil;
+	        while (!tokens.finished() && (sexp = read(tokens)) != END)
+	            result = cons(compile(sexp, Top), result);
 
-	return reverse(result);
-      }
+	        return reverse(result);
+            }
 
-      evaluator('Moosky.Top.printd = window.parent.$Moosky.Util.exports.print;');
+            evaluator('Moosky.Top.printd = window.parent.$Moosky.Util.exports.print;');
 
-      map(function (file) {
-	var sexp = compile(texts[file]);
-	while (sexp != nil) {
-	  evaluator(car(sexp)); 
-	  sexp = cdr(sexp);
-	}
-      }, files);
+            map(function (file) {
+	        var sexp = compile(texts[file]);
+	        while (sexp != nil) {
+	            evaluator(car(sexp));
+	            sexp = cdr(sexp);
+	        }
+            }, files);
 
-      print('Language ok.');
-      this.complete();
-    } }));
+            print('Language ok.');
+            this.complete();
+        } }));
 
 })();
-

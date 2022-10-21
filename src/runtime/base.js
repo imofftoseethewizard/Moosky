@@ -24,29 +24,30 @@
 //
 //
 
-Moosky = (function ()
-{
-  return function (str, env) {
-    var read = Moosky.Reader.read;
-    var END = Moosky.Reader.END;
-    var compile = Moosky.Compiler.compile;
-    var Top = Moosky.Top;
-    var evaluate = Moosky.Evaluator.evaluate;
+Moosky = (
+    function () {
+        return function (str, env) {
+            var read = Moosky.Reader.read;
+            var END = Moosky.Reader.END;
+            var compile = Moosky.Compiler.compile;
+            var Top = Moosky.Top;
+            var evaluate = Moosky.Evaluator.evaluate;
 
-    var tokens = new Moosky.Reader.TokenStream(str);
+            var tokens = new Moosky.Reader.TokenStream(str);
 
-    var result;
-    while (!tokens.finished() && (sexp = read(tokens)) != END) {
-      var code = compile(sexp, Top);
-//      console.log('evaluating---', code);
-      result = evaluate(code);
-//      console.log('evaluated---', result, ''+result);
+            var result;
+            while (!tokens.finished() && (sexp = read(tokens)) != END) {
+                var code = compile(sexp, Top);
+                //      console.log('evaluating---', code);
+                result = evaluate(code);
+                //      console.log('evaluated---', result, ''+result);
+            }
+
+            return result;
+            //      return eval(Moosky.Compiler.compile(Moosky.Reader.read(str), env));
+        };
     }
-
-    return result;
-//      return eval(Moosky.Compiler.compile(Moosky.Reader.read(str), env));
-  };
-})();
+)();
 
 Moosky.Version = '0.1';
 Moosky.License = '\
@@ -62,6 +63,3 @@ GNU General Public License for more details. \n\
 \n\
 You should have received a copy of the GNU General Public License \n\
 along with Moosky.  If not, see <http://www.gnu.org/licenses/>. \n';
-
-
-

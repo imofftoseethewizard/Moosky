@@ -19,149 +19,149 @@
 //
 //=============================================================================
 
-Moosky.Values.Safe = (function ()
-{
-  var Safe = {}, Bare = Moosky.Values.Bare;
-  
-  for (var p in Bare)
-    Safe[p] = Bare[p];
-  
-  // --------------------------------------------------------------------------
+Moosky.Values.Safe = (
+    function () {
+        var Safe = {}, Bare = Moosky.Values.Bare;
 
-  function Cons(a, d) {
-    this.$a = a,
-    this.$d = d;
-  }
+        for (var p in Bare)
+            Safe[p] = Bare[p];
 
-  Cons.prototype = new Bare.Cons();
+        // --------------------------------------------------------------------------
 
-  Cons.nil = Bare.Cons.nil;
-  Cons.isCons = function(a) {
-    return a === Cons.nil || a instanceof Cons;
-  };
+        function Cons(a, d) {
+            this.$a = a,
+            this.$d = d;
+        }
 
-  Cons.safe_traverse = function(list, step) {
-    var fast = list;
-    var slow = list;
+        Cons.prototype = new Bare.Cons();
 
-    function adv() {
-      step(fast);
-      fast = fast.$d;
-      if (!Cons.isCons(fast)) {
-	debugger;
-	throw new SyntaxError('improper list.');
-      }
+        Cons.nil = Bare.Cons.nil;
+        Cons.isCons = function(a) {
+            return a === Cons.nil || a instanceof Cons;
+        };
+
+        Cons.safe_traverse = function(list, step) {
+            var fast = list;
+            var slow = list;
+
+            function adv() {
+                step(fast);
+                fast = fast.$d;
+                if (!Cons.isCons(fast)) {
+	            debugger;
+	            throw new SyntaxError('improper list.');
+                }
+            }
+
+            while (fast !== Cons.nil) {
+                adv();
+
+                if (fast === Cons.nil)
+	            break;
+
+                adv();
+
+                slow = slow.$d;
+                if (fast == slow)
+	            throw new SyntaxError('circular list.');
+            }
+        };
+
+        Cons.prototype.length = function() {
+            var length = 0;
+            Cons.safe_traverse(this, function(_) { length++ });
+            return length;
+        };
+
+        Cons.prototype.reverse = function() {
+            var result = Cons.nil;
+
+            Cons.safe_traverse(this,
+		               function(lst) {
+			           result = new Cons(lst.$a, result);
+		               });
+
+            return result;
+        };
+
+        Cons.append = function(___) {
+            var argCount = arguments.length;
+
+            if (argCount == 0)
+                return Cons.nil;
+
+            var resultHead = new Cons();
+            var tail = resultHead;
+
+            for (var i = 0; i < argCount-1; i++) {
+                Cons.safe_traverse(arguments[i],
+			           function(lst) {
+			               var next = new Cons();
+			               tail.$d = next;
+			               tail = next;
+			               tail.$a = lst.$a;
+			           });
+            }
+
+            tail.$d = arguments[argCount-1];
+
+            return resultHead.$d;
+        };
+
+        Cons.printSexp = function(sexp) {
+            if (sexp == Cons.nil)
+                return "()";
+
+            if (!Cons.isCons(sexp)) {
+                switch (sexp) {
+	        case false: return '#f';
+	        case null: return '#n';
+	        case true: return '#t';
+	        case undefined: return '#u';
+                }
+
+                if (sexp instanceof Array) {
+	            var chunks = [];
+	            for (var i = 0; i < sexp.length; i++)
+	                chunks.push(Cons.printSexp(sexp[i]));
+
+	            return '#(' + chunks.join(' ') + ')';
+                }
+
+                if (typeof(sexp) == 'string')
+	            return '"' + sexp.replace(/\"/g, '\\"') + '"';
+
+                if (sexp && sexp.$has_promise)
+	            return Cons.printSexp(sexp.force());
+
+                return sexp.toString();
+            }
+
+            var result = [];
+            while (sexp != Cons.nil) {
+                var A = sexp.$a;
+                var D = sexp.$d;
+
+                if (!Cons.isCons(D)) {
+	            result.push(Cons.printSexp(A));
+	            result.push('.');
+	            result.push(Cons.printSexp(D));
+	            break;
+                }
+
+                if (result.length == 0 && A instanceof Bare.Symbol && A.$sym == 'quote' && D.$d == Cons.nil)
+	            return "'" + Cons.printSexp(D.$a);
+
+                result.push(Cons.printSexp(A));
+                sexp = D;
+            }
+
+            return '(' + result.join(' ') + ')';
+        };
+
+        Cons.prototype.toString = function() { return Cons.printSexp(this); };
+
+        Safe.Cons = Cons;
+        return Safe;
     }
-
-    while (fast !== Cons.nil) {
-      adv();
-
-      if (fast === Cons.nil)
-	break;
-
-      adv();
-
-      slow = slow.$d;
-      if (fast == slow)
-	throw new SyntaxError('circular list.');
-    }
-  };
-
-  Cons.prototype.length = function() {
-    var length = 0;
-    Cons.safe_traverse(this, function(_) { length++ });
-    return length;
-  };
-
-  Cons.prototype.reverse = function() {
-    var result = Cons.nil;
-
-    Cons.safe_traverse(this,
-		       function(lst) {
-			 result = new Cons(lst.$a, result);
-		       });
-
-    return result;
-  };
-
-  Cons.append = function(___) {
-    var argCount = arguments.length;
-
-    if (argCount == 0)
-      return Cons.nil;
-
-    var resultHead = new Cons();
-    var tail = resultHead;
-
-    for (var i = 0; i < argCount-1; i++) {
-      Cons.safe_traverse(arguments[i],
-			 function(lst) {
-			   var next = new Cons();
-			   tail.$d = next;
-			   tail = next;
-			   tail.$a = lst.$a;
-			 });
-    }
-
-    tail.$d = arguments[argCount-1];
-
-    return resultHead.$d;
-  };
-
-  Cons.printSexp = function(sexp) {
-    if (sexp == Cons.nil)
-      return "()";
-
-    if (!Cons.isCons(sexp)) {
-      switch (sexp) {
-	case false: return '#f';
-	case null: return '#n';
-	case true: return '#t';
-	case undefined: return '#u';
-      }
-
-      if (sexp instanceof Array) {
-	var chunks = [];
-	for (var i = 0; i < sexp.length; i++)
-	  chunks.push(Cons.printSexp(sexp[i]));
-
-	return '#(' + chunks.join(' ') + ')';
-      }
-
-      if (typeof(sexp) == 'string')
-	return '"' + sexp.replace(/\"/g, '\\"') + '"'; 
-
-      if (sexp && sexp.$has_promise)
-	return Cons.printSexp(sexp.force());
-
-      return sexp.toString();
-    }
-
-    var result = [];
-    while (sexp != Cons.nil) {
-      var A = sexp.$a;
-      var D = sexp.$d;
-
-      if (!Cons.isCons(D)) {
-	result.push(Cons.printSexp(A));
-	result.push('.');
-	result.push(Cons.printSexp(D));
-	break;
-      }
-
-      if (result.length == 0 && A instanceof Bare.Symbol && A.$sym == 'quote' && D.$d == Cons.nil)
-	return "'" + Cons.printSexp(D.$a);
-
-      result.push(Cons.printSexp(A));
-      sexp = D;
-    }
-
-    return '(' + result.join(' ') + ')';
-  };
-
-  Cons.prototype.toString = function() { return Cons.printSexp(this); };
-
-  Safe.Cons = Cons;
-  return Safe;
-})();
-
+)();

@@ -19,36 +19,37 @@
 //
 //=============================================================================
 
-Moosky.Top = (function ()
-{
-//  var Bare = {};
+Moosky.Top = (
+    function () {
+        //  var Bare = {};
 
-//  var Values = Moosky.Values;
-//  var Symbol = Values.Symbol;
+        //  var Values = Moosky.Values;
+        //  var Symbol = Values.Symbol;
 
-  // DEMUNGE remove
-//  Symbol.setTranslations({ '+': '$plus',
-//			   '-': '$minus',
-//			   '*': '$times',
-//			   '/': '$divides' });
+        // DEMUNGE remove
+        //  Symbol.setTranslations({ '+': '$plus',
+        //			   '-': '$minus',
+        //			   '*': '$times',
+        //			   '/': '$divides' });
 
-  var Runtime = Moosky.Runtime;
-  var RuntimeTop = Runtime.Safe && Runtime.Safe.Top 
-		     || Runtime.Bare && Runtime.Bare.Top;
+        var Runtime = Moosky.Runtime;
+        var RuntimeTop = Runtime.Safe && Runtime.Safe.Top
+	    || Runtime.Bare && Runtime.Bare.Top;
 
-  var Top = {};
-  Top.$ = Top;
+        var Top = {};
+        Top.$ = Top;
 
-  // DEMUNGE remove
-//  var munge = Symbol.munge;
+        // DEMUNGE remove
+        //  var munge = Symbol.munge;
 
-  for (var p in RuntimeTop) {
-    // DEMUNGE remove
-//    var munged = munge(p);
-    var target = RuntimeTop[p];
-//    Top[munged] = target;
-    Top[p] = target;
-  }
+        for (var p in RuntimeTop) {
+            // DEMUNGE remove
+            //    var munged = munge(p);
+            var target = RuntimeTop[p];
+            //    Top[munged] = target;
+            Top[p] = target;
+        }
 
-  return Top;
-})();
+        return Top;
+    }
+)();

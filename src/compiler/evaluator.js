@@ -19,14 +19,15 @@
 //
 //=============================================================================
 
-Moosky.Evaluator = (function ()
-{
-  function evaluate(code, options) {
-    options = options || { };
-    return eval(code);
-  }
+Moosky.Evaluator = (
+    function () {
+        function evaluate(code, options) {
+            options = options || { };
+            return eval(code);
+        }
 
-  var Evaluator = { evaluate: evaluate };
+        var Evaluator = { evaluate: evaluate };
 
-  return Evaluator;
-})();
+        return Evaluator;
+    }
+)();

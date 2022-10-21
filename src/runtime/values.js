@@ -22,5 +22,4 @@
 
 var Values = Moosky.Values, Source = Values.Safe || Values.Bare;
 for (var p in Source)
-  Values[p] = Source[p];
-
+    Values[p] = Source[p];
