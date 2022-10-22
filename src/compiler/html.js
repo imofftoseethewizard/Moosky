@@ -29,13 +29,13 @@ Moosky.HTML = (
         if (typeof(XMLHttpRequest)  === "undefined") {
             XMLHttpRequest = function() {
                 try { return new ActiveXObject("Msxml2.XMLHTTP.6.0"); }
-	        catch(e) {}
+                catch(e) {}
                 try { return new ActiveXObject("Msxml2.XMLHTTP.3.0"); }
-	        catch(e) {}
+                catch(e) {}
                 try { return new ActiveXObject("Msxml2.XMLHTTP"); }
-	        catch(e) {}
+                catch(e) {}
                 try { return new ActiveXObject("Microsoft.XMLHTTP"); }
-	        catch(e) {}
+                catch(e) {}
                 throw new Error("This browser does not support XMLHttpRequest.");
             };
         }
@@ -134,49 +134,49 @@ Moosky.HTML = (
                 const stringAppend = Top['string-append'];
 
                 for (var j = 0, length = sources.length; j < length; j++) {
-	            // parentNode becomes null after the script has been processed
-                    //	if (sources[j] != undefined && sources[j].script.parentNode) {
-                    //	  console.log('compiling ' + sources[j].script.src + '...');
-                    //	  var lst = compile(sources[j].text);
-                    //	  var replacement = makeScriptElement(stringAppend.apply(lst));
-                    //	  sources[j].script.parentNode.replaceChild(replacement, sources[j].script);
-                    //	}
-	            const source = sources[j];
-	            const script = source.script
-	            // This ensures we won't process the script twice.
-	            script.parentNode.removeChild(script);
-	            Moosky(source.text);
+                    // parentNode becomes null after the script has been processed
+                    //  if (sources[j] != undefined && sources[j].script.parentNode) {
+                    //    console.log('compiling ' + sources[j].script.src + '...');
+                    //    var lst = compile(sources[j].text);
+                    //    var replacement = makeScriptElement(stringAppend.apply(lst));
+                    //    sources[j].script.parentNode.replaceChild(replacement, sources[j].script);
+                    //  }
+                    const source = sources[j];
+                    const script = source.script
+                    // This ensures we won't process the script twice.
+                    script.parentNode.removeChild(script);
+                    Moosky(source.text);
                 }
             }
 
             for (var i = 0, length = scripts.length; i < length; i++) {
                 const s = scripts[i];
                 if (s.type == 'text/moosky' || s.type == 'text/x-script.scheme') {
-	            if (s.text)
-	                sources[i] = { script: s, text: s.text };
+                    if (s.text)
+                        sources[i] = { script: s, text: s.text };
 
-	            if (s.src) {
-	                waitCount++;
-	                const r = new XMLHttpRequest();
-	                r.open('get', s.src, true);
-	                r.overrideMimeType('text/plain');
-	                r.onreadystatechange =
-	                    (function (script, index) {
-	                        return function(state) {
-		                    const response = state.currentTarget;
-		                    if (response.readyState == 4) {
+                    if (s.src) {
+                        waitCount++;
+                        const r = new XMLHttpRequest();
+                        r.open('get', s.src, true);
+                        r.overrideMimeType('text/plain');
+                        r.onreadystatechange =
+                            (function (script, index) {
+                                return function(state) {
+                                    const response = state.currentTarget;
+                                    if (response.readyState == 4) {
 
-		                        sources[index] = { script: script,
-				                           text: response.responseText };
-                                        //		   console.log('response text: ', response.responseText);
-		                        if (--waitCount == 0 && loopFinished) {
-		                            makeScriptElements();
-		                        }
-		                    }
-	                        };
-	                    })(s, i);
-	                r.send();
-	            }
+                                        sources[index] = { script: script,
+                                                           text: response.responseText };
+                                        //                 console.log('response text: ', response.responseText);
+                                        if (--waitCount == 0 && loopFinished) {
+                                            makeScriptElements();
+                                        }
+                                    }
+                                };
+                            })(s, i);
+                        r.send();
+                    }
                 }
             }
 
@@ -248,7 +248,7 @@ Moosky.HTML = (
 
             else {
                 while (deferredOutput.length > 0)
-	            outputContainer.appendChild(deferredOutput.shift());
+                    outputContainer.appendChild(deferredOutput.shift());
                 outputContainer.appendChild(span);
             }
         }
@@ -363,58 +363,58 @@ Moosky.HTML = (
             textArea.focus();
             setTemporaries();
             observe(textArea, 'keydown',
-	            function(event) {
-	                const printSexp = Moosky.Values.Cons.printSexp;
-	                const TokenStream = Moosky.Reader.TokenStream;
-	                const read = Moosky.Reader.read;
-	                const END = Moosky.Reader.END;
-	                const compile = Moosky.Compiler.compile;
-	                const Top = Moosky.Top;
-	                const evaluate = Moosky.Evaluator.evaluate;
+                    function(event) {
+                        const printSexp = Moosky.Values.Cons.printSexp;
+                        const TokenStream = Moosky.Reader.TokenStream;
+                        const read = Moosky.Reader.read;
+                        const END = Moosky.Reader.END;
+                        const compile = Moosky.Compiler.compile;
+                        const Top = Moosky.Top;
+                        const evaluate = Moosky.Evaluator.evaluate;
 
-	                if (event.keyCode == 13) { // RETURN
-		            if (event.preventDefault)
-		                event.preventDefault();
-		            else
-		                event.returnValue = false;
-		            textArea.value += '\n';
-		            var sexp, code, result;
+                        if (event.keyCode == 13) { // RETURN
+                            if (event.preventDefault)
+                                event.preventDefault();
+                            else
+                                event.returnValue = false;
+                            textArea.value += '\n';
+                            var sexp, code, result;
 
-		            print(prompt + textArea.value, 'blue');
+                            print(prompt + textArea.value, 'blue');
 
-                            /*		try */{
-		                const tokens = new TokenStream(textArea.value);
+                            /*          try */{
+                                const tokens = new TokenStream(textArea.value);
                                 while (!tokens.finished() && (sexp = read(tokens)) != END) {
-                                    //		    console.log('read --', sexp, sexp.toString());
+                                    //              console.log('read --', sexp, sexp.toString());
 
-		                    code = compile(sexp, Top);
-                                    //		    console.log('compile --', code);
+                                    code = compile(sexp, Top);
+                                    //              console.log('compile --', code);
 
-		                    result = evaluate(code);
-                                    //		    console.log('evaluate --', result, ''+result);
+                                    result = evaluate(code);
+                                    //              console.log('evaluate --', result, ''+result);
 
-		                    if (result !== undefined) {
-		                        if (result && result.$values)
-			                    print(map(printSexp, result.$values).concat('').join('\n'));
-		                        else
-			                    print(printSexp(result) + '\n')
-		                    }
-		                    textArea.value = '';
-		                    responseHolder.scrollTop = responseHolder.scrollHeight;
-		                }
+                                    if (result !== undefined) {
+                                        if (result && result.$values)
+                                            print(map(printSexp, result.$values).concat('').join('\n'));
+                                        else
+                                            print(printSexp(result) + '\n')
+                                    }
+                                    textArea.value = '';
+                                    responseHolder.scrollTop = responseHolder.scrollHeight;
+                                }
 
-		                setTemporaries(result);
+                                setTemporaries(result);
 
-		            } /*catch(e) {
-		                if (!(e instanceof Moosky.Reader.IncompleteInputError)) {
-		                setTemporaries(undefined, e.exception, e.inspector);
-		                print(e.toString() + '\n', 'red');
+                            } /*catch(e) {
+                                if (!(e instanceof Moosky.Reader.IncompleteInputError)) {
+                                setTemporaries(undefined, e.exception, e.inspector);
+                                print(e.toString() + '\n', 'red');
 
-		                textArea.value = '';
-		                }
-		                }*/
-	                }
-	            });
+                                textArea.value = '';
+                                }
+                                }*/
+                        }
+                    });
 
             return div;
         }
@@ -428,10 +428,10 @@ Moosky.HTML = (
         }
 
         return { get: get,
-	         compileScripts: compileScripts,
-	         REPL: REPL,
-	         print: print
-	       };
+                 compileScripts: compileScripts,
+                 REPL: REPL,
+                 print: print
+               };
     }
 )();
 

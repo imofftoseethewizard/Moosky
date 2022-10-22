@@ -67,7 +67,7 @@
 
             length.inline = new InlineTemplate({ 1: "(<<0>>).length()" });
             //    append.inline = new InlineTemplate({ 1: "Moosky.Values.Cons.append(<<0>>)",
-            //					 '...n':
+            //                                   '...n':
             reverse.inline = new InlineTemplate({ 1: "(<<0>>).reverse()" });
         }
     }

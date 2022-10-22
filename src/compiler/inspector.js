@@ -42,7 +42,7 @@ Moosky.Inspector = (
             Inspector.Debug = false;
             Inspector.Citant = function(text) {
                 return function(start, end, sexpId) {
-	            return new Cite(text, start, end, Moosky.Inspector.Sexps[sexpId]);
+                    return new Cite(text, start, end, Moosky.Inspector.Sexps[sexpId]);
                 };
             };
 
@@ -59,14 +59,14 @@ Moosky.Inspector = (
             Inspector.Abort.prototype.toString = function() {
                 const insp = this.inspector, e = this.exception;
                 if (insp) {
-	            var citation;
-	            if (insp.c.length > 0)
-	                citation = insp.c[insp.c.length-1];
-	            else
-	                citation  = insp.citation;
+                    var citation;
+                    if (insp.c.length > 0)
+                        citation = insp.c[insp.c.length-1];
+                    else
+                        citation  = insp.citation;
 
-	            return [citation.context(3, 3), '\n',
-		            e.name, ': while evaluating |', citation.content(), '|: ', e.message].join('');
+                    return [citation.context(3, 3), '\n',
+                            e.name, ': while evaluating |', citation.content(), '|: ', e.message].join('');
                 }
                 return undefined;
             };

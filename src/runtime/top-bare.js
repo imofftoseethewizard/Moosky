@@ -84,15 +84,15 @@
                 'call-with-values': callWithValues,
 
                 $argumentsList: function(args, n) {
-	            var list = nil;
-	            for (var i = args.length-1; i >= n; i--)
-	                list = cons(args[i], list);
+                    var list = nil;
+                    for (var i = args.length-1; i >= n; i--)
+                        list = cons(args[i], list);
 
-	            return list;
+                    return list;
                 },
 
                 $keyword: function(str) {
-	            return new Keyword(str);
+                    return new Keyword(str);
                 },
 
                 $makeFrame: makeFrame,
@@ -104,74 +104,74 @@
                 '#u': undefined,
 
                 alert: function(v) {
-	            alert(v);
-	            return true;
+                    alert(v);
+                    return true;
                 },
 
                 'quasi-unquote': function (t, ___) {
-	            var i, arg, lambdas = [];
-	            for (i = 1; i < arguments.length; i++) {
-	                v = arguments[i];
-	                lambdas.push(function () { return v; });
-	            }
-	            return $quasiUnquote(t, lambdas);
+                    var i, arg, lambdas = [];
+                    for (i = 1; i < arguments.length; i++) {
+                        v = arguments[i];
+                        lambdas.push(function () { return v; });
+                    }
+                    return $quasiUnquote(t, lambdas);
                 },
 
                 'eqv?': function(a, b) {
-	            return a === b
-	                || ((isSymbol(a) || isKeyword(a))
-	                    && (isSymbol(b) || isKeyword(b))) && a.toString() == b.toString()
-	                || isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
-	                || isString(a) && isString(b) && a == b;
+                    return a === b
+                        || ((isSymbol(a) || isKeyword(a))
+                            && (isSymbol(b) || isKeyword(b))) && a.toString() == b.toString()
+                        || isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
+                        || isString(a) && isString(b) && a == b;
                 },
 
                 'eq?': function(a, b) {
-	            return a === b
-	                || ((isSymbol(a) || isKeyword(a))
-	                    && (isSymbol(b) || isKeyword(b))) && a.toString() == b.toString()
-	            //	  || isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
-	            //	  || isKeyword(a) && isKeyword(b) && a.toString() == b.toString()
-	                || isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
-	                || isString(a) && isString(b) && a == b
-	                || (a && a.$values ? a.$values[0] : a) == (b && b.$values ? b.$values[0] : b);
+                    return a === b
+                        || ((isSymbol(a) || isKeyword(a))
+                            && (isSymbol(b) || isKeyword(b))) && a.toString() == b.toString()
+                    //    || isSymbol(a) && isSymbol(b) && a.toString() == b.toString()
+                    //    || isKeyword(a) && isKeyword(b) && a.toString() == b.toString()
+                        || isNumber(a) && isNumber(b) && a.valueOf() == b.valueOf()
+                        || isString(a) && isString(b) && a == b
+                        || (a && a.$values ? a.$values[0] : a) == (b && b.$values ? b.$values[0] : b);
                 },
 
                 'equal?': function(a, b) {
-	            if (Moosky.Top['eq?'](a, b))
-	                return true;
+                    if (Moosky.Top['eq?'](a, b))
+                        return true;
 
-	            if (!isList(a) || !isList(b))
-	                return false;
+                    if (!isList(a) || !isList(b))
+                        return false;
 
-	            return Moosky.Top['equal?'](car(a), car(b)) && Moosky.Top['equal?'](cdr(a), cdr(b));
+                    return Moosky.Top['equal?'](car(a), car(b)) && Moosky.Top['equal?'](cdr(a), cdr(b));
                 },
 
                 'number?': function(a) {
-	            return typeof(a) == 'number';
+                    return typeof(a) == 'number';
                 },
 
                 'complex?': function(a) {
-	            return false;
+                    return false;
                 },
 
                 'real?': function(a) {
-	            return Moosky.Top['number?'](a);
+                    return Moosky.Top['number?'](a);
                 },
 
                 'rational?': function(a) {
-	            return false;
+                    return false;
                 },
 
                 'integer?': function(a) {
-	            return IsInteger(a);
+                    return IsInteger(a);
                 },
 
                 'exact?': function(a) {
-	            return false;
+                    return false;
                 },
 
                 'inexact?': function(a) {
-	            return Moosky.Top['number?'](a);
+                    return Moosky.Top['number?'](a);
                 },
 
                 '=': numericComparator('=', function(a, b) { return a == b; }),
@@ -181,23 +181,23 @@
                 '>=': numericComparator('>=', function(a, b) { return a >= b; }),
 
                 'zero?': function(a) {
-	            return isNumber(a) && a.valueOf() == 0;
+                    return isNumber(a) && a.valueOf() == 0;
                 },
 
                 'positive?': function(a) {
-	            return isNumber(a) && a.valueOf() > 0;
+                    return isNumber(a) && a.valueOf() > 0;
                 },
 
                 'negative?': function(a) {
-	            return isNumber(a) && a.valueOf() < 0;
+                    return isNumber(a) && a.valueOf() < 0;
                 },
 
                 'odd?': function(a) {
-	            return isNumber(a) && Math.abs(a.valueOf() % 2) == 1;
+                    return isNumber(a) && Math.abs(a.valueOf() % 2) == 1;
                 },
 
                 'even?': function(a) {
-	            return isNumber(a) && a.valueOf() % 2 == 0;
+                    return isNumber(a) && a.valueOf() % 2 == 0;
                 },
 
                 max: numericFold('max', function(m, a) { return m > a ? m : a; }),
@@ -224,10 +224,10 @@
                 asin: numericUnop('asin', function(a) { return Math.asin(a); }),
                 acos: numericUnop('acos', function(a) { return Math.acos(a); }),
                 atan: function(a, b) {
-	            if (arguments.length == 1)
-	                return Math.atan(a.valueOf());
+                    if (arguments.length == 1)
+                        return Math.atan(a.valueOf());
 
-	            return Math.atan2(a.valueOf(), b.valueOf());
+                    return Math.atan2(a.valueOf(), b.valueOf());
                 },
 
                 sqrt: numericUnop('sqrt', function(a) { return Math.sqrt(a); }),
@@ -235,26 +235,26 @@
                 expt: numericBinop('expt', function(a, b) { return Math.pow(a, b); }),
 
                 'string->number': function(str, radix) {
-	            if (radix === undefined)
-	                return parseFloat(str);
+                    if (radix === undefined)
+                        return parseFloat(str);
 
-	            return parseInt(str, radix);
+                    return parseInt(str, radix);
                 },
 
                 'number->string': function(a, radix) {
-	            return (new Number(a.valueOf())).toString(radix);
+                    return (new Number(a.valueOf())).toString(radix);
                 },
 
                 not: function(a) {
-	            return a == false;
+                    return a == false;
                 },
 
                 'boolean?': function(a) {
-	            return a == true || a == false;
+                    return a == true || a == false;
                 },
 
                 'char?': function(a) {
-	            return (typeof(a) == 'string' || a instanceof String) && a.length == 1;
+                    return (typeof(a) == 'string' || a instanceof String) && a.length == 1;
                 },
 
                 'char=?':  characterComparator('char=?',  function(a, b) { return a == b; }),
@@ -282,26 +282,26 @@
                 'integer->char': integerOperator('integer->char', function(i) { return String.fromCharCode(i); }),
 
                 'string?': function(a) {
-	            return typeof(a) == 'string' || a instanceof String;
+                    return typeof(a) == 'string' || a instanceof String;
                 },
 
                 'make-string': function(k, ch) {
-	            ch = ch !== undefined ? ch : ' ';
-	            var s = '';
-	            while (k-- > 0)
-	                s += ch;
+                    ch = ch !== undefined ? ch : ' ';
+                    var s = '';
+                    while (k-- > 0)
+                        s += ch;
 
-	            return s;
+                    return s;
                 },
 
                 'string': function(___) {
-	            return Array.apply(Array, arguments).join('');
+                    return Array.apply(Array, arguments).join('');
                 },
 
                 'string-length': stringOperator('string-length', function(s) { return s.length; }),
 
                 'string-ref': function(s, k) {
-	            return s[k];
+                    return s[k];
                 },
 
                 'string=?':  stringComparator('string=?',  function(a, b) { return a == b; }),
@@ -317,234 +317,234 @@
                 'string-ci>=?': stringComparatorCI('string-ci>=?', function(a, b) { return a >= b ; }),
 
                 'substring': function(s, start, end) {
-	            return s.slice(start, end);
+                    return s.slice(start, end);
                 },
 
                 'string-append': function(___) {
-	            return Array.apply(Array, arguments).join('');
+                    return Array.apply(Array, arguments).join('');
                 },
 
                 'string->list': function(s) {
-	            var lst = nil;
-	            for (var i = s.length-1; i >= 0; i--)
-	                lst = cons(s.charAt(i), lst);
+                    var lst = nil;
+                    for (var i = s.length-1; i >= 0; i--)
+                        lst = cons(s.charAt(i), lst);
 
-	            return lst;
+                    return lst;
                 },
 
                 'list->string': function(lst) {
-	            const chs = [];
-	            while (lst != nil) {
-	                const ch = car(lst);
-	                chs.push(ch);
-	                lst = cdr(lst);
-	            }
+                    const chs = [];
+                    while (lst != nil) {
+                        const ch = car(lst);
+                        chs.push(ch);
+                        lst = cdr(lst);
+                    }
 
-	            return chs.join('');
+                    return chs.join('');
                 },
 
                 'string-copy': function(s) {
-	            return String(s);
+                    return String(s);
                 },
 
                 'string-for-each': function(proc, s0, ___) {
-	            const strs = [s0];
-	            const length = s0.length;
-	            for (var i = 2; i < arguments.length; i++) {
-	                const s = arguments[i];
-	                strs.push(s);
-	            }
+                    const strs = [s0];
+                    const length = s0.length;
+                    for (var i = 2; i < arguments.length; i++) {
+                        const s = arguments[i];
+                        strs.push(s);
+                    }
 
-	            for (i = 0; i < length; i++) {
-	                const chs = [];
-	                for (var j = 0; j < strs.length; j++)
-	                    chs.push(strs[j].charAt(i));
+                    for (i = 0; i < length; i++) {
+                        const chs = [];
+                        for (var j = 0; j < strs.length; j++)
+                            chs.push(strs[j].charAt(i));
 
-	                $force(proc(chs));
-	            }
+                        $force(proc(chs));
+                    }
                 },
 
                 'vector?': function(v) {
-	            return v instanceof Array;
+                    return v instanceof Array;
                 },
 
                 'make-vector': function(k, obj) {
-	            const v = new Array();
-	            while (k-- > 0)
-	                v.push(obj);
+                    const v = new Array();
+                    while (k-- > 0)
+                        v.push(obj);
 
-	            return v;
+                    return v;
                 },
 
                 'vector': function(___) {
-	            const v = new Array;
-	            for (var i = 0; i < arguments.length; i++)
-	                v.push(arguments[i]);
+                    const v = new Array;
+                    for (var i = 0; i < arguments.length; i++)
+                        v.push(arguments[i]);
 
-	            return v;
+                    return v;
                 },
 
                 'vector-length': function(v) {
-	            return v.length;
+                    return v.length;
                 },
 
                 'vector-ref': function(v, k) {
-	            return v[k];
+                    return v[k];
                 },
 
                 'vector-set!': function(v, k, obj) {
-	            v[k] = obj;
+                    v[k] = obj;
                 },
 
                 'vector->list': function(v) {
-	            var lst = nil;
-	            for (var i = v.length-1; i >= 0; i--)
-	                lst = cons(v[i], lst);
+                    var lst = nil;
+                    for (var i = v.length-1; i >= 0; i--)
+                        lst = cons(v[i], lst);
 
-	            return lst;
+                    return lst;
                 },
 
                 'list->vector': function(lst) {
-	            // use makeVector?
-	            const v = new Array();
-	            while (lst != nil) {
-	                v.push(car(lst));
-	                lst = cdr(lst);
-	            }
+                    // use makeVector?
+                    const v = new Array();
+                    while (lst != nil) {
+                        v.push(car(lst));
+                        lst = cdr(lst);
+                    }
 
-	            return v;
+                    return v;
                 },
 
                 'vector-for-each': (function () {
-	            const iter = vectorIterator('vector-for-each');
-	            return function(___) { iter.apply(null, arguments); };
+                    const iter = vectorIterator('vector-for-each');
+                    return function(___) { iter.apply(null, arguments); };
                 })(),
 
                 'vector-map': (function () {
-	            const iter = vectorIterator('vector-map', cons);
-	            return function(___) { return reverse(iter.apply(null, arguments)); };
+                    const iter = vectorIterator('vector-map', cons);
+                    return function(___) { return reverse(iter.apply(null, arguments)); };
                 })(),
 
                 'symbol?': function(s) {
-	            return s instanceof Symbol;
+                    return s instanceof Symbol;
                 },
 
                 'keyword?': function(k) {
-	            return k instanceof Keyword;
+                    return k instanceof Keyword;
                 },
 
                 'symbol->string': function(sym) {
-	            return sym.$sym;
+                    return sym.$sym;
                 },
 
                 'string->symbol': function(s) {
-	            return s.match(/:$/) ? new Keyword(s) : new Symbol(s);
+                    return s.match(/:$/) ? new Keyword(s) : new Symbol(s);
                 },
 
                 'procedure?': function(p) {
-	            return typeof(p) == 'function';
+                    return typeof(p) == 'function';
                 },
 
 
                 'for-each': (function () {
-	            const iter = iterator('for-each');
-	            return function(___) { iter.apply(null, arguments); };
+                    const iter = iterator('for-each');
+                    return function(___) { iter.apply(null, arguments); };
                 })(),
 
                 'map': (function () {
-	            const iter = iterator('map', cons);
-	            return function(___) { return reverse(iter.apply(null, arguments)); };
+                    const iter = iterator('map', cons);
+                    return function(___) { return reverse(iter.apply(null, arguments)); };
                 })(),
 
                 'range': function (n, m, step) {
-	            return Moosky.Top['vector->list'](range(n, m, step));
+                    return Moosky.Top['vector->list'](range(n, m, step));
                 },
 
                 'apply': function(proc, ___, lst) {
-	            const tailIndex = arguments.length-1;
-	            var tail = arguments[tailIndex];
+                    const tailIndex = arguments.length-1;
+                    var tail = arguments[tailIndex];
 
-	            const args = [];
-	            for (var i = 1; i < tailIndex; i++)
-	                args.push(arguments[i]);
+                    const args = [];
+                    for (var i = 1; i < tailIndex; i++)
+                        args.push(arguments[i]);
 
-	            while (tail != nil) {
-	                args.push(car(tail));
-	                tail = cdr(tail);
-	            }
+                    while (tail != nil) {
+                        args.push(car(tail));
+                        tail = cdr(tail);
+                    }
 
-	            return $force(proc.apply(null, args));
+                    return $force(proc.apply(null, args));
                 },
 
                 get: function(url, ___) {
-	            const options = argsToObject(arguments, 1);
-	            if (options.handlers)
-	                options.handlers = sexpToObject(options.handlers);
+                    const options = argsToObject(arguments, 1);
+                    if (options.handlers)
+                        options.handlers = sexpToObject(options.handlers);
 
-	            const handlers = options.handlers;
-	            if (handlers)
-	                for (p in handlers)
-	                    handlers[p] = (function(h) { return function(s) { return $force(h(s)); }; })(handlers[p]);
+                    const handlers = options.handlers;
+                    if (handlers)
+                        for (p in handlers)
+                            handlers[p] = (function(h) { return function(s) { return $force(h(s)); }; })(handlers[p]);
 
-	            return Moosky.HTML.get(url, nil, options);
+                    return Moosky.HTML.get(url, nil, options);
                 },
 
                 compile: function(sexp, module) {
-	            return Moosky.Compiler.compile(sexp, module || Moosky.Top);
+                    return Moosky.Compiler.compile(sexp, module || Moosky.Top);
                 },
 
                 'js-quote': function(str) {
-	            return new Values.Javascript(str);
+                    return new Values.Javascript(str);
                 },
 
                 'new!': function(constructor) {
-	            return new constructor();
+                    return new constructor();
                 },
 
                 '?>>': function() {
-	            const insp = Moosky.Top.$lastInspector;
-	            if (insp && insp.children.length > 0)
-	                Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
+                    const insp = Moosky.Top.$lastInspector;
+                    if (insp && insp.children.length > 0)
+                        Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
                 },
 
                 '<<?': function() {
-	            const insp = Moosky.Top.$lastInspector;
-	            if (insp && insp.inspector)
-	                Moosky.Top.$lastInspector = insp.inspector;
+                    const insp = Moosky.Top.$lastInspector;
+                    if (insp && insp.inspector)
+                        Moosky.Top.$lastInspector = insp.inspector;
                 },
 
                 ':?': function() {
-	            const insp = Moosky.Top.$lastInspector;
-	            return insp && insp.citation.content();
+                    const insp = Moosky.Top.$lastInspector;
+                    return insp && insp.citation.content();
                 },
 
                 '?frames': function() {
-	            var topInsp = Moosky.Top.$lastInspector;
+                    var topInsp = Moosky.Top.$lastInspector;
 
-	            if (!topInsp)
-	                return nil;
-	            while (topInsp.inspector != null)
-	                topInsp = topInsp.inspector;
+                    if (!topInsp)
+                        return nil;
+                    while (topInsp.inspector != null)
+                        topInsp = topInsp.inspector;
 
-	            var insp = topInsp;
-	            var inspectors = nil;
-	            while (insp.children.length > 0) {
-	                inspectors = cons(insp, inspectors);
-	                insp = insp.children[insp.children.length-1];
-	            }
-	            return inspectors;
+                    var insp = topInsp;
+                    var inspectors = nil;
+                    while (insp.children.length > 0) {
+                        inspectors = cons(insp, inspectors);
+                        insp = insp.children[insp.children.length-1];
+                    }
+                    return inspectors;
                 },
 
                 greeting: function() {
-	            return "Welcome to Moosky v0.1, Copyright 2010 Pat M. Lasswell.";
+                    return "Welcome to Moosky v0.1, Copyright 2010 Pat M. Lasswell.";
                 },
 
                 license: function() {
-	            return Moosky.License;
+                    return Moosky.License;
                 },
 
                 version: function() {
-	            return Moosky.Version;
+                    return Moosky.Version;
                 }
             };
 

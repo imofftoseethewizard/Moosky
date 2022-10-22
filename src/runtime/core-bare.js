@@ -62,12 +62,12 @@ Moosky.Runtime.Bare = (
             for (i = 0; i < length; i++) {
                 const section = [];
                 for (var j = 0; j < width; j++)
-	            section.push(inputs[j][i]);
+                    section.push(inputs[j][i]);
 
                 const result = fn.apply(this, section);
 
                 if (result)
-	            return result;
+                    return result;
             }
 
             return false;
@@ -88,7 +88,7 @@ Moosky.Runtime.Bare = (
             for (i = 0; i < length; i++) {
                 const section = [];
                 for (var j = 0; j < width; j++)
-	            section.push(inputs[j][i]);
+                    section.push(inputs[j][i]);
 
                 result.push(fn.apply(this, section));
             }
@@ -116,7 +116,7 @@ Moosky.Runtime.Bare = (
             const result = [];
             for (var i = 0, length = A.length; i < length; i++)
                 if (fn(A[i]))
-	            result.push(A[i]);
+                    result.push(A[i]);
 
             return result;
         }
@@ -252,8 +252,8 @@ Moosky.Runtime.Bare = (
                 car(sexp) && source.merge(car(sexp).$source);
                 sexp = cdr(sexp);
                 if (!isList(sexp)) {
-	            sexp && source.merge(sexp.$source);
-	            break;
+                    sexp && source.merge(sexp.$source);
+                    break;
                 }
             }
 
@@ -290,21 +290,21 @@ Moosky.Runtime.Bare = (
             const A = car(sexp);
             if (isPair(A) && isSymbol(car(A))) {
                 if (car(A) == 'unquote-splicing') {
-	            const unquoted = $force(lambdas.shift()());
+                    const unquoted = $force(lambdas.shift()());
 
-	            if (isList(unquoted))
-	                return append(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+                    if (isList(unquoted))
+                        return append(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
 
-	            return cons(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+                    return cons(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
                 }
 
             }
             if (isSymbol(A)) {
                 if (A == 'unquote')
-	            return $force(lambdas.shift()());
+                    return $force(lambdas.shift()());
 
                 if (A == 'quasiquote')
-	            return sexp;
+                    return sexp;
             }
 
             return cons(Moosky.Top.$quasiUnquote(A, lambdas), Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
@@ -317,11 +317,11 @@ Moosky.Runtime.Bare = (
                 return value;
 
             value = { 'undefined': function(u) { return new Object(); },
-	              'boolean':   function(b) { return new Boolean(b); },
-	              'number' :   function(n) { return new Number(n); },
-	              'string':    function(s) { return new String(s); },
-	              'function':  function(f) { return f; },
-	              'object':    function(o) { return o === null && new Object(o) || o; } }[typeof(value)](value);
+                      'boolean':   function(b) { return new Boolean(b); },
+                      'number' :   function(n) { return new Number(n); },
+                      'string':    function(s) { return new String(s); },
+                      'function':  function(f) { return f; },
+                      'object':    function(o) { return o === null && new Object(o) || o; } }[typeof(value)](value);
 
             value.$values = Array.apply(Array, arguments);
             return value;
@@ -335,14 +335,14 @@ Moosky.Runtime.Bare = (
         function numericComparator(symbol, relation) {
             return function(___) {
                 if (arguments.length == 0)
-	            return true;
+                    return true;
 
                 var a, b = arguments[0].valueOf();
                 for (var i = 0; i < arguments.length-1; i++) {
-	            a = b;
-	            b = arguments[i+1].valueOf();
+                    a = b;
+                    b = arguments[i+1].valueOf();
 
-	            if (!relation(a, b)) return false;
+                    if (!relation(a, b)) return false;
                 }
 
                 return true;
@@ -352,19 +352,19 @@ Moosky.Runtime.Bare = (
         function numericFold(symbol, binop, zero) {
             return function(___) {
                 if (arguments.length == 0)
-	            return zero;
+                    return zero;
 
                 if (arguments.length == 1) {
-	            if (zero === undefined)
-	                return arguments[0];
-	            else
-	                return binop(zero, arguments[0]);
+                    if (zero === undefined)
+                        return arguments[0];
+                    else
+                        return binop(zero, arguments[0]);
                 }
 
                 var result = arguments[0].valueOf();
                 for (var i = 1; i < arguments.length; i++) {
-	            const a = arguments[i].valueOf();
-	            result = binop(result, a);
+                    const a = arguments[i].valueOf();
+                    result = binop(result, a);
                 }
 
                 return result;
@@ -405,9 +405,9 @@ Moosky.Runtime.Bare = (
                 prep = prep || function (x) { return x; };
                 const A = prep(arguments[0]).charCodeAt(0);
                 for (var i = 1; i < arguments.length; i++) {
-	            const B = prep(arguments[i]).charCodeAt(0);
-	            if (!kernel(A, B))
-	                return false;
+                    const B = prep(arguments[i]).charCodeAt(0);
+                    if (!kernel(A, B))
+                        return false;
                 }
                 return true;
             };
@@ -428,9 +428,9 @@ Moosky.Runtime.Bare = (
                 prep = prep || function (x) { return x; };
                 const A = prep(arguments[0]);
                 for (var i = 1; i < arguments.length; i++) {
-	            const B = prep(arguments[i]);
-	            if (!kernel(A, B))
-	                return false;
+                    const B = prep(arguments[i]);
+                    if (!kernel(A, B))
+                        return false;
                 }
                 return true;
             };
@@ -460,25 +460,25 @@ Moosky.Runtime.Bare = (
             return function(proc, lst0, ___) {
                 const lsts = [lst0];
                 for (var i = 2; i < arguments.length; i++) {
-	            const lst = arguments[i];
-	            lsts.push(lst);
+                    const lst = arguments[i];
+                    lsts.push(lst);
                 }
 
                 var result = nil;
                 while (true) {
-	            const args = [];
-	            for (var i = 0; i < lsts.length; i++) {
-	                if (lsts[i] == nil)
-	                    break;
+                    const args = [];
+                    for (var i = 0; i < lsts.length; i++) {
+                        if (lsts[i] == nil)
+                            break;
 
-	                args.push(car(lsts[i]));
-	                lsts[i] = cdr(lsts[i]);
-	            }
+                        args.push(car(lsts[i]));
+                        lsts[i] = cdr(lsts[i]);
+                    }
 
-	            if (i != lsts.length)
-	                break;
+                    if (i != lsts.length)
+                        break;
 
-	            result = collect($force(proc.apply(this, args)), result);
+                    result = collect($force(proc.apply(this, args)), result);
                 }
 
                 return result;
@@ -492,15 +492,15 @@ Moosky.Runtime.Bare = (
                 const vs = [v0];
                 const length = v0.length;
                 for (var i = 2; i < arguments.length; i++)
-	            vs.push(arguments[i]);
+                    vs.push(arguments[i]);
 
                 var result = nil;
                 for (i = 0; i < length; i++) {
-	            const args = [];
-	            for (var j = 0; j < vs.length; j++)
-	                args.push(vs[j][i]);
+                    const args = [];
+                    for (var j = 0; j < vs.length; j++)
+                        args.push(vs[j][i]);
 
-	            result = collect($force(proc.apply(this, args)), result);
+                    result = collect($force(proc.apply(this, args)), result);
                 }
 
                 return result;

@@ -23,27 +23,27 @@
     eval($Moosky.Util.importExpression);
 
     new Module({ name: 'Test',
-	         parent: $Moosky,
-	         exports: { PreReq: PreReq,
-			    FilesPreReq: FilesPreReq,
-			    EnvironmentPreReq: EnvironmentPreReq,
-			    MooskyRuntimePreReq: MooskyRuntimePreReq,
-			    MooskyCompilerPreReq: MooskyCompilerPreReq,
-			    Test: Test,
-			    TimedTest: TimedTest,
-			    CompositeTest: CompositeTest,
-			    MooskyRuntimeTest: MooskyRuntimeTest,
-			    MooskyCompilerTest: MooskyCompilerTest,
-			    DataDrivenTestAction: DataDrivenTestAction,
-			    addTest: addTest,
-			    assert: assert,
-			    DEBUG: DEBUG,
-			    NODEBUG: NODEBUG,
-			    LOG: LOG,
-			    NOLOG: NOLOG,
-			    ERROR: ERROR,
-			    NOERROR: NOERROR,
-			    assertMode: assertMode } });
+                 parent: $Moosky,
+                 exports: { PreReq: PreReq,
+                            FilesPreReq: FilesPreReq,
+                            EnvironmentPreReq: EnvironmentPreReq,
+                            MooskyRuntimePreReq: MooskyRuntimePreReq,
+                            MooskyCompilerPreReq: MooskyCompilerPreReq,
+                            Test: Test,
+                            TimedTest: TimedTest,
+                            CompositeTest: CompositeTest,
+                            MooskyRuntimeTest: MooskyRuntimeTest,
+                            MooskyCompilerTest: MooskyCompilerTest,
+                            DataDrivenTestAction: DataDrivenTestAction,
+                            addTest: addTest,
+                            assert: assert,
+                            DEBUG: DEBUG,
+                            NODEBUG: NODEBUG,
+                            LOG: LOG,
+                            NOLOG: NOLOG,
+                            ERROR: ERROR,
+                            NOERROR: NOERROR,
+                            assertMode: assertMode } });
 
     function PreReq(options) {
     }
@@ -62,13 +62,13 @@
 
         this.ready = false;
         const count = new Countdown({ limit: files.length,
-				      action: function () { prereq.ready = true; } });
+                                      action: function () { prereq.ready = true; } });
         this.texts = {};
         callWithTextSequentially(options.files,
-			         function(file, s) {
-			             prereq.texts[file] = s;
-			             count.down();
-			         });
+                                 function(file, s) {
+                                     prereq.texts[file] = s;
+                                     count.down();
+                                 });
     }
 
     FilesPreReq.prototype = new PreReq();
@@ -86,8 +86,8 @@
         const prereq = this;
 
         new Poll({ interval: 100,
-	           isReady: function() { return prereq.ready; },
-	           action: fn }).wait();
+                   isReady: function() { return prereq.ready; },
+                   action: fn }).wait();
     }
 
     function EnvironmentPreReq(options) {
@@ -101,17 +101,17 @@
 
         this.waitForTexts(function() {
             (new FramedEvaluator()).onReady(function (evaluator) {
-	        test.evaluator = prereq.evaluator = evaluator;
-	        map(function(file) { tryEval(evaluator, prereq.texts[file]); }, prereq.files);
-	        test.reqFilled(prereq);
+                test.evaluator = prereq.evaluator = evaluator;
+                map(function(file) { tryEval(evaluator, prereq.texts[file]); }, prereq.files);
+                test.reqFilled(prereq);
             });
         });
     };
 
     function MooskyRuntimePreReq() {
         EnvironmentPreReq.call(this, { files: ["components/base.js",
-					       "components/values-bare.js",
-					       "components/values.js"] });
+                                               "components/values-bare.js",
+                                               "components/values.js"] });
     }
 
     MooskyRuntimePreReq.prototype = new EnvironmentPreReq();
@@ -139,7 +139,7 @@
     Test.prototype.run = function () {
         const test = this;
         this.reqCount = new Countdown({ limit: this.prereqs.count(),
-				        action: function() { test.action(); } });
+                                        action: function() { test.action(); } });
 
         this.prereqs.doAll();
     };
@@ -155,12 +155,12 @@
 
     addBodyInit(function() {
         Test.count = new Countdown({ limit: Test.queue.count(),
-				     action: function() {
-					 if (Test.failures == 0)
-					     print('\n\nAll tests completed successfully.');
-					 else
-					     print('\n\nAll tests completed.');
-				     } });
+                                     action: function() {
+                                         if (Test.failures == 0)
+                                             print('\n\nAll tests completed successfully.');
+                                         else
+                                             print('\n\nAll tests completed.');
+                                     } });
     });
 
     addBodyInit(function() { Test.queue.doAll(); });
@@ -175,11 +175,11 @@
 
         this.name = options.name;
         this.timer =  new Timer({ timeout: options.timeout || 10*1000,
-			          expired: function() {
-				      print(test.name + ' timed out.\n');
-				      test.fail();
-				      Test.prototype.complete.call(test);
-			          } });
+                                  expired: function() {
+                                      print(test.name + ' timed out.\n');
+                                      test.fail();
+                                      Test.prototype.complete.call(test);
+                                  } });
 
         this.timer.start();
     }
@@ -204,9 +204,9 @@
         const ctx = this;
 
         this.count = new Countdown({ limit: options.count,
-				     action: function() {
-				         TimedTest.prototype.complete.call(ctx);
-				     } });
+                                     action: function() {
+                                         TimedTest.prototype.complete.call(ctx);
+                                     } });
     }
 
     CompositeTest.prototype = new TimedTest();
@@ -280,7 +280,7 @@
             map(function(args) { kernel.applicand.apply(test, args); }, kernel.data);
 
             if (!test.failed)
-	        print(kernel.label + ' passed\n');
+                print(kernel.label + ' passed\n');
 
             test.complete();
         }
@@ -291,17 +291,17 @@
     function assert(cond, msg) {
         if (!cond) {
             //      if (this.fail)
-            //	fail();
+            //  fail();
 
             if (assertDebug)
-	        debugger;
+                debugger;
 
             if (assertLog)
-	        print('ASSERT FAILURE: ' + msg + '\n.');
+                print('ASSERT FAILURE: ' + msg + '\n.');
 
             if (assertError) {
-	        complete();
-	        throw msg;
+                complete();
+                throw msg;
             }
         }
     }
@@ -343,7 +343,7 @@
 
   TestFramePoll.prototype.action = function() {
     if (this.frame.contentWindow.mooskyTestFailures === undefined ||
-	this.frame.contentWindow.mooskyTestFailures > 0)
+        this.frame.contentWindow.mooskyTestFailures > 0)
       this.fail(' -- failed;');
   };
 
@@ -366,8 +366,8 @@
   };
 
   return { get: get,
-	   makeFileLoadableTest: makeFileLoadableTest,
-	   print: print,
-	   Poll: Poll,
-	   TestFramePoll: TestFramePoll,
-	   queue: [] }; */
+           makeFileLoadableTest: makeFileLoadableTest,
+           print: print,
+           Poll: Poll,
+           TestFramePoll: TestFramePoll,
+           queue: [] }; */

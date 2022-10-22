@@ -70,13 +70,13 @@ Moosky.Code = (
 
             force: '$force(<<expression>>)',
             promise: ['$promise(function () {\n',
-	              '  try {\n',
-	              '    return <<expression>>;\n',
-	              '  } catch (e) {\n',
-	              '    if (e.$i) throw e;\n',
-	              '    throw new $E(e.message, $i);\n',
-	              '  }\n',
-	              '})\n'].join(''),
+                      '  try {\n',
+                      '    return <<expression>>;\n',
+                      '  } catch (e) {\n',
+                      '    if (e.$i) throw e;\n',
+                      '    throw new $E(e.message, $i);\n',
+                      '  }\n',
+                      '})\n'].join(''),
 
             promising: '((<<temp>> = <<lambda>>), <<temp>>.promising = true, <<temp>>)',
 

@@ -34,10 +34,10 @@
     addTest(new MooskyCompilerTest({
         name: 'Language',
         prereqs: [ new FilesPreReq({ files: ['lib/preamble.ss',
-				             'lib/r6rs-list.ss',
-					     'platform.ss',
-					     'core.ss',
-					     'lambda.ss'] }) ],
+                                             'lib/r6rs-list.ss',
+                                             'platform.ss',
+                                             'core.ss',
+                                             'lambda.ss'] }) ],
         action: function() {
             //      console.log('starting compiler test action --- \n\n\n\n\n\n\n\n\n\n\n.');
             const Moosky = this.Moosky;
@@ -54,27 +54,27 @@
             const evaluator = this.evaluator;
 
             function compile (source) {
-	        const read = Moosky.Reader.read;
-	        const END = Moosky.Reader.END;
-	        const compile = Moosky.Compiler.compile;
+                const read = Moosky.Reader.read;
+                const END = Moosky.Reader.END;
+                const compile = Moosky.Compiler.compile;
 
-	        const tokens = new Moosky.Reader.TokenStream(source);
+                const tokens = new Moosky.Reader.TokenStream(source);
 
-	        var result = nil;
-	        while (!tokens.finished() && (sexp = read(tokens)) != END)
-	            result = cons(compile(sexp, Top), result);
+                var result = nil;
+                while (!tokens.finished() && (sexp = read(tokens)) != END)
+                    result = cons(compile(sexp, Top), result);
 
-	        return reverse(result);
+                return reverse(result);
             }
 
             evaluator('Moosky.Top.printd = window.parent.$Moosky.Util.exports.print;');
 
             map(function (file) {
-	        var sexp = compile(texts[file]);
-	        while (sexp != nil) {
-	            evaluator(car(sexp));
-	            sexp = cdr(sexp);
-	        }
+                var sexp = compile(texts[file]);
+                while (sexp != nil) {
+                    evaluator(car(sexp));
+                    sexp = cdr(sexp);
+                }
             }, files);
 
             print('Language ok.');

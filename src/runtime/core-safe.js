@@ -39,22 +39,22 @@ Moosky.Runtime.Safe = (
         function assertMinArgs(name, count, arguments) {
             if (arguments.length < count)
                 throw new SyntaxError(name + ': expects at least ' + count +
-			              ' argument' + (count == 1 ? '' : 's') +
-			              ': given ' + arguments.length);
+                                      ' argument' + (count == 1 ? '' : 's') +
+                                      ': given ' + arguments.length);
         }
 
         function assertArgCount(name, count, arguments) {
             if (arguments.length != count)
                 throw new SyntaxError(name + ': expects at exactly ' + count +
-			              ' argument' + (count == 1 ? '' : 's') +
-			              ': given ' + arguments.length);
+                                      ' argument' + (count == 1 ? '' : 's') +
+                                      ': given ' + arguments.length);
         }
 
         function assertArgRange(name, min, max, arguments) {
             if (arguments.length < min || arguments.length > max)
                 throw new SyntaxError(name + ': expects at between ' + min +
-			              ' and ' + max +
-			              ' arguments: given ' + arguments.length);
+                                      ' and ' + max +
+                                      ' arguments: given ' + arguments.length);
         }
 
         function assertIsList(name, lst) {
@@ -101,7 +101,7 @@ Moosky.Runtime.Safe = (
         function assertVectorIndexInRange(name, v, k) {
             if (k >= v.length)
                 throw new SyntaxError(name + ': index ' + k + ' out of range[0, '
-			              + v.length-1 + '] for vector ' + v);
+                                      + v.length-1 + '] for vector ' + v);
         }
 
         function car(pair) {
@@ -196,8 +196,8 @@ Moosky.Runtime.Safe = (
 
             return function(___) {
                 for (var i = 0; i < arguments.length-1; i++) {
-	            if (!isNumber(arguments[i]))
-	                throw SyntaxError(symbol + ': number expected: not ' + b);
+                    if (!isNumber(arguments[i]))
+                        throw SyntaxError(symbol + ': number expected: not ' + b);
                 }
 
                 return comparator.apply(this, arguments);
@@ -209,14 +209,14 @@ Moosky.Runtime.Safe = (
 
             return function(___) {
                 if (arguments.length == 0) {
-	            if (zero === undefined)
-	                throw SyntaxError(symbol + ': at least one argument expected.');
+                    if (zero === undefined)
+                        throw SyntaxError(symbol + ': at least one argument expected.');
 
                 } else {
-	            for (var i = 0; i < arguments.length; i++) {
-	                if (!isNumber(arguments[i]))
-	                    throw SyntaxError(symbol + ': number expected: not ' + a);
-	            }
+                    for (var i = 0; i < arguments.length; i++) {
+                        if (!isNumber(arguments[i]))
+                            throw SyntaxError(symbol + ': number expected: not ' + a);
+                    }
                 }
 
                 return fold.apply(this, arguments);
@@ -228,13 +228,13 @@ Moosky.Runtime.Safe = (
 
             return function(a, b) {
                 if (arguments.length != 2)
-	            throw SyntaxError(symbol + ' expects 2 arguments; given ' + arguments.length);
+                    throw SyntaxError(symbol + ' expects 2 arguments; given ' + arguments.length);
 
                 if (!isNumber(a))
-	            throw SyntaxError(symbol + ': number expected: not ' + a);
+                    throw SyntaxError(symbol + ': number expected: not ' + a);
 
                 if (!isNumber(b))
-	            throw SyntaxError(symbol + ': number expected: not ' + b);
+                    throw SyntaxError(symbol + ': number expected: not ' + b);
 
                 return op(a, b);
             };
@@ -245,10 +245,10 @@ Moosky.Runtime.Safe = (
 
             return function(a) {
                 if (arguments.length != 1)
-	            throw SyntaxError(symbol + ' expects 1 argument; given ' + arguments.length);
+                    throw SyntaxError(symbol + ' expects 1 argument; given ' + arguments.length);
 
                 if (!isNumber(a))
-	            throw SyntaxError(symbol + ': number expected: not ' + a);
+                    throw SyntaxError(symbol + ': number expected: not ' + a);
 
                 return op(a);
             };
@@ -259,13 +259,13 @@ Moosky.Runtime.Safe = (
 
             return function(a, b) {
                 if (arguments.length != 2)
-	            throw SyntaxError(symbol + ' expects 2 arguments; given ' + arguments.length);
+                    throw SyntaxError(symbol + ' expects 2 arguments; given ' + arguments.length);
 
                 if (!isNumber(a))
-	            throw SyntaxError(symbol + ': number expected: not ' + a);
+                    throw SyntaxError(symbol + ': number expected: not ' + a);
 
                 if (!isNumber(b))
-	            throw SyntaxError(symbol + ': number expected: not ' + b);
+                    throw SyntaxError(symbol + ': number expected: not ' + b);
 
                 return op(a, b);
             };
@@ -280,7 +280,7 @@ Moosky.Runtime.Safe = (
             return function(___) {
                 assertMinArgs(name, 2, arguments);
                 for (var i = 0; i < arguments.length; i++)
-	            assertIsCharacter(name, arguments[i]);
+                    assertIsCharacter(name, arguments[i]);
 
                 return comparator.apply(this, arguments);
             };
@@ -308,7 +308,7 @@ Moosky.Runtime.Safe = (
             return function(___) {
                 assertMinArgs(name, 2, arguments);
                 for (var i = 0; i < arguments.length; i++)
-	            assertIsString(name, arguments[i]);
+                    assertIsString(name, arguments[i]);
 
                 return comparator.apply(this, arguments);
             };
@@ -352,7 +352,7 @@ Moosky.Runtime.Safe = (
 
                 const lsts = [lst0];
                 for (var i = 2; i < arguments.length; i++)
-	            assertIsList(name, lst);
+                    assertIsList(name, lst);
 
                 return iter.apply(this, arguments);
             };
@@ -369,11 +369,11 @@ Moosky.Runtime.Safe = (
                 const vs = [v0];
                 const length = v0.length;
                 for (var i = 2; i < arguments.length; i++) {
-	            const v = arguments[i];
-	            assertIsVector(name, v);
-	            if (v.length != length)
-	                throw new SyntaxError(name + ': all vectors must be the same length: '
-				              + '(vector-length "' + v0 + '") != (vector-length "' + v + '")');
+                    const v = arguments[i];
+                    assertIsVector(name, v);
+                    if (v.length != length)
+                        throw new SyntaxError(name + ': all vectors must be the same length: '
+                                              + '(vector-length "' + v0 + '") != (vector-length "' + v + '")');
                 }
 
                 return iter.apply(this, arguments);
@@ -388,7 +388,7 @@ Moosky.Runtime.Safe = (
                 const pair = car(alist);
                 const key = alistKeyToString(car(pair));
                 if (!key)
-	            throw new SyntaxError('bad alist key: ' + car(pair));
+                    throw new SyntaxError('bad alist key: ' + car(pair));
 
                 alist = cdr(alist);
             }
@@ -410,7 +410,7 @@ Moosky.Runtime.Safe = (
 
                 sexp = cdr(sexp);
                 if (!isPair(sexp))
-	            throw new Exception('unexpected end of list while constructing Object: ' + sexp);
+                    throw new Exception('unexpected end of list while constructing Object: ' + sexp);
 
                 sexp = cdr(sexp);
             }
@@ -423,8 +423,8 @@ Moosky.Runtime.Safe = (
                 const key = keywordToString(args[i]);
                 i++;
                 if (i == args.length)
-	            throw new Exception('unexpected end of list while constructing Object: ('
-			                + Array.apply(Array, args).join(' ') + ')');
+                    throw new Exception('unexpected end of list while constructing Object: ('
+                                        + Array.apply(Array, args).join(' ') + ')');
             }
             return Bare.argsToObject(args, first);
         }

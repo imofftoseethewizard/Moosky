@@ -21,27 +21,27 @@
 
 (function () {
     new Module({ name: '$Moosky',
-	         exports: {} });
+                 exports: {} });
 
 
     new Module({ name: 'Util',
-	         parent: $Moosky,
-	         exports: { Countdown: Countdown,
-			    Timer: Timer,
-			    Poll: Poll,
-			    tryEval: tryEval,
-			    tryApply: tryApply,
-			    mapApply: mapApply,
-			    map: map,
-			    TaskQueue: TaskQueue,
-			    OneShotTaskQueue: OneShotTaskQueue,
-			    addBodyInit: addBodyInit,
-			    print: print,
-			    get: get,
-			    callWithText: callWithText,
-			    callWithTextSequentially: callWithTextSequentially,
-			    FramedEvaluator: FramedEvaluator,
-			    Module: Module } });
+                 parent: $Moosky,
+                 exports: { Countdown: Countdown,
+                            Timer: Timer,
+                            Poll: Poll,
+                            tryEval: tryEval,
+                            tryApply: tryApply,
+                            mapApply: mapApply,
+                            map: map,
+                            TaskQueue: TaskQueue,
+                            OneShotTaskQueue: OneShotTaskQueue,
+                            addBodyInit: addBodyInit,
+                            print: print,
+                            get: get,
+                            callWithText: callWithText,
+                            callWithTextSequentially: callWithTextSequentially,
+                            FramedEvaluator: FramedEvaluator,
+                            Module: Module } });
 
     //---------------------------------------------------------------------------
     //
@@ -81,8 +81,8 @@
         const _ = this;
         function receiver() {
             if (!_.canceled()) {
-	        _.timeoutID = 'expired';
-	        _.expired();
+                _.timeoutID = 'expired';
+                _.expired();
             }
         }
 
@@ -125,7 +125,7 @@
 
         for (p in options)
             if (p !== 'wait')
-	        this[p] = options[p];
+                this[p] = options[p];
     }
 
     Poll.prototype.isReady = function(counter) { return true; };
@@ -148,14 +148,14 @@
         function poll() {
             count.down();
             if (!finished() && _.isReady()) {
-	        finish();
-	        _.action();
+                finish();
+                _.action();
             }
         }
 
         function finish() {
             if (!finished())
-	        window.clearInterval(_.intervalID);
+                window.clearInterval(_.intervalID);
 
             _.intervalID = 'finished';
         }
@@ -187,7 +187,7 @@
         for (i = 0; i < length; i++) {
             const section = [];
             for (var j = 0; j < width; j++)
-	        section.push(inputs[j][i]);
+                section.push(inputs[j][i]);
 
             result.push(fn.apply(this, section));
         }
@@ -291,9 +291,9 @@
     const bodyInitQueue = new OneShotTaskQueue();
 
     new Poll({ interval: 100,
-	       isReady: function(_) { return document.body; },
-	       action: function() { bodyInitQueue.doAll(); }
-	     }).wait();
+               isReady: function(_) { return document.body; },
+               action: function() { bodyInitQueue.doAll(); }
+             }).wait();
 
     function addBodyInit(fn) {
         bodyInitQueue.add(fn);
@@ -333,13 +333,13 @@
     if (typeof(XMLHttpRequest)  === "undefined") {
         XMLHttpRequest = function() {
             try { return new ActiveXObject("Msxml2.XMLHTTP.6.0"); }
-	    catch(e) {}
+            catch(e) {}
             try { return new ActiveXObject("Msxml2.XMLHTTP.3.0"); }
-	    catch(e) {}
+            catch(e) {}
             try { return new ActiveXObject("Msxml2.XMLHTTP"); }
-	    catch(e) {}
+            catch(e) {}
             try { return new ActiveXObject("Microsoft.XMLHTTP"); }
-	    catch(e) {}
+            catch(e) {}
             throw new Error("This browser does not support XMLHttpRequest.");
         };
     }
@@ -378,7 +378,7 @@
     function makeReadyStateDispatcher(options) {
         const aliases = options.aliases || readyStateAliases;
         const handlers = options.log ? readyStateDispatchLoggingHandlers
-	    : options.handlers || readyStateDispatchNullHandlers;
+            : options.handlers || readyStateDispatchNullHandlers;
 
         return function(state) {
             const response = state.currentTarget;
@@ -415,10 +415,10 @@
 
     function callWithText(file, fn) {
         get(file, {},
-	    { mimeType: 'text/plain',
-	      handlers: { complete: function (state) {
+            { mimeType: 'text/plain',
+              handlers: { complete: function (state) {
                   return fn(state.currentTarget.responseText);
-	      } } });
+              } } });
     }
 
     function callWithTextSequentially(files, fn) {
@@ -426,16 +426,16 @@
 
         const index = {};
         const count = new Countdown({ limit: length,
-				    action: function() {
-				        map(function(file) {
-					    fn(file, index[file]);
-					}, files);
-				    } });
+                                    action: function() {
+                                        map(function(file) {
+                                            fn(file, index[file]);
+                                        }, files);
+                                    } });
 
         function makeResponder(file) {
             return function(text) {
-       	        index[file] = text;
-	        count.down();
+                index[file] = text;
+                count.down();
             };
         }
 
@@ -465,16 +465,16 @@
         script.text = 'function evaluate(s) { return eval(s); }';
 
         new Poll({ interval: 100,
-	           isReady: function() { return frame.contentWindow.document.body; },
-	           action: function() { frame.contentWindow.document.body.appendChild(script); } }).wait();
+                   isReady: function() { return frame.contentWindow.document.body; },
+                   action: function() { frame.contentWindow.document.body.appendChild(script); } }).wait();
     }
 
     FramedEvaluator.prototype.onReady = function(fn) {
         const contentWindow = this.frame.contentWindow;
 
         new Poll({ interval: 100,
-	           isReady: function() { return contentWindow.evaluate; },
-	           action: function () { fn(contentWindow.evaluate); } }).wait();
+                   isReady: function() { return contentWindow.evaluate; },
+                   action: function () { fn(contentWindow.evaluate); } }).wait();
     };
 
 

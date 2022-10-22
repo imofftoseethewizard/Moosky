@@ -186,7 +186,7 @@ Moosky.Compiler = (
         function isPromisingLambdaForm(sexp) {
             var key;
             return isPair(sexp) && isSymbol(key = car(sexp)) && key == 'promising'
-	        && isLambdaForm(cdr(sexp));
+                && isLambdaForm(cdr(sexp));
         }
 
         //===========================================================================
@@ -285,9 +285,9 @@ Moosky.Compiler = (
             for (var i = 0; i < length; i++) {
                 const item = items[i];
                 if (!ctx || ctx.containsContext(item.ctx))
-	            result.push(item.value);
+                    result.push(item.value);
                 else
-	            remainder.push(item);
+                    remainder.push(item);
             }
 
             this.items = remainder;
@@ -352,7 +352,7 @@ Moosky.Compiler = (
 
         function addDefinedSymbol(ctx, sym) {
             bindSymbol(ctx, sym, Context.noValue,
-	               findInnerLambdaContext(ctx) ? 'local' : 'module');
+                       findInnerLambdaContext(ctx) ? 'local' : 'module');
         }
 
         function addLocalSymbol(ctx, sym) {
@@ -362,11 +362,11 @@ Moosky.Compiler = (
         function bindSymbol(ctx, sym, value, scope) {
             ctx = findInnerLambdaContext(ctx) || findTopContext(ctx);
             ctx.symbols[sym] = { value: value,
-			         mutable: false,
-			         scope: scope,
-			         free: value === Context.noValue,
-			         setCount: 0,
-			         ctx: ctx };
+                                 mutable: false,
+                                 scope: scope,
+                                 free: value === Context.noValue,
+                                 setCount: 0,
+                                 ctx: ctx };
             if (scope == 'local')
                 sym.munge();
         }
@@ -375,7 +375,7 @@ Moosky.Compiler = (
             while (ctx !== undefined) {
                 const desc = ctx.symbols[sym];
                 if (desc !== undefined)
-	            return desc;
+                    return desc;
 
                 ctx = ctx.parent;
             }
@@ -409,10 +409,10 @@ Moosky.Compiler = (
         function possiblyRecursive(applicand, ctx) {
             var desc;
             return (isList(applicand)
-	            || (isSymbol(applicand)
-		        && (beingDefined(applicand, ctx)
-		            || ((desc = findSymbolDescriptor(applicand, ctx))
-			        && (desc.mutable || desc.free)))));
+                    || (isSymbol(applicand)
+                        && (beingDefined(applicand, ctx)
+                            || ((desc = findSymbolDescriptor(applicand, ctx))
+                                && (desc.mutable || desc.free)))));
         }
 
         function markLambdaAsPromising(ctx) {
@@ -428,21 +428,21 @@ Moosky.Compiler = (
         function isApplicandPromising(applicand, env, ctx) {
             var desc, value;
             return (possiblyRecursive(applicand, ctx)
-	            || isPromisingLambdaForm(applicand)
-	            || (isSymbol(applicand)
-		        && (((value = lookupSymbol(applicand, env))
-		             && isPromisingFunction(value))
-		            || ((desc = findSymbolDescriptor(applicand, ctx))
-			        && (value = desc.value)
-			        && isPromisingLambdaForm(value)))));
+                    || isPromisingLambdaForm(applicand)
+                    || (isSymbol(applicand)
+                        && (((value = lookupSymbol(applicand, env))
+                             && isPromisingFunction(value))
+                            || ((desc = findSymbolDescriptor(applicand, ctx))
+                                && (value = desc.value)
+                                && isPromisingLambdaForm(value)))));
         }
 
         function isInline(applicand, env, ctx) {
             var value;
             return (isSymbol(applicand)
-	            && !findSymbolDescriptor(applicand, ctx)
-	            && (value = lookupSymbol(applicand, env))
-	            && value.inline);
+                    && !findSymbolDescriptor(applicand, ctx)
+                    && (value = lookupSymbol(applicand, env))
+                    && value.inline);
         }
 
         //---------------------------------------------------------------------------
@@ -457,7 +457,7 @@ Moosky.Compiler = (
                 desc.free = false;
                 desc.setCount++;
                 desc.mutable = desc.setCount > 1
-		    || findInnerLambdaContext(ctx) !== desc.ctx;
+                    || findInnerLambdaContext(ctx) !== desc.ctx;
                 desc.value = value;
             }
 
@@ -467,7 +467,7 @@ Moosky.Compiler = (
         function findSetValueContext(sym, ctx) {
             while (ctx !== undefined) {
                 if (ctx.type == 'set' && sym.$sym == ctx.target.$sym)
-	            return ctx;
+                    return ctx;
 
                 ctx = ctx.parent;
             }
@@ -495,7 +495,7 @@ Moosky.Compiler = (
             for (var i = 0; i < components.length; i++) {
                 result = result[components[i]];
                 if (!result || (typeof(result) != 'object' && typeof(result) != 'function'))
-	            break;
+                    break;
             }
 
             return result;
@@ -514,10 +514,10 @@ Moosky.Compiler = (
 
             if (!isList(sexp)) {
                 if (sexp instanceof Array)
-	            return parseVector(sexp, env, ctx);
+                    return parseVector(sexp, env, ctx);
 
                 if (isSymbol(sexp))
-	            return parseSymbol(sexp, env, ctx);
+                    return parseSymbol(sexp, env, ctx);
 
                 return sexp;
             }
@@ -527,26 +527,26 @@ Moosky.Compiler = (
             if (isSymbol(key)) {
                 const applicand = lookupSymbol(key, env);
                 if (isMacro(applicand)) {
-	            // force may not be necessary here....
-	            const result = $force(applicand.call(applicand.env, sexp));
-	            return parseSexp(result, env, ctx);
+                    // force may not be necessary here....
+                    const result = $force(applicand.call(applicand.env, sexp));
+                    return parseSexp(result, env, ctx);
                 }
 
                 const parsers = { 'and': parseAnd,
-		                  'begin': parseBegin,
-		                  '$define': parseDefine,
-		                  'define-macro': parseDefineMacro,
-		                  'if': parseIf,
-		                  'javascript': parseJavascript,
-		                  'lambda': parseLambda,
-		                  'or': parseOr,
-		                  'quote': parseQuote,
-		                  'quasiquote': parseQuasiQuote,
-		                  'set!': parseSet };
+                                  'begin': parseBegin,
+                                  '$define': parseDefine,
+                                  'define-macro': parseDefineMacro,
+                                  'if': parseIf,
+                                  'javascript': parseJavascript,
+                                  'lambda': parseLambda,
+                                  'or': parseOr,
+                                  'quote': parseQuote,
+                                  'quasiquote': parseQuasiQuote,
+                                  'set!': parseSet };
 
                 const parser = parsers[key];
                 if (parser)
-	            return parser(sexp, env, ctx);
+                    return parser(sexp, env, ctx);
             }
 
             return parseApplication(sexp, env, ctx);
@@ -580,7 +580,7 @@ Moosky.Compiler = (
                 next = cdr(sexp);
 
                 if (next == nil)
-	            ctx = parentCtx;
+                    ctx = parentCtx;
 
                 forms = syntaxStar(parseSexp(car(sexp), env, ctx), forms);
 
@@ -597,12 +597,12 @@ Moosky.Compiler = (
             if (sexp.requiresQuotes()) {
                 const desc = findSymbolDescriptor(sexp, ctx);
                 if (sexp.$sym == "$foo-bar_103")
-	            debugger;
+                    debugger;
                 if (desc && desc.scope == 'local')
-	            sexp.munge();
+                    sexp.munge();
 
                 else
-	            sexp.munge("$['" + sexp.raw() + "']");
+                    sexp.munge("$['" + sexp.raw() + "']");
             }
 
             return sexp;
@@ -637,9 +637,9 @@ Moosky.Compiler = (
             for (var i = 1; i < components.length; i++) {
                 const c = components[i];
                 if (c.match(/[^\w$]/))
-	            components[i] = "['" + c + "']";
+                    components[i] = "['" + c + "']";
                 else
-	            components[i] = '.' + c;
+                    components[i] = '.' + c;
             }
 
             sexp.munge(components.join(''))
@@ -664,7 +664,7 @@ Moosky.Compiler = (
             var runner = sexp;
             while (runner != nil) {
                 if (!isList(runner))
-	            throw new AssertFailure('proper list expected, not ' + sexp);
+                    throw new AssertFailure('proper list expected, not ' + sexp);
                 runner = cdr(runner);
             }
         }
@@ -715,13 +715,13 @@ Moosky.Compiler = (
         function assertDefineMacroTargetWellFormed(sexp) {
             try {
                 if (!isList(sexp))
-	            assertIsSymbol(sexp);
+                    assertIsSymbol(sexp);
 
                 else {
-	            assertIsProperList(sexp);
-	            assertListLength(sexp, 2);
-	            assertIsSymbol(car(sexp));
-	            assertIsSymbol(cadr(sexp));
+                    assertIsProperList(sexp);
+                    assertListLength(sexp, 2);
+                    assertIsSymbol(car(sexp));
+                    assertIsSymbol(cadr(sexp));
                 }
             } catch (e) {
                 throw new AssertFailure('a symbol, or a list of two symbols was expected, not ' + sexp);
@@ -757,12 +757,12 @@ Moosky.Compiler = (
         function assertLambdaFormalParametersWellFormed(sexp) {
             try {
                 while (isPair(sexp)) {
-	            assertIsSymbol(car(sexp));
-	            sexp = cdr(sexp);
+                    assertIsSymbol(car(sexp));
+                    sexp = cdr(sexp);
                 }
 
                 if (!isList(sexp))
-	            assertIsSymbol(sexp);
+                    assertIsSymbol(sexp);
             } catch (e) {
                 throw new AssertFailure('a symbol, a list of symbols, or a dotted list of symbols was expected, not ' + sexp);
             }
@@ -838,13 +838,13 @@ Moosky.Compiler = (
 
             else {
                 while (formals != nil) {
-	            bindSymbol(lambdaCtx, car(formals), car(args), 'local'); //DEMUNGE -- add param binding to ctx
-	            formals = cdr(formals);
-	            args = cdr(args);
+                    bindSymbol(lambdaCtx, car(formals), car(args), 'local'); //DEMUNGE -- add param binding to ctx
+                    formals = cdr(formals);
+                    args = cdr(args);
 
-	            if (!isList(formals))
-	                // break for dotted list (rest argument)
-	                break;
+                    if (!isList(formals))
+                        // break for dotted list (rest argument)
+                        break;
                 }
                 formals = cadr(lambdaExp);
             }
@@ -901,9 +901,9 @@ Moosky.Compiler = (
             }
 
             const code = emitTop(emit(parseSexp(body, env, ctx),
-			              new Context(null, { tail: false })),
-		                 sexp,
-		                 { namespace: '{}' });
+                                      new Context(null, { tail: false })),
+                                 sexp,
+                                 { namespace: '{}' });
 
             //    console.log('macro --', code);
             var result;
@@ -921,9 +921,9 @@ Moosky.Compiler = (
             assertIfWellFormed(sexp);
 
             return syntax(car(sexp),
-		          parseSexp(cadr(sexp), env, nonTailContext(ctx)),
-		          parseSexp(caddr(sexp), env, ctx),
-		          parseSexp(cadddr(sexp), env, ctx));
+                          parseSexp(cadr(sexp), env, nonTailContext(ctx)),
+                          parseSexp(caddr(sexp), env, ctx),
+                          parseSexp(cadddr(sexp), env, ctx));
         }
 
         function parseJavascript(sexp, env, ctx) {
@@ -943,12 +943,12 @@ Moosky.Compiler = (
 
             else {
                 while (formals != nil) {
-	            addLocalSymbol(ctx, car(formals));  //DEMUNGE
-	            formals = cdr(formals);
+                    addLocalSymbol(ctx, car(formals));  //DEMUNGE
+                    formals = cdr(formals);
 
-	            if (!isList(formals))
-	                // break for dotted list (rest argument)
-	                break;
+                    if (!isList(formals))
+                        // break for dotted list (rest argument)
+                        break;
                 }
                 formals = cadr(sexp);
             }
@@ -976,16 +976,16 @@ Moosky.Compiler = (
 
             function parseQQ(sexp) {
                 if (!isPair(sexp))
-	            return sexp;
+                    return sexp;
 
                 const A = car(sexp);
 
                 if (isSymbol(A)) {
-	            if (A == 'unquote-splicing' || A == 'unquote')
-	                return syntax(A, parseSexp(cadr(sexp), env, ctx));
+                    if (A == 'unquote-splicing' || A == 'unquote')
+                        return syntax(A, parseSexp(cadr(sexp), env, ctx));
 
-	            if (A == 'quasiquote')
-	                return sexp;
+                    if (A == 'quasiquote')
+                        return sexp;
                 }
 
                 return syntaxStar(parseQQ(A), parseQQ(cdr(sexp)));
@@ -1007,10 +1007,10 @@ Moosky.Compiler = (
             if (target.requiresQuotes()) {
                 const desc = findSymbolDescriptor(target, ctx);
                 if (desc && desc.scope == 'local')
-	            target.munge();
+                    target.munge();
 
                 else
-	            target.munge("$['" + target.raw() + "']");
+                    target.munge("$['" + target.raw() + "']");
             }
 
             const value = parseSexp(caddr(sexp), env, setValueContext(ctx, target));
@@ -1037,20 +1037,20 @@ Moosky.Compiler = (
             const op = car(sexp);
 
             return ({'and': emitAnd,
-	             'apply': emitApply,
-	             'begin': emitBegin,
-	             '$define': emitDefine,
-	             'force': emitForce,
-	             'if': emitIf,
-	             'inline': emitInline,
-	             'javascript': emitJavascript,
-	             'lambda': emitLambda,
-	             'or': emitOr,
-	             'promise': emitPromise,
-	             'promising': emitPromising,
-	             'quasiquote': emitQuasiQuote,
-	             'quote': emitQuote,
-	             'set!': emitSet}[op.toString()])(sexp, ctx);
+                     'apply': emitApply,
+                     'begin': emitBegin,
+                     '$define': emitDefine,
+                     'force': emitForce,
+                     'if': emitIf,
+                     'inline': emitInline,
+                     'javascript': emitJavascript,
+                     'lambda': emitLambda,
+                     'or': emitOr,
+                     'promise': emitPromise,
+                     'promising': emitPromising,
+                     'quasiquote': emitQuasiQuote,
+                     'quote': emitQuote,
+                     'set!': emitSet}[op.toString()])(sexp, ctx);
         }
 
         //---------------------------------------------------------------------------
@@ -1072,7 +1072,7 @@ Moosky.Compiler = (
 
         function emitBinding(symbol, value) {
             return Code('binding').fill({ symbol: symbol.emit(), //DEMUNGE -- this should stay munged
-				          value: value });
+                                          value: value });
         }
 
         function emitBindings(bindings) {
@@ -1115,17 +1115,17 @@ Moosky.Compiler = (
 
         function emitPrimitive(sexp, ctx) {
             return { 'undefined': function(u) { return 'undefined'; },
-	             'boolean':   function(b) { return b ? 'true' : 'false'; },
-	             'number' :   function(n) { return n.toString(); },
-	             'string':    function(s) { return new Values.String(s).emit(); },
-	             'object':    function(o, ctx) { return emitObject(sexp, ctx); },
-	             'function':  function(f) {
-	                 if (f.constructor !== RegExp)
-		             throw new SyntaxError('cannot emit function literal.');
+                     'boolean':   function(b) { return b ? 'true' : 'false'; },
+                     'number' :   function(n) { return n.toString(); },
+                     'string':    function(s) { return new Values.String(s).emit(); },
+                     'object':    function(o, ctx) { return emitObject(sexp, ctx); },
+                     'function':  function(f) {
+                         if (f.constructor !== RegExp)
+                             throw new SyntaxError('cannot emit function literal.');
 
-	                 return new Values.RegExp(f).emit();
-	             }
-	           }[typeof(sexp)](sexp, ctx);
+                         return new Values.RegExp(f).emit();
+                     }
+                   }[typeof(sexp)](sexp, ctx);
         }
 
         function emitSequence(sexp, ctx) {
@@ -1141,12 +1141,12 @@ Moosky.Compiler = (
             const source = sexp.$source;
             const params =
                   { bindings: emitBindings(getContextBindings()),
-	            body: body,
-	            namespace: 'Moosky.Top',
-	            replId: 0,
-	            sourceId: source && Inspector.registerSource(source.$text),
+                    body: body,
+                    namespace: 'Moosky.Top',
+                    replId: 0,
+                    sourceId: source && Inspector.registerSource(source.$text),
                     start: source && source.$start,
-	            end: source && source.$end,
+                    end: source && source.$end,
                     sexpId: Inspector.registerSexp(sexp) };
 
             for (var p in options)
@@ -1175,14 +1175,14 @@ Moosky.Compiler = (
                 const next = cdr(sexp);
 
                 if (next == nil) {
-	            chunks.push('(');
-	            chunks.push(emit(car(sexp), ctx));
-	            chunks.push(')');
+                    chunks.push('(');
+                    chunks.push(emit(car(sexp), ctx));
+                    chunks.push(')');
 
                 } else {
-	            chunks.push('(');
-	            chunks.push(emit(car(sexp), ctx));
-	            chunks.push(') === false ? false : ');
+                    chunks.push('(');
+                    chunks.push(emit(car(sexp), ctx));
+                    chunks.push(') === false ? false : ');
                 }
 
                 sexp = next;
@@ -1203,9 +1203,9 @@ Moosky.Compiler = (
 
             const source = sexp.$source || {};
             return Code('application').fill({ body: [emit(applicand, ctx), '(', values.join(', '), ')'].join(''),
-				              start: source.$start,
-				              end: source.$end,
-				              sexpId: Inspector.registerSexp(sexp) });
+                                              start: source.$start,
+                                              end: source.$end,
+                                              sexpId: Inspector.registerSexp(sexp) });
         }
 
         function emitBegin(sexp, ctx) {
@@ -1238,8 +1238,8 @@ Moosky.Compiler = (
 
         function emitIf(sexp, ctx) {
             return Code('if').fill({ test: emit(car(sexp = cdr(sexp)), ctx),
-			             consequent: emit(car(sexp = cdr(sexp)), ctx),
-			             alternate: emit(car(sexp = cdr(sexp)), ctx) });
+                                     consequent: emit(car(sexp = cdr(sexp)), ctx),
+                                     alternate: emit(car(sexp = cdr(sexp)), ctx) });
         }
 
         function emitJavascript(sexp, ctx) {
@@ -1249,9 +1249,9 @@ Moosky.Compiler = (
                 const chunk = car(sexp);
 
                 if (chunk instanceof Values.Javascript)
-	            chunks.push(chunk.raw());
+                    chunks.push(chunk.raw());
                 else
-	            chunks.push(emit(chunk, ctx));
+                    chunks.push(emit(chunk, ctx));
 
                 sexp = cdr(sexp);
             }
@@ -1269,34 +1269,34 @@ Moosky.Compiler = (
 
             if (isSymbol(formals)) {
                 bindings.push({ symbol: formals,
-		                value: '$argumentsList(arguments, 0)' }); //DEMUNGE
+                                value: '$argumentsList(arguments, 0)' }); //DEMUNGE
                 emittedFormals.push('___');
             }
 
             else {
                 var i = 0;
                 while (formals != nil) {
-	            if (!isList(formals)) {
-	                bindings.push({ symbol: formals,
-			                value: '$argumentsList(arguments, ' + i + ')' }); //DEMUNGE
-	                emittedFormals.push('___');
-	                break;
-	            } else
-	                emittedFormals.push(car(formals).emit()); //DEMUNGE
+                    if (!isList(formals)) {
+                        bindings.push({ symbol: formals,
+                                        value: '$argumentsList(arguments, ' + i + ')' }); //DEMUNGE
+                        emittedFormals.push('___');
+                        break;
+                    } else
+                        emittedFormals.push(car(formals).emit()); //DEMUNGE
 
-	            formals = cdr(formals);
-	            i++;
+                    formals = cdr(formals);
+                    i++;
                 }
             }
 
             const source = sexp.$source || {};
 
             return Code('lambda').fill({ formals: emittedFormals.join(', '),
-				         bindings: emitBindings(bindings),
-				         body: body,
-				         start: source.$start,
-				         end: source.$end,
-				         sexpId: Inspector.registerSexp(sexp) });
+                                         bindings: emitBindings(bindings),
+                                         body: body,
+                                         start: source.$start,
+                                         end: source.$end,
+                                         sexpId: Inspector.registerSexp(sexp) });
         }
 
         function emitOr(sexp, ctx) {
@@ -1317,18 +1317,18 @@ Moosky.Compiler = (
                 const next = cdr(sexp);
 
                 if (next == nil) {
-	            chunks.push('(');
-	            chunks.push(emit(car(sexp), ctx));
-	            chunks.push(')');
+                    chunks.push('(');
+                    chunks.push(emit(car(sexp), ctx));
+                    chunks.push(')');
 
                 } else {
-	            chunks.push('(');
-	            chunks.push($temp.emit());
-	            chunks.push(' = (');
-	            chunks.push(emit(car(sexp), ctx));
-	            chunks.push(')) !== false ? ');
-	            chunks.push($temp.emit());
-	            chunks.push(' : ');
+                    chunks.push('(');
+                    chunks.push($temp.emit());
+                    chunks.push(' = (');
+                    chunks.push(emit(car(sexp), ctx));
+                    chunks.push(')) !== false ? ');
+                    chunks.push($temp.emit());
+                    chunks.push(' : ');
                 }
                 sexp = cdr(sexp);
             }
@@ -1342,7 +1342,7 @@ Moosky.Compiler = (
 
         function emitPromising(sexp, ctx) {
             return Code('promising').fill({ lambda: emitLambda(cdr(sexp), ctx),
-				            temp: gensym('promising') });
+                                            temp: gensym('promising') });
         }
 
         function emitQuasiQuote(sexp, ctx) {
@@ -1350,18 +1350,18 @@ Moosky.Compiler = (
 
             function emitQQ(sexp) {
                 if (!isPair(sexp))
-	            return sexp;
+                    return sexp;
 
                 const A = car(sexp);
 
                 if (isSymbol(A) && A == 'unquote-splicing' || A == 'unquote') {
-	            // this should be moved to the parse phase
-	            lambdas.push(emit(syntaxStar(LAMBDA, nil, cdr(sexp)), ctx));
-	            return syntax(A);
+                    // this should be moved to the parse phase
+                    lambdas.push(emit(syntaxStar(LAMBDA, nil, cdr(sexp)), ctx));
+                    return syntax(A);
                 }
 
                 if (isSymbol(A) && A == 'quasiquote')
-	            return sexp;
+                    return sexp;
 
                 return syntaxStar(emitQQ(A), emitQQ(cdr(sexp)));
             }
@@ -1385,13 +1385,13 @@ Moosky.Compiler = (
 
             function emitQ(sexp, ctx) {
                 if (sexp == nil)
-	            return '$nil';
+                    return '$nil';
 
                 if (isSymbol(sexp))
-	            return ['$symbol(', (new Values.String(sexp.$sym)).emit(), ')'].join('');
+                    return ['$symbol(', (new Values.String(sexp.$sym)).emit(), ')'].join('');
 
                 if (!isList(sexp)) {
-	            return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, ctx); //DEMUNGE
+                    return (sexp instanceof Value) ? sexp.emit() : '' + emitPrimitive(sexp, ctx); //DEMUNGE
                 }
 
                 return ['cons(', emitQ(car(sexp), ctx), ', ', emitQ(cdr(sexp), ctx), ')'].join('');
@@ -1404,7 +1404,7 @@ Moosky.Compiler = (
 
         function emitSet(sexp, ctx) {
             return Code('set').fill({ target: emit(cadr(sexp), ctx),  //DEMUNGE
-			              value: emit(caddr(sexp), ctx) });
+                                      value: emit(caddr(sexp), ctx) });
         }
 
         function compile(sexp, env, options) {

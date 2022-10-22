@@ -33,290 +33,290 @@
 
             function assertIsSymbolOrKeyword(name, sym) {
                 if (!isSymbol(sym) && !isKeyword(sym))
-	            throw new SyntaxError(name + ': symbol expected: ' + sym);
+                    throw new SyntaxError(name + ': symbol expected: ' + sym);
             }
 
             const wrappers = {
                 $quasiUnquote: function(sexp, lambdas) {
-	            if (isPair(sexp)) {
-	                const A = car(sexp);
-	                if (isSymbol(A)) {
-	                    if (A == 'unquote-splicing')
-	                        throw new SyntaxError('quasiquote: illegal splice' + sexp);
-	                }
-	            }
+                    if (isPair(sexp)) {
+                        const A = car(sexp);
+                        if (isSymbol(A)) {
+                            if (A == 'unquote-splicing')
+                                throw new SyntaxError('quasiquote: illegal splice' + sexp);
+                        }
+                    }
 
-	            return Bare.$quasiUnquote(sexp, lambdas);
+                    return Bare.$quasiUnquote(sexp, lambdas);
                 },
 
                 'eqv?': function(a, b) {
-	            assertArgCount('eqv?', 2, arguments);
-	            return Bare['eqv?'](a, b);
+                    assertArgCount('eqv?', 2, arguments);
+                    return Bare['eqv?'](a, b);
                 },
 
                 'eq?': function(a, b) {
-	            assertArgCount('eq?', 2, arguments);
-	            return Bare['eq?'](a, b);
+                    assertArgCount('eq?', 2, arguments);
+                    return Bare['eq?'](a, b);
                 },
 
                 'equal?': function(a, b) {
-	            assertArgCount('equal?', 2, arguments);
-	            return Bare['equal?'](a, b);
+                    assertArgCount('equal?', 2, arguments);
+                    return Bare['equal?'](a, b);
                 },
 
                 '/': numericFold('/',
-		                 function(q, a) {
-			             if (a == 0)
-			                 throw SyntaxError('/: division by zero.');
-			             return q / a;
-		                 }, 1),
+                                 function(q, a) {
+                                     if (a == 0)
+                                         throw SyntaxError('/: division by zero.');
+                                     return q / a;
+                                 }, 1),
 
                 atan: function(a, b) {
-	            if (arguments.length == 0 || arguments.length > 2)
-	                throw SyntaxError('atan expects 1 or 2 arguments; given ' + arguments.length);
+                    if (arguments.length == 0 || arguments.length > 2)
+                        throw SyntaxError('atan expects 1 or 2 arguments; given ' + arguments.length);
 
-	            if (!isNumber(a))
-	                throw SyntaxError('atan: number expected: not ' + a);
+                    if (!isNumber(a))
+                        throw SyntaxError('atan: number expected: not ' + a);
 
-	            if (arguments.length == 2 && isNumber(b))
-	                throw SyntaxError('atan: number expected: not ' + b);
+                    if (arguments.length == 2 && isNumber(b))
+                        throw SyntaxError('atan: number expected: not ' + b);
 
-	            return Bare.atan(a, b);
+                    return Bare.atan(a, b);
                 },
 
                 sqrt: numericUnop('sqrt', function(a) {
-		    if (a < 0)
-			throw SyntaxError('sqrt: negative argument not supported.');
-		    return Math.sqrt(a);
-		}),
+                    if (a < 0)
+                        throw SyntaxError('sqrt: negative argument not supported.');
+                    return Math.sqrt(a);
+                }),
 
                 'string->number': function(str, radix) {
-	            if (typeof(a) != 'string')
-	                throw SyntaxError('string->number: string expected: ' + a);
+                    if (typeof(a) != 'string')
+                        throw SyntaxError('string->number: string expected: ' + a);
 
-	            return Bare['string->number'](str, radix);
+                    return Bare['string->number'](str, radix);
                 },
 
                 'number->string': function(a, radix) {
-	            assertNonNegativeInteger('number->string', radix);
-	            return Bare['number->string'](a, radix);
+                    assertNonNegativeInteger('number->string', radix);
+                    return Bare['number->string'](a, radix);
                 },
 
                 not: function(a) {
-	            if (arguments.length != 1)
-	                throw SyntaxError('not: expects a single argument; got ' + arguments.length);
-	            return Bare.not(a);
+                    if (arguments.length != 1)
+                        throw SyntaxError('not: expects a single argument; got ' + arguments.length);
+                    return Bare.not(a);
                 },
 
                 'boolean?': function(a) {
-	            if (arguments.length != 1)
-	                throw SyntaxError('not: expects a single argument; got ' + arguments.length);
+                    if (arguments.length != 1)
+                        throw SyntaxError('not: expects a single argument; got ' + arguments.length);
 
-	            return Bare['boolean?'](a);
+                    return Bare['boolean?'](a);
                 },
 
                 'make-string': function(k, ch) {
-	            assertArgRange('make-string', 1, 2, arguments);
-	            assertIsNonNegativeInteger('make-string', k);
+                    assertArgRange('make-string', 1, 2, arguments);
+                    assertIsNonNegativeInteger('make-string', k);
 
-	            assertIsCharacter('make-string', ch !== undefined ? ch : ' ');
-	            return Bare['make-string'](k, ch);
+                    assertIsCharacter('make-string', ch !== undefined ? ch : ' ');
+                    return Bare['make-string'](k, ch);
                 },
 
                 'string': function(___) {
-	            for (var i = 0; i < arguments.length; i++)
-	                assertIsCharacter('string', arguments[i]);
+                    for (var i = 0; i < arguments.length; i++)
+                        assertIsCharacter('string', arguments[i]);
 
-	            return Bare.string.apply(this, arguments);
+                    return Bare.string.apply(this, arguments);
                 },
 
                 'string-ref': function(s, k) {
-	            assertArgCount('string-ref', 2, arguments);
-	            assertIsString('string-ref', s);
-	            assertIsNonNegativeInteger('string-ref', k);
-	            return Bare['string-ref'](s, k);
+                    assertArgCount('string-ref', 2, arguments);
+                    assertIsString('string-ref', s);
+                    assertIsNonNegativeInteger('string-ref', k);
+                    return Bare['string-ref'](s, k);
                 },
 
                 'substring': function(s, start, end) {
-	            assertArgCount('substring', 2, arguments);
-	            assertIsNonNegativeInteger('substring', start);
-	            assertIsNonNegativeInteger('substring', end);
-	            if (end < start)
-	                throw new SyntaxError('substring: end < start.');
+                    assertArgCount('substring', 2, arguments);
+                    assertIsNonNegativeInteger('substring', start);
+                    assertIsNonNegativeInteger('substring', end);
+                    if (end < start)
+                        throw new SyntaxError('substring: end < start.');
 
-	            return Bare['substring'](s, start, end);
+                    return Bare['substring'](s, start, end);
                 },
 
                 'string-append': function(___) {
-	            for (var i = 0; i < arguments.length; i++)
-	                assertIsString('string-append', arguments[i]);
+                    for (var i = 0; i < arguments.length; i++)
+                        assertIsString('string-append', arguments[i]);
 
-	            return Bare['string-append'].apply(this, arguments);
+                    return Bare['string-append'].apply(this, arguments);
                 },
 
                 'string->list': function(s) {
-	            assertArgCount('string->list', 1, arguments);
-	            assertIsString('string->list', s);
-	            return Bare['string->list'](s);
+                    assertArgCount('string->list', 1, arguments);
+                    assertIsString('string->list', s);
+                    return Bare['string->list'](s);
                 },
 
                 'list->string': function(lst) {
-	            assertArgCount('list->string', 1, arguments);
-	            assertIsList('list->string', lst);
+                    assertArgCount('list->string', 1, arguments);
+                    assertIsList('list->string', lst);
 
-	            while (lst != nil) {
-	                const ch = car(lst);
-	                assertIsCharacter('list->string', ch);
-	                lst = cdr(lst);
-	            }
+                    while (lst != nil) {
+                        const ch = car(lst);
+                        assertIsCharacter('list->string', ch);
+                        lst = cdr(lst);
+                    }
 
-	            return Bare['list->string'](lst);
+                    return Bare['list->string'](lst);
                 },
 
                 'string-copy': function(s) {
-	            assertArgCount('string-copy', 1, arguments);
-	            assertIsString('string-copy', s);
-	            return Bare['string-copy'](s);
+                    assertArgCount('string-copy', 1, arguments);
+                    assertIsString('string-copy', s);
+                    return Bare['string-copy'](s);
                 },
 
                 'string-for-each': function(proc, s0, ___) {
-	            assertMinArgs('string-for-each', 2, arguments);
-	            assertIsProcedure('string-for-each', proc);
-	            assertIsString('string-for-each', s0);
+                    assertMinArgs('string-for-each', 2, arguments);
+                    assertIsProcedure('string-for-each', proc);
+                    assertIsString('string-for-each', s0);
 
-	            const length = s0.length;
-	            for (var i = 2; i < arguments.length; i++) {
-	                const s = arguments[i];
-	                assertIsString('string-for-each', s);
-	                if (s.length != length)
-	                    throw new SyntaxError('string-for-each: all strings must be the same length: '
-				                  + '(string-length "' + s0 + '") != (string-length "' + s + '")');
+                    const length = s0.length;
+                    for (var i = 2; i < arguments.length; i++) {
+                        const s = arguments[i];
+                        assertIsString('string-for-each', s);
+                        if (s.length != length)
+                            throw new SyntaxError('string-for-each: all strings must be the same length: '
+                                                  + '(string-length "' + s0 + '") != (string-length "' + s + '")');
 
-	            }
+                    }
 
-	            return Bare['string-for-each'].apply(this, arguments);
+                    return Bare['string-for-each'].apply(this, arguments);
                 },
 
                 'vector?': function(v) {
-	            assertArgCount('vector?', 1, arguments);
-	            return Bare['vector?'](v);
+                    assertArgCount('vector?', 1, arguments);
+                    return Bare['vector?'](v);
                 },
 
                 'make-vector': function(k, obj) {
-	            assertArgRange('make-vector', 1, 2, arguments);
-	            assertIsNonNegativeInteger('make-vector', k);
-	            return Bare['make-vector'](k, obj);
+                    assertArgRange('make-vector', 1, 2, arguments);
+                    assertIsNonNegativeInteger('make-vector', k);
+                    return Bare['make-vector'](k, obj);
                 },
 
                 'vector-length': function(v) {
-	            assertArgCount('vector-length', 1, arguments);
-	            assertIsVector('vector-length', v);
-	            return Bare['vector-length'](v);
+                    assertArgCount('vector-length', 1, arguments);
+                    assertIsVector('vector-length', v);
+                    return Bare['vector-length'](v);
                 },
 
                 'vector-ref': function(v, k) {
-	            assertArgCount('vector-ref', 2, arguments);
-	            assertIsVector('vector-ref', v);
-	            assertIsNonNegativeInteger('vector-ref', k);
-	            assertVectorIndexInRange(v, k);
-	            return Bare['vector-ref'](v, k);
+                    assertArgCount('vector-ref', 2, arguments);
+                    assertIsVector('vector-ref', v);
+                    assertIsNonNegativeInteger('vector-ref', k);
+                    assertVectorIndexInRange(v, k);
+                    return Bare['vector-ref'](v, k);
                 },
 
                 'vector-set!': function(v, k, obj) {
-	            assertArgCount('vector-set!', 3, arguments);
-	            assertIsVector('vector-set!', v);
-	            assertIsNonNegativeInteger('vector-set!', k);
-	            assertVectorIndexInRange(v, k);
-	            return Bare['vector-set!'](v, k, obj);
+                    assertArgCount('vector-set!', 3, arguments);
+                    assertIsVector('vector-set!', v);
+                    assertIsNonNegativeInteger('vector-set!', k);
+                    assertVectorIndexInRange(v, k);
+                    return Bare['vector-set!'](v, k, obj);
                 },
 
                 'vector->list': function(v) {
-	            assertArgCount('vector->list', 1, arguments);
-	            assertIsVector('vector->list', v);
-	            return Bare['vector->list'](v);
+                    assertArgCount('vector->list', 1, arguments);
+                    assertIsVector('vector->list', v);
+                    return Bare['vector->list'](v);
                 },
 
                 'list->vector': function(lst) {
-	            assertArgCount('list->vector', 1, arguments);
-	            assertIsList('list->vector', lst);
-	            return Bare['list->vector'](lst);
+                    assertArgCount('list->vector', 1, arguments);
+                    assertIsList('list->vector', lst);
+                    return Bare['list->vector'](lst);
                 },
 
                 'symbol?': function(s) {
-	            assertArgCount('symbol?', 1, arguments);
-	            return Bare['symbol?'](s);
+                    assertArgCount('symbol?', 1, arguments);
+                    return Bare['symbol?'](s);
                 },
 
                 'keyword?': function(k) {
-	            assertArgCount('keyword?', 1, arguments);
-	            return Bare['keyword?'](k);
+                    assertArgCount('keyword?', 1, arguments);
+                    return Bare['keyword?'](k);
                 },
 
                 'symbol->string': function(sym) {
-	            assertIsSymbolOrKeyword('symbol->string', sym);
-	            assertArgCount('symbol->string', 1, arguments);
-	            return Bare['symbol->string'](sym);
+                    assertIsSymbolOrKeyword('symbol->string', sym);
+                    assertArgCount('symbol->string', 1, arguments);
+                    return Bare['symbol->string'](sym);
                 },
 
                 'string->symbol': function(s) {
-	            assertIsString('string->symbol', s);
-	            assertArgCount('string->symbol', 1, arguments);
-	            return Bare['string->symbol'](s);
+                    assertIsString('string->symbol', s);
+                    assertArgCount('string->symbol', 1, arguments);
+                    return Bare['string->symbol'](s);
                 },
 
                 'procedure?': function(p) {
-	            assertArgCount('procedure?', 1, arguments);
-	            return Bare['procedure?'](p);
+                    assertArgCount('procedure?', 1, arguments);
+                    return Bare['procedure?'](p);
                 },
 
 
                 'apply': function(proc, ___, lst) {
-	            assertMinArgs('apply', 2, arguments);
-	            assertIsProcedure('apply', proc);
-	            const tailIndex = arguments.length-1;
-	            const tail = arguments[tailIndex];
-	            if (!isList(tail))
-	                throw new SyntaxError('apply: last argument must be a list: ' + tail);
+                    assertMinArgs('apply', 2, arguments);
+                    assertIsProcedure('apply', proc);
+                    const tailIndex = arguments.length-1;
+                    const tail = arguments[tailIndex];
+                    if (!isList(tail))
+                        throw new SyntaxError('apply: last argument must be a list: ' + tail);
 
-	            return Bare['apply'].apply(this, arguments);
+                    return Bare['apply'].apply(this, arguments);
                 },
 
                 '?>>': function() {
-	            const insp = Moosky.Top.$lastInspector;
-	            if (insp && insp.children.length > 0)
-	                Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
+                    const insp = Moosky.Top.$lastInspector;
+                    if (insp && insp.children.length > 0)
+                        Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
                 },
 
                 '<<?': function() {
-	            const insp = Moosky.Top.$lastInspector;
-	            if (insp && insp.inspector)
-	                Moosky.Top.$lastInspector = insp.inspector;
+                    const insp = Moosky.Top.$lastInspector;
+                    if (insp && insp.inspector)
+                        Moosky.Top.$lastInspector = insp.inspector;
                 },
 
                 ':?': function() {
-	            const insp = Moosky.Top.$lastInspector;
-	            return insp && insp.citation.content();
+                    const insp = Moosky.Top.$lastInspector;
+                    return insp && insp.citation.content();
                 },
 
                 '?frames': function() {
-	            var topInsp = Moosky.Top.$lastInspector;
+                    var topInsp = Moosky.Top.$lastInspector;
 
-	            if (!topInsp)
-	                return nil;
-	            while (topInsp.inspector != null)
-	                topInsp = topInsp.inspector;
+                    if (!topInsp)
+                        return nil;
+                    while (topInsp.inspector != null)
+                        topInsp = topInsp.inspector;
 
-	            var insp = topInsp;
-	            var inspectors = nil;
-	            while (insp.children.length > 0) {
-	                inspectors = cons(insp, inspectors);
-	                insp = insp.children[insp.children.length-1];
-	            }
-	            return inspectors;
+                    var insp = topInsp;
+                    var inspectors = nil;
+                    while (insp.children.length > 0) {
+                        inspectors = cons(insp, inspectors);
+                        insp = insp.children[insp.children.length-1];
+                    }
+                    return inspectors;
                 },
 
                 version: function() {
-	            return Moosky.Version;
+                    return Moosky.Version;
                 }
             };
 

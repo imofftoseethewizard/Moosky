@@ -48,8 +48,8 @@ Moosky.Values.Safe = (
                 step(fast);
                 fast = fast.$d;
                 if (!Cons.isCons(fast)) {
-	            debugger;
-	            throw new SyntaxError('improper list.');
+                    debugger;
+                    throw new SyntaxError('improper list.');
                 }
             }
 
@@ -57,13 +57,13 @@ Moosky.Values.Safe = (
                 adv();
 
                 if (fast === Cons.nil)
-	            break;
+                    break;
 
                 adv();
 
                 slow = slow.$d;
                 if (fast == slow)
-	            throw new SyntaxError('circular list.');
+                    throw new SyntaxError('circular list.');
             }
         };
 
@@ -77,9 +77,9 @@ Moosky.Values.Safe = (
             var result = Cons.nil;
 
             Cons.safe_traverse(this,
-		               function(lst) {
-			           result = new Cons(lst.$a, result);
-		               });
+                               function(lst) {
+                                   result = new Cons(lst.$a, result);
+                               });
 
             return result;
         };
@@ -95,12 +95,12 @@ Moosky.Values.Safe = (
 
             for (var i = 0; i < argCount-1; i++) {
                 Cons.safe_traverse(arguments[i],
-			           function(lst) {
-			               const next = new Cons();
-			               tail.$d = next;
-			               tail = next;
-			               tail.$a = lst.$a;
-			           });
+                                   function(lst) {
+                                       const next = new Cons();
+                                       tail.$d = next;
+                                       tail = next;
+                                       tail.$a = lst.$a;
+                                   });
             }
 
             tail.$d = arguments[argCount-1];
@@ -114,25 +114,25 @@ Moosky.Values.Safe = (
 
             if (!Cons.isCons(sexp)) {
                 switch (sexp) {
-	        case false: return '#f';
-	        case null: return '#n';
-	        case true: return '#t';
-	        case undefined: return '#u';
+                case false: return '#f';
+                case null: return '#n';
+                case true: return '#t';
+                case undefined: return '#u';
                 }
 
                 if (sexp instanceof Array) {
-	            const chunks = [];
-	            for (var i = 0; i < sexp.length; i++)
-	                chunks.push(Cons.printSexp(sexp[i]));
+                    const chunks = [];
+                    for (var i = 0; i < sexp.length; i++)
+                        chunks.push(Cons.printSexp(sexp[i]));
 
-	            return '#(' + chunks.join(' ') + ')';
+                    return '#(' + chunks.join(' ') + ')';
                 }
 
                 if (typeof(sexp) == 'string')
-	            return '"' + sexp.replace(/\"/g, '\\"') + '"';
+                    return '"' + sexp.replace(/\"/g, '\\"') + '"';
 
                 if (sexp && sexp.$has_promise)
-	            return Cons.printSexp(sexp.force());
+                    return Cons.printSexp(sexp.force());
 
                 return sexp.toString();
             }
@@ -143,14 +143,14 @@ Moosky.Values.Safe = (
                 const D = sexp.$d;
 
                 if (!Cons.isCons(D)) {
-	            result.push(Cons.printSexp(A));
-	            result.push('.');
-	            result.push(Cons.printSexp(D));
-	            break;
+                    result.push(Cons.printSexp(A));
+                    result.push('.');
+                    result.push(Cons.printSexp(D));
+                    break;
                 }
 
                 if (result.length == 0 && A instanceof Bare.Symbol && A.$sym == 'quote' && D.$d == Cons.nil)
-	            return "'" + Cons.printSexp(D.$a);
+                    return "'" + Cons.printSexp(D.$a);
 
                 result.push(Cons.printSexp(A));
                 sexp = D;

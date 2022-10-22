@@ -35,7 +35,7 @@ Moosky.Tools = (
             var text = this.$templ;
             for (var p in params) {
                 if (this.$regexps[p])
-	            text = text.replace(this.$regexps[p], function() { return params[p]; });
+                    text = text.replace(this.$regexps[p], function() { return params[p]; });
             }
 
             return text;
@@ -62,10 +62,10 @@ Moosky.Tools = (
             const priorRe = new RegExp("(.{" + prior.index + "})(.{" + this.priorSubstLength + "})");
 
             const nextTarget = { re: nextRe,
-		                 label: this.nextLabel };
+                                 label: this.nextLabel };
 
             const priorTarget = { re: priorRe,
-			          label: this.priorLabel };
+                                  label: this.priorLabel };
 
             this.targets = [];
             if (next.index < prior.index) {
@@ -97,8 +97,8 @@ Moosky.Tools = (
 
                 var intermediate = this.pattern;
                 for (var j = 0; j < 2; j++) {
-	            const target = this.targets[j];
-	            intermediate = intermediate.replace(target.re, '$1' + values[target.label]);
+                    const target = this.targets[j];
+                    intermediate = intermediate.replace(target.re, '$1' + values[target.label]);
                 }
 
                 result = intermediate;
@@ -186,10 +186,10 @@ Moosky.Tools = (
             for (var i = 0; i < matches.length; i++) {
                 const target = matches[i].slice(2, -2);
                 if (target == '1...')
-	            return new LeftRecursiveTemplate(patterns[1], pattern);
+                    return new LeftRecursiveTemplate(patterns[1], pattern);
 
                 if (target == '...n')
-	            return new RightRecursiveTemplate(patterns[1], pattern);
+                    return new RightRecursiveTemplate(patterns[1], pattern);
             }
             return new Template(pattern);
         };
@@ -197,10 +197,10 @@ Moosky.Tools = (
         InlineTemplate.assertSubTemplateWellFormed = function(label, template) {
             if (label.match(/^\d$/)) {
                 for (var i = 0, limit = parseInt(label)-1; i < limit; i++)
-	            if (template.$regexps[i] === undefined)
-	                throw new InlineTemplate.DefinitionError('Template for the ' + label +
-	                                                         ' parameter case does not define all template parameters from '
-	                                                         + '<<0>> to <<' + limit + '>>: <<' + i + '>> is missing.');
+                    if (template.$regexps[i] === undefined)
+                        throw new InlineTemplate.DefinitionError('Template for the ' + label +
+                                                                 ' parameter case does not define all template parameters from '
+                                                                 + '<<0>> to <<' + limit + '>>: <<' + i + '>> is missing.');
 
             }
         };
@@ -221,19 +221,19 @@ Moosky.Tools = (
 
         InlineTemplate.prototype.fill = function(params) {
             const template = this.subTemplates[params.length]
-		  || this.subTemplates['1...']
-		  || this.subTemplates['...n'];
+                  || this.subTemplates['1...']
+                  || this.subTemplates['...n'];
 
             if (template === undefined)
                 throw new InlineTemplate.ExpansionError('Too many parameters for any ' +
-	                                                'fixed-length case, and there is no recursive case.');
+                                                        'fixed-length case, and there is no recursive case.');
 
             return template.fill(params);
         };
 
         return { Template: Template,
-	         RightRecursiveTemplate: RightRecursiveTemplate,
-	         LeftRecursiveTemplate: LeftRecursiveTemplate,
-	         InlineTemplate: InlineTemplate };
+                 RightRecursiveTemplate: RightRecursiveTemplate,
+                 LeftRecursiveTemplate: LeftRecursiveTemplate,
+                 InlineTemplate: InlineTemplate };
     }
 )();

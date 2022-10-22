@@ -45,29 +45,29 @@ Moosky.Values.Bare = (
             var name;
 
             name = { '\u0000': 'nul',     '\u0007': 'alarm',    '\u0008': 'backspace',
-	             '\u0009': 'tab',     '\u000a': 'linefeed', '\u000a': 'newline',
-	             '\u000b': 'vtab',    '\u000c': 'page',     '\u000d': 'return',
-	             '\u001b': 'esc',     '\u0020': 'space',    '\u007f': 'delete' }[this.$ch]
+                     '\u0009': 'tab',     '\u000a': 'linefeed', '\u000a': 'newline',
+                     '\u000b': 'vtab',    '\u000c': 'page',     '\u000d': 'return',
+                     '\u001b': 'esc',     '\u0020': 'space',    '\u007f': 'delete' }[this.$ch]
                 || { '\u0000': 'NUL', '\u0001': 'SOH', '\u0002': 'STX', '\u0003': 'ETX',
-	             '\u0004': 'EOT', '\u0005': 'ENQ', '\u0006': 'ACK', '\u0007': 'BEL',
- 	             '\u0008': 'BS',  '\u0009': 'HT',  '\u000a': 'LF',  '\u000b': 'VT',
- 	             '\u000c': 'FF',  '\u000d': 'CR',  '\u000e': 'SO',  '\u000f': 'SI',
- 	             '\u0010': 'DLE', '\u0011': 'DC1', '\u0012': 'DC2', '\u0013': 'DC3',
-	             '\u0014': 'DC4', '\u0015': 'NAK', '\u0016': 'SYN', '\u0017': 'ETB',
- 	             '\u0018': 'CAN', '\u0019': 'EM',  '\u001a': 'SUB', '\u001b': 'ESC',
- 	             '\u001c': 'FS',  '\u001d': 'GS',  '\u001e': 'RS',  '\u001f': 'US',
- 	             '\u007f': 'DEL'}[this.$ch];
+                     '\u0004': 'EOT', '\u0005': 'ENQ', '\u0006': 'ACK', '\u0007': 'BEL',
+                     '\u0008': 'BS',  '\u0009': 'HT',  '\u000a': 'LF',  '\u000b': 'VT',
+                     '\u000c': 'FF',  '\u000d': 'CR',  '\u000e': 'SO',  '\u000f': 'SI',
+                     '\u0010': 'DLE', '\u0011': 'DC1', '\u0012': 'DC2', '\u0013': 'DC3',
+                     '\u0014': 'DC4', '\u0015': 'NAK', '\u0016': 'SYN', '\u0017': 'ETB',
+                     '\u0018': 'CAN', '\u0019': 'EM',  '\u001a': 'SUB', '\u001b': 'ESC',
+                     '\u001c': 'FS',  '\u001d': 'GS',  '\u001e': 'RS',  '\u001f': 'US',
+                     '\u007f': 'DEL'}[this.$ch];
 
             if (name === undefined) {
                 const codePoint = this.$ch.charCodeAt(0);
                 if (codePoint <= 126)
-	            name = this.$ch;
+                    name = this.$ch;
                 else {
-	            name = codePoint.toString(16);
-	            while (name.length < 4)
-	                name = '0' + name;
+                    name = codePoint.toString(16);
+                    while (name.length < 4)
+                        name = '0' + name;
 
-	            name = 'u' + name;
+                    name = 'u' + name;
                 }
             }
             return '#\\' + name;
@@ -112,20 +112,20 @@ Moosky.Values.Bare = (
         const jsIdentifierRE = /^[$\w_][\w\d_]*$/;
 
         const jsKeywords = ["break", "case", "catch", "continue", "default", "delete",
-		            "do", "else", "finally", "for", "function", "if", "in",
-		            "instanceof", "new", "return", "switch", "this", "throw",
-		            "try", "typeof", "var", "void", "while", "with"];
+                            "do", "else", "finally", "for", "function", "if", "in",
+                            "instanceof", "new", "return", "switch", "this", "throw",
+                            "try", "typeof", "var", "void", "while", "with"];
 
         const jsReservedWords = ["abstract", "boolean", "byte", "char", "class",
-			         "const", "debugger", "double", "enum", "export",
-			         "extends", "final", "float", "goto", "implements",
-			         "import", "int", "interface", "long", "native",
-			         "package", "private", "protected", "public", "short",
-			         "static", "super", "synchronized", "throws",
-			         "transient", "volatile"];
+                                 "const", "debugger", "double", "enum", "export",
+                                 "extends", "final", "float", "goto", "implements",
+                                 "import", "int", "interface", "long", "native",
+                                 "package", "private", "protected", "public", "short",
+                                 "static", "super", "synchronized", "throws",
+                                 "transient", "volatile"];
 
         const jsReservedRE = new RegExp('^(' + jsKeywords.join('|') + '|'
-				        + jsReservedWords.join('|') + ')$');
+                                        + jsReservedWords.join('|') + ')$');
 
         Symbol.prototype.requiresQuotes = function() {
             const value = this.toString();
@@ -199,11 +199,11 @@ Moosky.Values.Bare = (
 
             value = value.replace(/->/g, '-to-')
                 .replace(/\*$/, '-ext')
-		.replace(/<=/, '-lte-')
+                .replace(/<=/, '-lte-')
                 .replace(/</, '-lt-')
-		.replace(/>=/, '-gte-')
+                .replace(/>=/, '-gte-')
                 .replace(/>/, '-gt-')
-		.replace(/=/, '-eq-');
+                .replace(/=/, '-eq-');
 
             value = Symbol.camelize(value);
             value = value.replace(/[^_$a-zA-Z0-9]/g, '_');
@@ -294,8 +294,8 @@ Moosky.Values.Bare = (
         Cite.prototype.merge = function(cite) {
             if (cite instanceof Cite) {
                 if (this.$text && this.$text != cite.$text) {
-	            debugger;
-	            throw new Error('cannot merge citations on different texts.');
+                    debugger;
+                    throw new Error('cannot merge citations on different texts.');
                 }
                 this.$text = cite.$text;
                 this.$start = Math.min(this.$start, cite.$start);
@@ -328,7 +328,7 @@ Moosky.Values.Bare = (
             while (lines > 0) {
                 index = this.$text.lastIndexOf('\n', index-1);
                 if (index <= 0)
-	            return 0;
+                    return 0;
 
                 lines--;
             }
@@ -340,7 +340,7 @@ Moosky.Values.Bare = (
             while (lines > 0) {
                 index = this.$text.indexOf('\n', index+1);
                 if (index == -1)
-	            return this.$text.length;
+                    return this.$text.length;
 
                 lines--;
             }
@@ -436,7 +436,7 @@ Moosky.Values.Bare = (
                 if (!this.$is_pending) return this.$v;
                 var result = this();
                 while (result && result.$has_promise)
-	            result = result();
+                    result = result();
                 this.$is_pending = false;
                 return this.$v = result;
             };
@@ -509,11 +509,11 @@ Moosky.Values.Bare = (
             for (var i = 0; i < argCount-1; i++) {
                 var lst = arguments[i];
                 while (lst != Cons.nil) {
-	            const next = new Cons();
-	            tail.$d = next;
-	            tail = next;
-	            tail.$a = lst.$a;
-	            lst = lst.$d;
+                    const next = new Cons();
+                    tail.$d = next;
+                    tail = next;
+                    tail.$a = lst.$a;
+                    lst = lst.$d;
                 }
             }
 
@@ -528,25 +528,25 @@ Moosky.Values.Bare = (
 
             if (!Cons.isCons(sexp)) {
                 switch (sexp) {
-	        case false: return '#f';
-	        case null: return '#n';
-	        case true: return '#t';
-	        case undefined: return '#u';
+                case false: return '#f';
+                case null: return '#n';
+                case true: return '#t';
+                case undefined: return '#u';
                 }
 
                 if (sexp instanceof Array) {
-	            const chunks = [];
-	            for (var i = 0; i < sexp.length; i++)
-	                chunks.push(Cons.printSexp(sexp[i]));
+                    const chunks = [];
+                    for (var i = 0; i < sexp.length; i++)
+                        chunks.push(Cons.printSexp(sexp[i]));
 
-	            return '#(' + chunks.join(' ') + ')';
+                    return '#(' + chunks.join(' ') + ')';
                 }
 
                 if (typeof(sexp) == 'string')
-	            return '"' + sexp.replace(/\"/g, '\\"') + '"';
+                    return '"' + sexp.replace(/\"/g, '\\"') + '"';
 
                 if (sexp && sexp.$has_promise)
-	            return Cons.printSexp(sexp.force());
+                    return Cons.printSexp(sexp.force());
 
                 return sexp.toString();
             }
@@ -557,14 +557,14 @@ Moosky.Values.Bare = (
                 const D = sexp.$d;
 
                 if (!Cons.isCons(D)) {
-	            result.push(Cons.printSexp(A));
-	            result.push('.');
-	            result.push(Cons.printSexp(D));
-	            break;
+                    result.push(Cons.printSexp(A));
+                    result.push('.');
+                    result.push(Cons.printSexp(D));
+                    break;
                 }
 
                 if (result.length == 0 && A instanceof Symbol && A.$sym == 'quote' && D.$d == Cons.nil)
-	            return "'" + Cons.printSexp(D.$a);
+                    return "'" + Cons.printSexp(D.$a);
 
                 result.push(Cons.printSexp(A));
                 sexp = D;
@@ -576,9 +576,9 @@ Moosky.Values.Bare = (
         Cons.prototype.toString = function() { return Cons.printSexp(this); };
 
         return { Value: Value, Character: Character, String: MooskyString,
-	         Symbol: Symbol, Keyword: Keyword, RegExp: MooskyRegExp,
-	         Javascript:Javascript, Token: Token, Cite: Cite, Number: MooskyNumber,
-	         Complex: Complex,  Real: Real, Rational: Rational, Integer: Integer,
-	         Promise: Promise, Exception: Exception, Cons: Cons };
+                 Symbol: Symbol, Keyword: Keyword, RegExp: MooskyRegExp,
+                 Javascript:Javascript, Token: Token, Cite: Cite, Number: MooskyNumber,
+                 Complex: Complex,  Real: Real, Rational: Rational, Integer: Integer,
+                 Promise: Promise, Exception: Exception, Cons: Cons };
     }
 )();
