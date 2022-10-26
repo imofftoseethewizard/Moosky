@@ -20,15 +20,15 @@
 //=============================================================================
 
 
-Moosky.Inspector = (
+Scheme.Inspector = (
     function () {
-        var Values = Moosky.Values;
+        var Values = Scheme.Values;
         var Symbol = Values.Symbol;
         var Cite = Values.Cite;
 
-        //  with (Moosky.Runtime.exports) {
+        //  with (Scheme.Runtime.exports) {
         {
-            eval(Moosky.Runtime.importExpression);
+            eval(Scheme.Runtime.importExpression);
 
             function Inspector(inspector, evaluator, citation) {
                 evaluator.children = [];
@@ -42,7 +42,7 @@ Moosky.Inspector = (
             Inspector.Debug = false;
             Inspector.Citant = function(text) {
                 return function(start, end, sexpId) {
-	            return new Cite(text, start, end, Moosky.Inspector.Sexps[sexpId]);
+	            return new Cite(text, start, end, Scheme.Inspector.Sexps[sexpId]);
                 };
             };
 
@@ -72,7 +72,7 @@ Moosky.Inspector = (
             };
 
             Inspector.Abort.Compiler = function(sexp) {
-                return Moosky.Compiler.compile(sexp, null, { namespace: '{}' });
+                return Scheme.Compiler.compile(sexp, null, { namespace: '{}' });
             };
 
             Inspector.registerSexp = function(sexp) {

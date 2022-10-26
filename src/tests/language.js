@@ -23,15 +23,15 @@
 //
 // test/language.js
 //
-// General test of the scheme language implemented by Moosky.
+// General test of the scheme language implemented by Scheme.
 //
 //=============================================================================
 
 (function () {
-    eval($Moosky.Util.importExpression);
-    eval($Moosky.Test.importExpression);
+    eval($Scheme.Util.importExpression);
+    eval($Scheme.Test.importExpression);
 
-    addTest(new MooskyCompilerTest({
+    addTest(new SchemeCompilerTest({
         name: 'Language',
         prereqs: [ new FilesPreReq({ files: ['lib/preamble.ss',
 				             'lib/r6rs-list.ss',
@@ -40,9 +40,9 @@
 					     'lambda.ss'] }) ],
         action: function() {
             //      console.log('starting compiler test action --- \n\n\n\n\n\n\n\n\n\n\n.');
-            var Moosky = this.Moosky;
-            var nil = Moosky.Values.Cons.nil;
-            var Top = Moosky.Top
+            var Scheme = this.Scheme;
+            var nil = Scheme.Values.Cons.nil;
+            var Top = Scheme.Top
 
             var cons = Top.cons;
             var car = Top.car;
@@ -54,11 +54,11 @@
             var evaluator = this.evaluator;
 
             function compile (source) {
-	        var read = Moosky.Reader.read;
-	        var END = Moosky.Reader.END;
-	        var compile = Moosky.Compiler.compile;
+	        var read = Scheme.Reader.read;
+	        var END = Scheme.Reader.END;
+	        var compile = Scheme.Compiler.compile;
 
-	        var tokens = new Moosky.Reader.TokenStream(source);
+	        var tokens = new Scheme.Reader.TokenStream(source);
 
 	        var result = nil;
 	        while (!tokens.finished() && (sexp = read(tokens)) != END)
@@ -67,7 +67,7 @@
 	        return reverse(result);
             }
 
-            evaluator('Moosky.Top.printd = window.parent.$Moosky.Util.exports.print;');
+            evaluator('Scheme.Top.printd = window.parent.$Scheme.Util.exports.print;');
 
             map(function (file) {
 	        var sexp = compile(texts[file]);

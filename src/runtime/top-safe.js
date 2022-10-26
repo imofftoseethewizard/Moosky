@@ -21,15 +21,15 @@
 
 (
     function () {
-        var Bare = Moosky.Runtime.Bare.Top;
-        var Safe = Moosky.Runtime.Safe.Top = {};
+        var Bare = Scheme.Runtime.Bare.Top;
+        var Safe = Scheme.Runtime.Safe.Top = {};
 
         for (var p in Bare)
             Safe[p] = Bare[p];
 
-        //  with (Moosky.Runtime.exports) {
+        //  with (Scheme.Runtime.exports) {
         {
-            eval(Moosky.Runtime.importExpression);
+            eval(Scheme.Runtime.importExpression);
 
             function assertIsSymbolOrKeyword(name, sym) {
                 if (!isSymbol(sym) && !isKeyword(sym))
@@ -282,24 +282,24 @@
                 },
 
                 '?>>': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            var insp = Scheme.Top.$lastInspector;
 	            if (insp && insp.children.length > 0)
-	                Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
+	                Scheme.Top.$lastInspector = insp.children[insp.children.length-1];
                 },
 
                 '<<?': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            var insp = Scheme.Top.$lastInspector;
 	            if (insp && insp.inspector)
-	                Moosky.Top.$lastInspector = insp.inspector;
+	                Scheme.Top.$lastInspector = insp.inspector;
                 },
 
                 ':?': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            var insp = Scheme.Top.$lastInspector;
 	            return insp && insp.citation.content();
                 },
 
                 '?frames': function() {
-	            var topInsp = Moosky.Top.$lastInspector;
+	            var topInsp = Scheme.Top.$lastInspector;
 
 	            if (!topInsp)
 	                return nil;
@@ -316,7 +316,7 @@
                 },
 
                 version: function() {
-	            return Moosky.Version;
+	            return Scheme.Version;
                 }
             };
 

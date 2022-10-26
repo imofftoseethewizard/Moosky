@@ -21,8 +21,8 @@
 
 
 (function () {
-    eval($Moosky.Util.importExpression);
-    eval($Moosky.Test.importExpression);
+    eval($Scheme.Util.importExpression);
+    eval($Scheme.Test.importExpression);
 
     var components = ["components/base.js",
 		      "components/values-bare.js",

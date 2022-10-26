@@ -5,11 +5,11 @@
 // only switch should be which file is included
 // ?debug module allows switching?
 
-Moosky.Runtime = {};
+Scheme.Runtime = {};
 
-Moosky.Runtime.Bare = (
+Scheme.Runtime.Bare = (
     function () {
-        var Values = Moosky.Values;
+        var Values = Scheme.Values;
         var Symbol = Values.Symbol;
         var Keyword = Values.Keyword;
         var Cons = Values.Cons;
@@ -293,9 +293,9 @@ Moosky.Runtime.Bare = (
 	            var unquoted = $force(lambdas.shift()());
 
 	            if (isList(unquoted))
-	                return append(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+	                return append(unquoted, Scheme.Top.$quasiUnquote(cdr(sexp), lambdas));
 
-	            return cons(unquoted, Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+	            return cons(unquoted, Scheme.Top.$quasiUnquote(cdr(sexp), lambdas));
                 }
 
             }
@@ -307,7 +307,7 @@ Moosky.Runtime.Bare = (
 	            return sexp;
             }
 
-            return cons(Moosky.Top.$quasiUnquote(A, lambdas), Moosky.Top.$quasiUnquote(cdr(sexp), lambdas));
+            return cons(Scheme.Top.$quasiUnquote(A, lambdas), Scheme.Top.$quasiUnquote(cdr(sexp), lambdas));
         }
 
         function values(___) {

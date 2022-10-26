@@ -1,4 +1,4 @@
-Moosky
+Scheme
 Compiling module generic-parser
 Compiling module test
 Compiling module simple-markup

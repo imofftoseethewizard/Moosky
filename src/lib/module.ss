@@ -26,7 +26,7 @@
 ;; a very useful auxiliary that should live elsewhere.
 ;;
 
-(define print Moosky.HTML.print)
+(define print Scheme.HTML.print)
 (define (printf fmt . args)
   (print (apply format (cons fmt args))))
 
@@ -59,7 +59,7 @@
 ;;
 
 (define (make-module name base namespace)
-  (let ([new-module (Moosky.Runtime.exports.makeFrame base)])
+  (let ([new-module (Scheme.Runtime.exports.makeFrame base)])
     (object-set! new-module "$name" name)
     (object-set! new-module "$namespace" (default namespace
                                            (let ([base-namespace (object-ref base "$namespace")])
@@ -344,7 +344,7 @@
     `(module-import (current-module) ,src-module-spec ,name-map ',names)))
 
 (define (current-module)
-  Moosky.Top)
+  Scheme.Top)
 
 ;;============================================================================
 ;;

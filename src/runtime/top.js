@@ -19,11 +19,11 @@
 //
 //=============================================================================
 
-Moosky.Top = (
+Scheme.Top = (
     function () {
         //  var Bare = {};
 
-        //  var Values = Moosky.Values;
+        //  var Values = Scheme.Values;
         //  var Symbol = Values.Symbol;
 
         // DEMUNGE remove
@@ -32,7 +32,7 @@ Moosky.Top = (
         //			   '*': '$times',
         //			   '/': '$divides' });
 
-        var Runtime = Moosky.Runtime;
+        var Runtime = Scheme.Runtime;
         var RuntimeTop = Runtime.Safe && Runtime.Safe.Top
 	    || Runtime.Bare && Runtime.Bare.Top;
 

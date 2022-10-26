@@ -19,16 +19,16 @@
 //
 //=============================================================================
 
-Moosky.Runtime.Safe = (
+Scheme.Runtime.Safe = (
     function () {
-        var Values = Moosky.Values;
+        var Values = Scheme.Values;
         var Symbol = Values.Symbol;
         var Keyword = Values.Keyword;
         var Cons = Values.Cons;
         var Cite = Values.Cite;
         var nil = Cons.nil;
 
-        var Bare = Moosky.Runtime.Bare;
+        var Bare = Scheme.Runtime.Bare;
 
         var imports = [];
         for (var p in Bare.exports)
@@ -36,25 +36,25 @@ Moosky.Runtime.Safe = (
 
         eval(imports.join(''));
 
-        function assertMinArgs(name, count, arguments) {
-            if (arguments.length < count)
+        function assertMinArgs(name, count, args) {
+            if (args.length < count)
                 throw new SyntaxError(name + ': expects at least ' + count +
 			              ' argument' + (count == 1 ? '' : 's') +
-			              ': given ' + arguments.length);
+			              ': given ' + args.length);
         }
 
-        function assertArgCount(name, count, arguments) {
-            if (arguments.length != count)
+        function assertArgCount(name, count, args) {
+            if (args.length != count)
                 throw new SyntaxError(name + ': expects at exactly ' + count +
 			              ' argument' + (count == 1 ? '' : 's') +
-			              ': given ' + arguments.length);
+			              ': given ' + args.length);
         }
 
-        function assertArgRange(name, min, max, arguments) {
-            if (arguments.length < min || arguments.length > max)
+        function assertArgRange(name, min, max, args) {
+            if (args.length < min || args.length > max)
                 throw new SyntaxError(name + ': expects at between ' + min +
 			              ' and ' + max +
-			              ' arguments: given ' + arguments.length);
+			              ' arguments: given ' + args.length);
         }
 
         function assertIsList(name, lst) {
@@ -431,7 +431,7 @@ Moosky.Runtime.Safe = (
 
         var Safe = {};
         Safe.exports = {
-            isString: isString,
+            isString: Bare.exports.isString,
             isNumber: isNumber,
             isInteger: isInteger,
             isSymbol: isSymbol,

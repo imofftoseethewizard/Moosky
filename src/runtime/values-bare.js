@@ -19,9 +19,9 @@
 //
 //=============================================================================
 
-Moosky.Values = {};
+Scheme.Values = {};
 
-Moosky.Values.Bare = (
+Scheme.Values.Bare = (
     function () {
         function escapeString(str) {
             return str.replace(/\n/g, '\\n').replace(/\"/g, '\\"').replace(/\r/g, '\\r');
@@ -78,23 +78,23 @@ Moosky.Values.Bare = (
         };
 
         // --------------------------------------------------------------------------
-        function MooskyString(str) {
+        function String(str) {
             this.$str = str;
         }
 
-        MooskyString.escapeString = escapeString;
+        String.escapeString = escapeString;
 
-        MooskyString.prototype = new Value();
+        String.prototype = new Value();
 
-        MooskyString.prototype.toString = function () {
+        String.prototype.toString = function () {
             return '"' + this.$str + '"';
         };
 
-        MooskyString.prototype.emit = function() {
+        String.prototype.emit = function() {
             return '"' + escapeString(this.$str) + '"';
         };
 
-        MooskyString.prototype.raw = function() {
+        String.prototype.raw = function() {
             return this.$str;
         };
 
@@ -242,16 +242,16 @@ Moosky.Values.Bare = (
         Keyword.prototype.toString = Symbol.prototype.toString;
 
         // --------------------------------------------------------------------------
-        function MooskyRegExp(regexp) {
+        function SchemeRegExp(regexp) {
             this.$regexp = regexp;
         }
 
-        MooskyRegExp.prototype = new Value();
-        MooskyRegExp.prototype.emit = function() {
+        SchemeRegExp.prototype = new Value();
+        SchemeRegExp.prototype.emit = function() {
             return this.$regexp.toString();
         };
 
-        MooskyRegExp.prototype.toString = function () {
+        SchemeRegExp.prototype.toString = function () {
             return '#' + this.$regexp.toString();
         };
 
@@ -348,16 +348,16 @@ Moosky.Values.Bare = (
         };
 
         // --------------------------------------------------------------------------
-        function MooskyNumber(n) {
+        function Number(n) {
             this.$n = n;
         }
 
-        MooskyNumber.prototype = new Number();
-        MooskyNumber.prototype.valueOf = function() {
+        Number.prototype = new Number();
+        Number.prototype.valueOf = function() {
             return this.$n;
         };
 
-        MooskyNumber.prototype.toString = function() {
+        Number.prototype.toString = function() {
             return this.valueOf().toString();
         };
 
@@ -366,7 +366,7 @@ Moosky.Values.Bare = (
             this.$z = z;
         }
 
-        Complex.prototype = new MooskyNumber();
+        Complex.prototype = new Number();
         Complex.prototype.valueOf = function() {
             return this.$z;
         };
@@ -575,9 +575,9 @@ Moosky.Values.Bare = (
 
         Cons.prototype.toString = function() { return Cons.printSexp(this); };
 
-        return { Value: Value, Character: Character, String: MooskyString,
-	         Symbol: Symbol, Keyword: Keyword, RegExp: MooskyRegExp,
-	         Javascript:Javascript, Token: Token, Cite: Cite, Number: MooskyNumber,
+        return { Value: Value, Character: Character, String: String,
+	         Symbol: Symbol, Keyword: Keyword, RegExp: SchemeRegExp,
+	         Javascript:Javascript, Token: Token, Cite: Cite, Number: Number,
 	         Complex: Complex,  Real: Real, Rational: Rational, Integer: Integer,
 	         Promise: Promise, Exception: Exception, Cons: Cons };
     }

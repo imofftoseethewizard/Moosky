@@ -20,11 +20,11 @@
 //=============================================================================
 
 
-Moosky.HTML = (
+Scheme.HTML = (
     function () {
-        eval(Moosky.Runtime.importExpression);
+        eval(Scheme.Runtime.importExpression);
 
-        var Symbol = Moosky.Values.Symbol;
+        var Symbol = Scheme.Values.Symbol;
 
         if (typeof(XMLHttpRequest)  === "undefined") {
             XMLHttpRequest = function() {
@@ -110,7 +110,7 @@ Moosky.HTML = (
             return script;
         }
 
-        function makeMooskySrcElement(location) {
+        function makeSchemeSrcElement(location) {
             var script = document.createElement('script');
             script.type = 'text/moosky';
             script.src = src;
@@ -125,11 +125,11 @@ Moosky.HTML = (
             var sources = [];
 
             function makeScriptElements() {
-                var read = Moosky.Reader.read;
-                var END = Moosky.Reader.END;
-                var compile = Moosky.Compiler.compile;
-                var evaluate = Moosky.Evaluator.evaluate;
-                var Top = Moosky.Top;
+                var read = Scheme.Reader.read;
+                var END = Scheme.Reader.END;
+                var compile = Scheme.Compiler.compile;
+                var evaluate = Scheme.Evaluator.evaluate;
+                var Top = Scheme.Top;
                 var compile = Top.compile;
                 var stringAppend = Top['string-append'];
 
@@ -145,7 +145,7 @@ Moosky.HTML = (
 	            var script = source.script
 	            // This ensures we won't process the script twice.
 	            script.parentNode.removeChild(script);
-	            Moosky(source.text);
+	            Scheme(source.text);
                 }
             }
 
@@ -213,15 +213,15 @@ Moosky.HTML = (
         }
 
         function setLastResult(v) {
-            Moosky.Top[Symbol.munge('_')] = v;
+            Scheme.Top[Symbol.munge('_')] = v;
         }
 
         function setLastException(e) {
-            Moosky.Top[Symbol.munge('!')] = e;
+            Scheme.Top[Symbol.munge('!')] = e;
         }
 
         function setLastInspector(i) {
-            Moosky.Top.$lastInspector = i;
+            Scheme.Top.$lastInspector = i;
         }
 
         function setTemporaries(v, e, i) {
@@ -272,7 +272,7 @@ Moosky.HTML = (
             var titleBar = new Div();
             div.appendChild(titleBar);
             titleBar.id = 'title-bar';
-            titleBar.appendChild(new TextNode('Moosky'));
+            titleBar.appendChild(new TextNode('Scheme'));
             titleBar.style.width = '100%';
             titleBar.style.color = 'white';
             titleBar.style.textAlign = 'center';
@@ -357,20 +357,20 @@ Moosky.HTML = (
             cornerGrip.style.cursor = 'move';
 
             var prompt = '> ';
-            print(Moosky.Top.greeting() + '\n');
+            print(Scheme.Top.greeting() + '\n');
 
             var last = textArea.value.length;
             textArea.focus();
             setTemporaries();
             observe(textArea, 'keydown',
 	            function(event) {
-	                var printSexp = Moosky.Values.Cons.printSexp;
-	                var TokenStream = Moosky.Reader.TokenStream;
-	                var read = Moosky.Reader.read;
-	                var END = Moosky.Reader.END;
-	                var compile = Moosky.Compiler.compile;
-	                var Top = Moosky.Top;
-	                var evaluate = Moosky.Evaluator.evaluate;
+	                var printSexp = Scheme.Values.Cons.printSexp;
+	                var TokenStream = Scheme.Reader.TokenStream;
+	                var read = Scheme.Reader.read;
+	                var END = Scheme.Reader.END;
+	                var compile = Scheme.Compiler.compile;
+	                var Top = Scheme.Top;
+	                var evaluate = Scheme.Evaluator.evaluate;
 
 	                if (event.keyCode == 13) { // RETURN
 		            if (event.preventDefault)
@@ -406,7 +406,7 @@ Moosky.HTML = (
 		                setTemporaries(result);
 
 		            } /*catch(e) {
-		                if (!(e instanceof Moosky.Reader.IncompleteInputError)) {
+		                if (!(e instanceof Scheme.Reader.IncompleteInputError)) {
 		                setTemporaries(undefined, e.exception, e.inspector);
 		                print(e.toString() + '\n', 'red');
 
@@ -422,7 +422,7 @@ Moosky.HTML = (
         function bookmarklet() {
             var dir = window.location.replace(/moosky\.js$/, '');
             for (script in ['preamble.ss', 'r6rs-list.ss'])
-                document.body.appendChild(makeMooskySrcElement(dir + script));
+                document.body.appendChild(makeSchemeSrcElement(dir + script));
 
             compileScripts();
         }
@@ -435,4 +435,4 @@ Moosky.HTML = (
     }
 )();
 
-Moosky.HTML.compileScripts();
+Scheme.HTML.compileScripts();

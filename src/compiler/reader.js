@@ -20,18 +20,18 @@
 //=============================================================================
 
 
-Moosky.Reader = (
+Scheme.Reader = (
     function () {
-        var Values = Moosky.Values;
+        var Values = Scheme.Values;
         var Symbol = Values.Symbol;
         var Keyword = Values.Keyword;
         var Token = Values.Token;
         var Cite = Values.Cite;
         var Javascript = Values.Javascript;
 
-        //  with (Moosky.Runtime.exports) {
+        //  with (Scheme.Runtime.exports) {
         {
-            eval(Moosky.Runtime.importExpression);
+            eval(Scheme.Runtime.importExpression);
 
             function TokenStream(lexemeClasses, str, predicate) {
                 this.lexemeClasses = map(function (lexemeClass) {
@@ -119,15 +119,15 @@ Moosky.Reader = (
                 return null;
             };
 
-            function MooskyTokenStream(str) {
-                TokenStream.call(this, Moosky.Reader.LexemeClasses, str,
+            function SchemeTokenStream(str) {
+                TokenStream.call(this, Scheme.Reader.LexemeClasses, str,
 			         function (token) {
 			             return token.$tag != 'comment' && token.$tag != 'space';
 			         });
             }
 
-            MooskyTokenStream.prototype = new TokenStream([], '');
-            MooskyTokenStream.prototype.constructor = MooskyTokenStream;
+            SchemeTokenStream.prototype = new TokenStream([], '');
+            SchemeTokenStream.prototype.constructor = SchemeTokenStream;
 
             function makeVector(lst) {
                 var v = [];
@@ -265,7 +265,7 @@ Moosky.Reader = (
 
             function parseJavascript(token) {
                 var text = token.$cite.$text;
-                var tokens = new MooskyTokenStream(text);
+                var tokens = new SchemeTokenStream(text);
 
                 var block = token.$lexeme[0] == '#';
                 var components = block ? cons(new Javascript('(function () { return '), nil) : nil;
@@ -411,7 +411,7 @@ Moosky.Reader = (
             var Reader = { read: read,
 		           END: END,
 		           IncompleteInputError: IncompleteInputError,
-		           TokenStream: MooskyTokenStream,
+		           TokenStream: SchemeTokenStream,
 		         };
 
             return Reader;
@@ -419,7 +419,7 @@ Moosky.Reader = (
     }
 )();
 
-Moosky.Reader.LexemeClasses =
+Scheme.Reader.LexemeClasses =
     [ { tag: 'comment',
         regexp: /;.*/ },
 

@@ -20,9 +20,9 @@
 //=============================================================================
 
 
-Moosky.Code = (
+Scheme.Code = (
     function () {
-        var Inspector = Moosky.Inspector;
+        var Inspector = Scheme.Inspector;
 
         function Code(item) {
             return (Inspector.Debug ? Code.debug : Code.bare)[item];
@@ -86,10 +86,10 @@ Moosky.Code = (
 
             Top:
             ['(function () {\n  ',
-             '  var $I = Moosky.Inspector;\n',
+             '  var $I = Scheme.Inspector;\n',
              '  var $C = $I.Citant($I.Sources[<<sourceId>>]);\n',
              '  var $i = $I(null, function(x) { return eval($T(x)); }, $C(<<start>>, <<end>>, <<sexpId>>));\n',
-             '  var $E = Moosky.Values.Exception;\n',
+             '  var $E = Scheme.Values.Exception;\n',
              '  var $A = $I.Abort;\n',
              '  var $T = $A.Compiler;\n',
              '  with (<<namespace>>) {\n',
@@ -103,7 +103,7 @@ Moosky.Code = (
              '})()'].join('')
         };
 
-        var Template = Moosky.Tools.Template;
+        var Template = Scheme.Tools.Template;
 
         for (var p in Code.bare)
             Code.bare[p] = new Template(Code.bare[p]);

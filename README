@@ -237,3 +237,20 @@ thoroughly checked, that bare be used for deployment.  Safe and bare
 have identical api and identical semantics, save for the exceptions
 thrown by safe.  Therefore, code intended for bare deployment should
 not rely on exceptions thrown by safe.
+
+7. Coding Standards
+
+Generally, indentation is with spaces, not tabs. In Javascript/ES6,
+indents are 4 spaces wide. In scheme, they are whatever Emacs/paredit
+indents them to.
+
+7.1 Javascript
+
+Files ending in ".js" are in plain old Javascript, archaic version.
+This project started in 2010 when Node.js was less than a year old,
+when most everything was hand rolled. That style will persist there.
+
+7.2 ES6
+
+ES6 files have the ".mjs" extension and may include modules, classes,
+the arrow operator, const and all that.

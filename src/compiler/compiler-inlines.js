@@ -21,14 +21,14 @@
 
 (
     function () {
-        var InlineTemplate = Moosky.Tools.InlineTemplate;
+        var InlineTemplate = Scheme.Tools.InlineTemplate;
 
-        with (Moosky.Top) {
-            $['symbol?'].inline = new InlineTemplate({ 1: "(<<0>>) instanceof Moosky.Values.Symbol" });
-            $['keyword?'].inline = new InlineTemplate({ 1: "(<<0>>) instanceof Moosky.Values.Keyword" });
-            $['list?'].inline = new InlineTemplate({ 1: "Moosky.Values.Cons.isCons(<<0>>)" });
-            $['null?'].inline = new InlineTemplate({ 1: "(<<0>>) === Moosky.Values.Cons.nil" });
-            cons.inline = new InlineTemplate({ 2: "new Moosky.Values.Cons(<<0>>, <<1>>)" });
+        with (Scheme.Top) {
+            $['symbol?'].inline = new InlineTemplate({ 1: "(<<0>>) instanceof Scheme.Values.Symbol" });
+            $['keyword?'].inline = new InlineTemplate({ 1: "(<<0>>) instanceof Scheme.Values.Keyword" });
+            $['list?'].inline = new InlineTemplate({ 1: "Scheme.Values.Cons.isCons(<<0>>)" });
+            $['null?'].inline = new InlineTemplate({ 1: "(<<0>>) === Scheme.Values.Cons.nil" });
+            cons.inline = new InlineTemplate({ 2: "new Scheme.Values.Cons(<<0>>, <<1>>)" });
             car.inline = new InlineTemplate({ 1: "(<<0>>).$a" });
             cdr.inline = new InlineTemplate({ 1: "(<<0>>).$d" });
             $['set-car!'].inline = new InlineTemplate({ 2: "((<<0>>).$a = (<<1>>))" });
@@ -66,7 +66,7 @@
             cddddr.inline = new InlineTemplate({ 1: "(<<0>>).$d.$d.$d.$d" });
 
             length.inline = new InlineTemplate({ 1: "(<<0>>).length()" });
-            //    append.inline = new InlineTemplate({ 1: "Moosky.Values.Cons.append(<<0>>)",
+            //    append.inline = new InlineTemplate({ 1: "Scheme.Values.Cons.append(<<0>>)",
             //					 '...n':
             reverse.inline = new InlineTemplate({ 1: "(<<0>>).reverse()" });
         }

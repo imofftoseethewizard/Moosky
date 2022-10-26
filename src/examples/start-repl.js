@@ -23,7 +23,7 @@
 var intervalID = window.setInterval(startREPL, 100);
 
 function startREPL() {
-  var divREPL = Moosky.HTML.REPL();
+  var divREPL = Scheme.HTML.REPL();
 
   if (!document.body)
     return;

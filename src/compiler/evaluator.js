@@ -19,7 +19,7 @@
 //
 //=============================================================================
 
-Moosky.Evaluator = (
+Scheme.Evaluator = (
     function () {
         function evaluate(code, options) {
             options = options || { };

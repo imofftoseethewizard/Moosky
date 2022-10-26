@@ -19,7 +19,7 @@
 //
 //=============================================================================
 
-Moosky.Tools = (
+Scheme.Tools = (
     function () {
         function Template(templ) {
             this.$templ = templ;

@@ -19,9 +19,9 @@
 //
 //=============================================================================
 
-Moosky.Values.Safe = (
+Scheme.Values.Safe = (
     function () {
-        var Safe = {}, Bare = Moosky.Values.Bare;
+        var Safe = {}, Bare = Scheme.Values.Bare;
 
         for (var p in Bare)
             Safe[p] = Bare[p];

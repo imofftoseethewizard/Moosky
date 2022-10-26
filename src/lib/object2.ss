@@ -94,7 +94,7 @@
     (for-each (lambda (pair)
                 (let ([k (car pair)]
                       [v (cdr pair)])
-                  { @^(obj)[Moosky.Values.Symbol.munge(''+@^(k))] = @^(v) }))
+                  { @^(obj)[Scheme.Values.Symbol.munge(''+@^(k))] = @^(v) }))
               (if (or (null? L)
                       (list? (car L)))
                   L

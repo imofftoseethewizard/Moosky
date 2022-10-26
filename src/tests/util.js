@@ -20,12 +20,12 @@
 //=============================================================================
 
 (function () {
-    new Module({ name: '$Moosky',
+    new Module({ name: '$Scheme',
 	         exports: {} });
 
 
     new Module({ name: 'Util',
-	         parent: $Moosky,
+	         parent: $Scheme,
 	         exports: { Countdown: Countdown,
 			    Timer: Timer,
 			    Poll: Poll,
@@ -485,9 +485,9 @@
     // Support for code modularization.  makeImportExpression generates a snippet
     // of javascript that when passed to eval, imports values into the current
     // scope.  base should be a string giving an unqualified reference to the
-    // object containing the exports, i.e. '$Moosky.Util' for this file.  exports
+    // object containing the exports, i.e. '$Scheme.Util' for this file.  exports
     // should be a reference to value of the exports member of the object
-    // referred to by base, i.e. $Moosky.Util.exports.  The value of exports
+    // referred to by base, i.e. $Scheme.Util.exports.  The value of exports
     // should be an object whose keys are valid javascript identifiers, and whose
     // values are those to be imported.
     //

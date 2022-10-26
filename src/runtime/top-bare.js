@@ -21,16 +21,16 @@
 
 (
     function () {
-        var Values = Moosky.Values;
+        var Values = Scheme.Values;
         var Symbol = Values.Symbol;
         var Keyword = Values.Keyword;
 
-        //  with (Moosky.Runtime.exports) {
+        //  with (Scheme.Runtime.exports) {
         {
-            eval(Moosky.Runtime.importExpression);
+            eval(Scheme.Runtime.importExpression);
 
-            Moosky.Runtime.Bare.Top = {
-                '$namespace': 'Moosky.Top',
+            Scheme.Runtime.Bare.Top = {
+                '$namespace': 'Scheme.Top',
                 '$nil': nil,
                 'null?': isNull,
                 'list?': isList,
@@ -137,13 +137,13 @@
                 },
 
                 'equal?': function(a, b) {
-	            if (Moosky.Top['eq?'](a, b))
+	            if (Scheme.Top['eq?'](a, b))
 	                return true;
 
 	            if (!isList(a) || !isList(b))
 	                return false;
 
-	            return Moosky.Top['equal?'](car(a), car(b)) && Moosky.Top['equal?'](cdr(a), cdr(b));
+	            return Scheme.Top['equal?'](car(a), car(b)) && Scheme.Top['equal?'](cdr(a), cdr(b));
                 },
 
                 'number?': function(a) {
@@ -155,7 +155,7 @@
                 },
 
                 'real?': function(a) {
-	            return Moosky.Top['number?'](a);
+	            return Scheme.Top['number?'](a);
                 },
 
                 'rational?': function(a) {
@@ -171,7 +171,7 @@
                 },
 
                 'inexact?': function(a) {
-	            return Moosky.Top['number?'](a);
+	            return Scheme.Top['number?'](a);
                 },
 
                 '=': numericComparator('=', function(a, b) { return a == b; }),
@@ -457,7 +457,7 @@
                 })(),
 
                 'range': function (n, m, step) {
-	            return Moosky.Top['vector->list'](range(n, m, step));
+	            return Scheme.Top['vector->list'](range(n, m, step));
                 },
 
                 'apply': function(proc, ___, lst) {
@@ -486,11 +486,11 @@
 	                for (p in handlers)
 	                    handlers[p] = (function(h) { return function(s) { return $force(h(s)); }; })(handlers[p]);
 
-	            return Moosky.HTML.get(url, nil, options);
+	            return Scheme.HTML.get(url, nil, options);
                 },
 
                 compile: function(sexp, module) {
-	            return Moosky.Compiler.compile(sexp, module || Moosky.Top);
+	            return Scheme.Compiler.compile(sexp, module || Scheme.Top);
                 },
 
                 'js-quote': function(str) {
@@ -502,24 +502,24 @@
                 },
 
                 '?>>': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            var insp = Scheme.Top.$lastInspector;
 	            if (insp && insp.children.length > 0)
-	                Moosky.Top.$lastInspector = insp.children[insp.children.length-1];
+	                Scheme.Top.$lastInspector = insp.children[insp.children.length-1];
                 },
 
                 '<<?': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            var insp = Scheme.Top.$lastInspector;
 	            if (insp && insp.inspector)
-	                Moosky.Top.$lastInspector = insp.inspector;
+	                Scheme.Top.$lastInspector = insp.inspector;
                 },
 
                 ':?': function() {
-	            var insp = Moosky.Top.$lastInspector;
+	            var insp = Scheme.Top.$lastInspector;
 	            return insp && insp.citation.content();
                 },
 
                 '?frames': function() {
-	            var topInsp = Moosky.Top.$lastInspector;
+	            var topInsp = Scheme.Top.$lastInspector;
 
 	            if (!topInsp)
 	                return nil;
@@ -540,16 +540,16 @@
                 },
 
                 license: function() {
-	            return Moosky.License;
+	            return Scheme.License;
                 },
 
                 version: function() {
-	            return Moosky.Version;
+	            return Scheme.Version;
                 }
             };
 
-            Moosky.Runtime.Bare.Top.$symbol = Moosky.Runtime.Bare.Top['string->symbol'];
-            Moosky.Runtime.Bare.Top.$js = Moosky.Runtime.Bare.Top['js-quote'];
+            Scheme.Runtime.Bare.Top.$symbol = Scheme.Runtime.Bare.Top['string->symbol'];
+            Scheme.Runtime.Bare.Top.$js = Scheme.Runtime.Bare.Top['js-quote'];
 
         }
     }

@@ -20,20 +20,20 @@
 //=============================================================================
 
 (function () {
-    eval($Moosky.Util.importExpression);
+    eval($Scheme.Util.importExpression);
 
     new Module({ name: 'Test',
-	         parent: $Moosky,
+	         parent: $Scheme,
 	         exports: { PreReq: PreReq,
 			    FilesPreReq: FilesPreReq,
 			    EnvironmentPreReq: EnvironmentPreReq,
-			    MooskyRuntimePreReq: MooskyRuntimePreReq,
-			    MooskyCompilerPreReq: MooskyCompilerPreReq,
+			    SchemeRuntimePreReq: SchemeRuntimePreReq,
+			    SchemeCompilerPreReq: SchemeCompilerPreReq,
 			    Test: Test,
 			    TimedTest: TimedTest,
 			    CompositeTest: CompositeTest,
-			    MooskyRuntimeTest: MooskyRuntimeTest,
-			    MooskyCompilerTest: MooskyCompilerTest,
+			    SchemeRuntimeTest: SchemeRuntimeTest,
+			    SchemeCompilerTest: SchemeCompilerTest,
 			    DataDrivenTestAction: DataDrivenTestAction,
 			    addTest: addTest,
 			    assert: assert,
@@ -108,19 +108,19 @@
         });
     };
 
-    function MooskyRuntimePreReq() {
+    function SchemeRuntimePreReq() {
         EnvironmentPreReq.call(this, { files: ["components/base.js",
 					       "components/values-bare.js",
 					       "components/values.js"] });
     }
 
-    MooskyRuntimePreReq.prototype = new EnvironmentPreReq();
+    SchemeRuntimePreReq.prototype = new EnvironmentPreReq();
 
-    function MooskyCompilerPreReq() {
+    function SchemeCompilerPreReq() {
         EnvironmentPreReq.call(this, { files: ["standalone/compiler-inlining.js" ] });
     }
 
-    MooskyCompilerPreReq.prototype = new EnvironmentPreReq();
+    SchemeCompilerPreReq.prototype = new EnvironmentPreReq();
 
     function Test(options) {
         if (options === undefined)
@@ -212,44 +212,44 @@
     CompositeTest.prototype = new TimedTest();
     CompositeTest.prototype.complete = function() { this.count.down(); };
 
-    function MooskyTest(options) {
+    function SchemeTest(options) {
         if (options === undefined)
             return;
 
         var action = options.action;
         options.action = function() {
-            this.Moosky = this.evaluator('Moosky');
+            this.Scheme = this.evaluator('Scheme');
             action.apply(this, arguments);
         };
 
         TimedTest.call(this, options);
     }
 
-    MooskyTest.prototype = new TimedTest();
+    SchemeTest.prototype = new TimedTest();
 
 
-    function MooskyRuntimeTest(options) {
+    function SchemeRuntimeTest(options) {
         if (options === undefined)
             return;
 
-        (options.prereqs = options.prereqs || []).push(new MooskyRuntimePreReq());
+        (options.prereqs = options.prereqs || []).push(new SchemeRuntimePreReq());
 
-        MooskyTest.call(this, options);
+        SchemeTest.call(this, options);
     }
 
-    MooskyRuntimeTest.prototype = new MooskyTest();
+    SchemeRuntimeTest.prototype = new SchemeTest();
 
 
-    function MooskyCompilerTest(options) {
+    function SchemeCompilerTest(options) {
         if (options === undefined)
             return;
 
-        (options.prereqs = options.prereqs || []).push(new MooskyCompilerPreReq());
+        (options.prereqs = options.prereqs || []).push(new SchemeCompilerPreReq());
 
-        MooskyTest.call(this, options);
+        SchemeTest.call(this, options);
     }
 
-    MooskyCompilerTest.prototype = new MooskyTest();
+    SchemeCompilerTest.prototype = new SchemeTest();
 
 
     //---------------------------------------------------------------------------

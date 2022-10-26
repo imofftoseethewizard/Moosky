@@ -24,16 +24,16 @@
 //
 //
 
-Moosky = (
+Scheme = (
     function () {
         return function (str, env) {
-            var read = Moosky.Reader.read;
-            var END = Moosky.Reader.END;
-            var compile = Moosky.Compiler.compile;
-            var Top = Moosky.Top;
-            var evaluate = Moosky.Evaluator.evaluate;
+            var read = Scheme.Reader.read;
+            var END = Scheme.Reader.END;
+            var compile = Scheme.Compiler.compile;
+            var Top = Scheme.Top;
+            var evaluate = Scheme.Evaluator.evaluate;
 
-            var tokens = new Moosky.Reader.TokenStream(str);
+            var tokens = new Scheme.Reader.TokenStream(str);
 
             var result;
             while (!tokens.finished() && (sexp = read(tokens)) != END) {
@@ -44,13 +44,13 @@ Moosky = (
             }
 
             return result;
-            //      return eval(Moosky.Compiler.compile(Moosky.Reader.read(str), env));
+            //      return eval(Scheme.Compiler.compile(Scheme.Reader.read(str), env));
         };
     }
 )();
 
-Moosky.Version = '0.1';
-Moosky.License = '\
+Scheme.Version = '0.1';
+Scheme.License = '\
 Moosky is free software: you can redistribute it and/or modify \n\
 it under the terms of the GNU General Public License as published by \n\
 the Free Software Foundation, either version 3 of the License, or \n\

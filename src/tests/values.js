@@ -28,18 +28,18 @@
 //=============================================================================
 
 (function () {
-    eval($Moosky.Util.importExpression);
-    eval($Moosky.Test.importExpression);
+    eval($Scheme.Util.importExpression);
+    eval($Scheme.Test.importExpression);
 
     map(
         function (options) {
-            addTest(new MooskyRuntimeTest({ name: options.label + ' unit',
+            addTest(new SchemeRuntimeTest({ name: options.label + ' unit',
 				            action: new DataDrivenTestAction(options) }));
         },
 
         [ { label: 'Character',
 	    applicand: function (ch, str, code) {
-	        var v = new this.Moosky.Values.Character(ch);
+	        var v = new this.Scheme.Values.Character(ch);
 
 	        this.assert(v.toString() == str, 'Character#toString failed for 0x' + ch.charCodeAt(0) +
 			    ': expected "' + str + '" not "' + v.toString() + '"');
@@ -87,7 +87,7 @@
 
 	  { label: 'String',
 	    applicand: function(s, str, code) {
-	        var v = new this.Moosky.Values.String(s);
+	        var v = new this.Scheme.Values.String(s);
 
 	        this.assert(v.toString() == str, 'String#toString failed for 0x' + s +
 			    ': expected "' + str + '" not "' + v.toString() + '"');
@@ -107,7 +107,7 @@
 
 	  { label: 'Symbol',
 	    applicand: function(s, str, code) {
-	        var sym = new this.Moosky.Values.Symbol(s);
+	        var sym = new this.Scheme.Values.Symbol(s);
 
 	        this.assert(sym.toString() == str, 'Symbol#toString failed for ' + s +
 			    ': expected "' + str + '" not "' + sym.toString() + '"');
@@ -148,7 +148,7 @@
 
 	  { label: 'Keyword',
 	    applicand: function(k, str, code) {
-	        var kwd = new this.Moosky.Values.Keyword(k);
+	        var kwd = new this.Scheme.Values.Keyword(k);
 
 	        this.assert(kwd.toString() == str, 'Keyword#toString failed for ' + k +
 			    ': expected "' + str + '" not "' + kwd.toString() + '"');

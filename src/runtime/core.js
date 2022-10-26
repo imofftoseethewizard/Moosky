@@ -21,11 +21,11 @@
 
 (
     function () {
-        var Runtime = Moosky.Runtime;
+        var Runtime = Scheme.Runtime;
         var RuntimeVariant = Runtime.Safe || Runtime.Bare;
         Runtime.exports = RuntimeVariant.exports;
 
-        var imports = ['with (Moosky.Runtime) {'];
+        var imports = ['with (Scheme.Runtime) {'];
         for (var p in Runtime.exports)
             imports.push(['var ', p, ' = exports.', p, ';'].join(''));
 
