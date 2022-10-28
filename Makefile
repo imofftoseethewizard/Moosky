@@ -1,297 +1,339 @@
+BIN	= ${MOOSKY}/bin
+BUILD	= ${MOOSKY}/build
+SRC	= ${MOOSKY}/src
+
+INSTALL ?= ${MOOSKY}/install
+
 .PHONY: all
 all: lib runtimes compilers repls examples
 
 .PHONY: lib
 lib: \
-	src/lib/preamble.ss \
-	src/lib/r6rs-list.ss \
-	src/lib/object.ss \
-	src/lib/hash.ss \
-	src/lib/digraph.ss \
-	src/lib/class.ss \
-	src/lib/module.ss \
-	src/lib/generic-parser.ss \
-	src/lib/simple-markup.ss \
-	src/lib/javascript.ss \
-	src/lib/primitive-syntax.ss \
-	src/lib/macro.ss 
+	${SRC}/lib/preamble.ss \
+	${SRC}/lib/r6rs-list.ss \
+	${SRC}/lib/object.ss \
+	${SRC}/lib/hash.ss \
+	${SRC}/lib/digraph.ss \
+	${SRC}/lib/class.ss \
+	${SRC}/lib/module.ss \
+	${SRC}/lib/generic-parser.ss \
+	${SRC}/lib/simple-markup.ss \
+	${SRC}/lib/javascript.ss \
+	${SRC}/lib/primitive-syntax.ss \
+	${SRC}/lib/macro.ss
 
-	cp $^ build/lib/
+	mkdir -p ${BUILD}/lib
+	cp $^ ${BUILD}/lib/
 
 .PHONY: runtimes
 runtimes: \
-	build/standalone/runtime-bare.js \
-	build/standalone/runtime-safe.js
+	${BUILD}/standalone/runtime-bare.js \
+	${BUILD}/standalone/runtime-safe.js
 
 .PHONY: compilers
 compilers: \
-	build/standalone/compiler.js \
-	build/standalone/compiler-inlining.js
+	${BUILD}/standalone/compiler.js \
+	${BUILD}/standalone/compiler-inlining.js
 
 .PHONY: repls
 repls: \
-	build/standalone/repl.js \
-	build/standalone/repl-inlining.js
+	${BUILD}/standalone/repl.js \
+	${BUILD}/standalone/repl-inlining.js
 
 .PHONY: examples
 examples: \
-	build/examples/naive-repl.html \
-	build/examples/repl.html \
-	build/examples/debug-repl.html
+	${BUILD}/examples/naive-repl.html \
+	${BUILD}/examples/repl.html \
+	${BUILD}/examples/debug-repl.html
 
 .PHONY: tests
 tests: \
-	build/tests/suite.html
+	${BUILD}/tests/suite.html
 
-build/standalone/runtime-bare.js: \
-	src/runtime/base.js \
-	src/runtime/values-bare.js \
-	src/runtime/values.js \
-	src/runtime/core-bare.js \
-	src/runtime/core.js \
-	src/runtime/top-bare.js \
-	src/runtime/top.js
+${BUILD}/modules/runtime-bare.js: \
+	${BUILD}/standalone/runtime-bare.js \
+	${SRC}/util/commonjs-coda.js
 
-	cat $^ | bin/compressor.sh >$@
+	mkdir -p ${BUILD}/modules
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/standalone/runtime-safe.js: \
-	src/runtime/base.js \
-	src/runtime/values-bare.js \
-	src/runtime/values-safe.js \
-	src/runtime/values.js \
-	src/runtime/core-bare.js \
-	src/runtime/core-safe.js \
-	src/runtime/core.js \
-	src/runtime/top-bare.js \
-	src/runtime/top-safe.js \
-	src/runtime/top.js
+${BUILD}/modules/runtime-safe.js: \
+	${BUILD}/standalone/runtime-safe.js \
+	${SRC}/util/commonjs-coda.js
 
-	cat $^ | bin/compressor.sh >$@
+	mkdir -p ${BUILD}/modules
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/standalone/compiler.js: \
-	build/standalone/runtime-safe.js \
-	src/compiler/reader.js \
-	src/compiler/inspector.js \
-	src/compiler/tools.js \
-	src/compiler/compiler-code.js \
-	src/compiler/compiler.js 
+${BUILD}/modules/compiler.js: \
+	${BUILD}/standalone/compiler.js \
+	${SRC}/util/commonjs-coda.js
 
-	cat $^ | bin/compressor.sh >$@
+	mkdir -p ${BUILD}/modules
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/standalone/compiler-inlining.js: \
-	build/standalone/compiler.js \
-	src/compiler/compiler-inlines.js 
+${BUILD}/modules/compiler-inlining.js: \
+	${BUILD}/standalone/compiler-inlining.js \
+	${SRC}/util/commonjs-coda.js
 
-	cat $^ | bin/compressor.sh >$@
+	mkdir -p ${BUILD}/modules
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/standalone/repl-inlining.js: \
-	build/standalone/compiler-inlining.js \
-	src/compiler/evaluator.js \
-	src/compiler/html.js \
-	src/examples/start-repl.js
+${BUILD}/standalone/runtime-bare.js: \
+	${SRC}/runtime/base.js \
+	${SRC}/runtime/values-bare.js \
+	${SRC}/runtime/values.js \
+	${SRC}/runtime/core-bare.js \
+	${SRC}/runtime/core.js \
+	${SRC}/runtime/top-bare.js \
+	${SRC}/runtime/top.js
 
-	cat $^ | bin/compressor.sh >$@
+	mkdir -p ${BUILD}/standalone
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/standalone/repl.js: \
-	build/standalone/compiler.js \
-	src/compiler/evaluator.js \
-	src/compiler/html.js \
-	src/examples/start-repl.js
+${BUILD}/standalone/runtime-safe.js: \
+	${SRC}/runtime/base.js \
+	${SRC}/runtime/values-bare.js \
+	${SRC}/runtime/values-safe.js \
+	${SRC}/runtime/values.js \
+	${SRC}/runtime/core-bare.js \
+	${SRC}/runtime/core-safe.js \
+	${SRC}/runtime/core.js \
+	${SRC}/runtime/top-bare.js \
+	${SRC}/runtime/top-safe.js \
+	${SRC}/runtime/top.js
 
-	cat $^ | bin/compressor.sh >$@
+	mkdir -p ${BUILD}/standalone
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/examples/naive-repl.html : \
-	build/standalone/repl.js \
-	src/examples/naive-repl.html
+${BUILD}/standalone/compiler.js: \
+	${BUILD}/standalone/runtime-safe.js \
+	${SRC}/compiler/reader.js \
+	${SRC}/compiler/inspector.js \
+	${SRC}/compiler/tools.js \
+	${SRC}/compiler/compiler-code.js \
+	${SRC}/compiler/compiler.js
 
-	cp $^ build/examples/
+	mkdir -p ${BUILD}/standalone
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/examples/repl.html : \
-	build/standalone/repl.js \
-	src/examples/repl.html \
-	src/lib/preamble.ss \
-	src/lib/r6rs-list.ss \
-	src/lib/object.ss \
-	src/lib/hash.ss \
-	src/lib/digraph.ss \
-	src/lib/class.ss \
-	src/lib/module.ss \
-	src/lib/generic-parser.ss \
-	src/lib/simple-markup.ss \
-	src/lib/javascript.ss \
-	src/lib/primitive-syntax.ss \
-	src/lib/macro.ss 
+${BUILD}/standalone/compiler-inlining.js: \
+	${BUILD}/standalone/compiler.js \
+	${SRC}/compiler/compiler-inlines.js
 
-	cp $^ build/examples/
+	mkdir -p ${BUILD}/standalone
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/examples/debug-repl.html : \
-	src/runtime/base.js \
-	src/runtime/values-bare.js \
-	src/runtime/values-safe.js \
-	src/runtime/values.js \
-	src/runtime/core-bare.js \
-	src/runtime/core-safe.js \
-	src/runtime/core.js \
-	src/runtime/top-bare.js \
-	src/runtime/top-safe.js \
-	src/runtime/top.js \
-	src/compiler/reader.js \
-	src/compiler/inspector.js \
-	src/compiler/tools.js \
-	src/compiler/compiler-code.js \
-	src/compiler/compiler.js \
-	src/compiler/compiler-inlines.js \
-	src/compiler/evaluator.js \
-	src/compiler/html.js \
-	src/examples/start-repl.js \
-	src/examples/debug-repl.html \
-	src/lib/preamble.ss \
-	src/lib/r6rs-list.ss \
-	src/lib/object.ss \
-	src/lib/hash.ss \
-	src/lib/digraph.ss \
-	src/lib/class.ss \
-	src/lib/module.ss \
-	src/lib/generic-parser.ss \
-	src/lib/simple-markup.ss \
-	src/lib/javascript.ss \
-	src/lib/primitive-syntax.ss \
-	src/lib/macro.ss 
+${BUILD}/standalone/repl-inlining.js: \
+	${BUILD}/standalone/compiler-inlining.js \
+	${SRC}/compiler/evaluator.js \
+	${SRC}/compiler/html.js \
+	${SRC}/examples/start-repl.js
 
-	cp $^ build/examples/
+	mkdir -p ${BUILD}/standalone
+	cat $^ | ${BIN}/compressor.sh >$@
 
-build/tests/suite.html : \
-	src/tests/empty.html \
-	src/tests/util.js \
-	src/tests/platform.js \
-	src/tests/loadable.js \
-	src/tests/values.js \
-	src/tests/language.js \
-	src/tests/platform.ss \
-	src/tests/core.ss \
-	src/tests/lambda.ss \
-	src/tests/suite.html
+${BUILD}/standalone/repl.js: \
+	${BUILD}/standalone/compiler.js \
+	${SRC}/compiler/evaluator.js \
+	${SRC}/compiler/html.js \
+	${SRC}/examples/start-repl.js
 
-	cp $^ build/tests/
+	mkdir -p ${BUILD}/standalone
+	cat $^ | ${BIN}/compressor.sh >$@
+
+${BUILD}/examples/naive-repl.html : \
+	${BUILD}/standalone/repl.js \
+	${SRC}/examples/naive-repl.html
+
+	mkdir -p ${BUILD}/examples
+	cp $^ ${BUILD}/examples/
+
+${BUILD}/examples/repl.html : \
+	${BUILD}/standalone/repl.js \
+	${SRC}/examples/repl.html \
+	${SRC}/lib/preamble.ss \
+	${SRC}/lib/r6rs-list.ss \
+	${SRC}/lib/object.ss \
+	${SRC}/lib/hash.ss \
+	${SRC}/lib/digraph.ss \
+	${SRC}/lib/class.ss \
+	${SRC}/lib/module.ss \
+	${SRC}/lib/generic-parser.ss \
+	${SRC}/lib/simple-markup.ss \
+	${SRC}/lib/javascript.ss \
+	${SRC}/lib/primitive-syntax.ss \
+	${SRC}/lib/macro.ss
+
+	mkdir -p ${BUILD}/examples
+	cp $^ ${BUILD}/examples/
+
+${BUILD}/examples/debug-repl.html : \
+	${SRC}/runtime/base.js \
+	${SRC}/runtime/values-bare.js \
+	${SRC}/runtime/values-safe.js \
+	${SRC}/runtime/values.js \
+	${SRC}/runtime/core-bare.js \
+	${SRC}/runtime/core-safe.js \
+	${SRC}/runtime/core.js \
+	${SRC}/runtime/top-bare.js \
+	${SRC}/runtime/top-safe.js \
+	${SRC}/runtime/top.js \
+	${SRC}/compiler/reader.js \
+	${SRC}/compiler/inspector.js \
+	${SRC}/compiler/tools.js \
+	${SRC}/compiler/compiler-code.js \
+	${SRC}/compiler/compiler.js \
+	${SRC}/compiler/compiler-inlines.js \
+	${SRC}/compiler/evaluator.js \
+	${SRC}/compiler/html.js \
+	${SRC}/examples/start-repl.js \
+	${SRC}/examples/debug-repl.html \
+	${SRC}/lib/preamble.ss \
+	${SRC}/lib/r6rs-list.ss \
+	${SRC}/lib/object.ss \
+	${SRC}/lib/hash.ss \
+	${SRC}/lib/digraph.ss \
+	${SRC}/lib/class.ss \
+	${SRC}/lib/module.ss \
+	${SRC}/lib/generic-parser.ss \
+	${SRC}/lib/simple-markup.ss \
+	${SRC}/lib/javascript.ss \
+	${SRC}/lib/primitive-syntax.ss \
+	${SRC}/lib/macro.ss
+
+	mkdir -p ${BUILD}/examples
+	cp $^ ${BUILD}/examples/
+
+${BUILD}/tests/suite.html : \
+	${SRC}/tests/empty.html \
+	${SRC}/tests/util.js \
+	${SRC}/tests/platform.js \
+	${SRC}/tests/loadable.js \
+	${SRC}/tests/values.js \
+	${SRC}/tests/language.js \
+	${SRC}/tests/platform.ss \
+	${SRC}/tests/core.ss \
+	${SRC}/tests/lambda.ss \
+	${SRC}/tests/suite.html
+
+	mkdir -p ${BUILD}/tests
+	cp $^ ${BUILD}/tests/
 
 .PHONY: install
 install: \
-	install-directories \
+        all \
 	install-lib \
+	install-modules \
 	install-standalone \
 	install-examples \
 	install-tests
 
-.PHONY: install-directories
-install-directories:
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/examples
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/lib
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/standalone
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests
-
-
 .PHONY: install-lib
 install-lib: \
-	build/lib/preamble.ss \
-	build/lib/r6rs-list.ss \
-	build/lib/object.ss \
-	build/lib/hash.ss \
-	build/lib/digraph.ss \
-	build/lib/class.ss \
-	build/lib/module.ss \
-	src/lib/generic-parser.ss \
-	src/lib/simple-markup.ss \
-	src/lib/javascript.ss \
-	src/lib/primitive-syntax.ss \
-	src/lib/macro.ss
+	${BUILD}/lib/preamble.ss \
+	${BUILD}/lib/r6rs-list.ss \
+	${BUILD}/lib/object.ss \
+	${BUILD}/lib/hash.ss \
+	${BUILD}/lib/digraph.ss \
+	${BUILD}/lib/class.ss \
+	${BUILD}/lib/module.ss \
+	${SRC}/lib/generic-parser.ss \
+	${SRC}/lib/simple-markup.ss \
+	${SRC}/lib/javascript.ss \
+	${SRC}/lib/primitive-syntax.ss \
+	${SRC}/lib/macro.ss
 
-	cp $^ $(MOOSKY_INSTALL_TARGET)/lib/
+	mkdir -p ${INSTALL}/lib
+	cp $^ $(INSTALL)/lib/
 
+
+.PHONY: install-modules
+install-modules: \
+	${BUILD}/modules/runtime-bare.js \
+	${BUILD}/modules/runtime-safe.js \
+	${BUILD}/modules/compiler.js \
+	${BUILD}/modules/compiler-inlining.js
+
+	mkdir -p ${INSTALL}/modules
+	cp ${BUILD}/modules/* $(INSTALL)/modules/
 
 .PHONY: install-standalone
 install-standalone: \
-	build/standalone/runtime-bare.js \
-	build/standalone/runtime-safe.js \
-	build/standalone/compiler.js \
-	build/standalone/compiler-inlining.js \
-	build/standalone/repl.js
+	${BUILD}/standalone/runtime-bare.js \
+	${BUILD}/standalone/runtime-safe.js \
+	${BUILD}/standalone/compiler.js \
+	${BUILD}/standalone/compiler-inlining.js \
+	${BUILD}/standalone/repl.js
 
-	cp build/standalone/* $(MOOSKY_INSTALL_TARGET)/standalone/
-
+	mkdir -p ${INSTALL}/standalone
+	cp ${BUILD}/standalone/* $(INSTALL)/standalone/
 
 .PHONY: install-examples
 install-examples: \
-	build/examples/naive-repl.html \
-	build/examples/repl.html \
-	build/examples/debug-repl.html 
+	${BUILD}/examples/naive-repl.html \
+	${BUILD}/examples/repl.html \
+	${BUILD}/examples/debug-repl.html
 
-	cp build/examples/* $(MOOSKY_INSTALL_TARGET)/examples/
-
-.PHONY: install-test-directories
-install-test-directories:
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests/components
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests/lib
-	mkdir -p $(MOOSKY_INSTALL_TARGET)/tests/standalone
+	mkdir -p ${INSTALL}/examples
+	cp ${BUILD}/examples/* $(INSTALL)/examples/
 
 .PHONY: install-test-components
 install-test-components: \
-	src/runtime/base.js \
-	src/runtime/values-bare.js \
-	src/runtime/values-safe.js \
-	src/runtime/values.js \
-	src/runtime/core-bare.js \
-	src/runtime/core-safe.js \
-	src/runtime/core.js \
-	src/runtime/top-bare.js \
-	src/runtime/top-safe.js \
-	src/runtime/top.js \
-	src/compiler/reader.js \
-	src/compiler/inspector.js \
-	src/compiler/tools.js \
-	src/compiler/compiler-code.js \
-	src/compiler/compiler.js \
-	src/compiler/compiler-inlines.js \
-	src/compiler/evaluator.js \
-	src/compiler/html.js
+	${SRC}/runtime/base.js \
+	${SRC}/runtime/values-bare.js \
+	${SRC}/runtime/values-safe.js \
+	${SRC}/runtime/values.js \
+	${SRC}/runtime/core-bare.js \
+	${SRC}/runtime/core-safe.js \
+	${SRC}/runtime/core.js \
+	${SRC}/runtime/top-bare.js \
+	${SRC}/runtime/top-safe.js \
+	${SRC}/runtime/top.js \
+	${SRC}/compiler/reader.js \
+	${SRC}/compiler/inspector.js \
+	${SRC}/compiler/tools.js \
+	${SRC}/compiler/compiler-code.js \
+	${SRC}/compiler/compiler.js \
+	${SRC}/compiler/compiler-inlines.js \
+	${SRC}/compiler/evaluator.js \
+	${SRC}/compiler/html.js
 
-	cp $^ $(MOOSKY_INSTALL_TARGET)/tests/components/
-
+	mkdir -p ${INSTALL}/tests/components
+	cp $^ $(INSTALL)/tests/components/
 
 .PHONY: install-test-lib
 install-test-lib: \
-	build/lib/preamble.ss \
-	build/lib/module.ss \
-	build/lib/r6rs-list.ss \
+	${BUILD}/lib/preamble.ss \
+	${BUILD}/lib/module.ss \
+	${BUILD}/lib/r6rs-list.ss \
 
-	cp $^ $(MOOSKY_INSTALL_TARGET)/tests/lib/
-
+	mkdir -p ${INSTALL}/tests/lib
+	cp $^ $(INSTALL)/tests/lib/
 
 .PHONY: install-test-standalone
 install-test-standalone: \
-	build/standalone/runtime-bare.js \
-	build/standalone/runtime-safe.js \
-	build/standalone/compiler.js \
-	build/standalone/compiler-inlining.js \
-	build/standalone/repl.js
+	${BUILD}/standalone/runtime-bare.js \
+	${BUILD}/standalone/runtime-safe.js \
+	${BUILD}/standalone/compiler.js \
+	${BUILD}/standalone/compiler-inlining.js \
+	${BUILD}/standalone/repl.js
 
-	cp $^ $(MOOSKY_INSTALL_TARGET)/tests/standalone/
-
+	mkdir -p ${INSTALL}/tests/standalone
+	cp $^ $(INSTALL)/tests/standalone/
 
 .PHONY: install-tests
-install-tests: install-test-directories \
+install-tests: \
 	install-test-components \
 	install-test-lib \
 	install-test-standalone \
-	build/tests/suite.html
+	${BUILD}/tests/suite.html
 
-	cp build/tests/*.* $(MOOSKY_INSTALL_TARGET)/tests/
-
-
+	mkdir -p ${INSTALL}/tests
+	cp ${BUILD}/tests/*.* $(INSTALL)/tests/
 
 .PHONY: clean
-clean: 
-	bin/clean-build.sh
+clean:
+	rm -rf ${BUILD}
 
 .PHONY: update
 update: all install
-
